@@ -51,3 +51,9 @@ We welcome contributions to expand the iFLYTEK skills ecosystem!
 ## 📄 License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
+
+## 💬 Community
+
+Join the Astron Open Source Community (WeCom Group) to discuss and collaborate:
+
+<img src="https://github.com/iflytek/astron-agent/raw/main/docs/imgs/WeCom_Group.png" alt="WeCom Group" width="300" />
