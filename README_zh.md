@@ -51,3 +51,9 @@
 ## 📄 许可证
 
 本项目基于 [Apache License 2.0](LICENSE) 协议开源。
+
+## 💬 社区交流
+
+欢迎加入 Astron 开源交流群（企业微信），与我们交流与合作：
+
+<img src="https://github.com/iflytek/astron-agent/raw/main/docs/imgs/WeCom_Group.png" alt="加入 Astron 开源交流群" width="300" />
