@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "skill_type": "workflow",
+  "category": "document-processing",
+  "tags": [
+    "contract",
+    "review",
+    "risk-detection",
+    "ocr",
+    "compliance",
+    "bilingual",
+    "workflow"
+  ],
+  "runtime": "python",
+  "entry_point": "scripts/main.py",
+  "supported_platforms": ["darwin", "linux", "win32"],
+  "requirements": {
+    "python": ">=3.9"
+  },
+  "author": {
+    "name": "iFlytek"
+  },
+  "license": "MIT"
+}

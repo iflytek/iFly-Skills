@@ -1,0 +1,97 @@
+{
+  "$schema": "contract-review-output-v1",
+  "meta": {
+    "generated_at": "{{generated_at}}",
+    "skill_version": "1.0.0",
+    "skill_name": "contract-intelligence-review"
+  },
+  "document_meta": {
+    "filename": "{{filename}}",
+    "input_type": "{{input_type}}",
+    "extraction_method": "{{extraction_method}}",
+    "language": "{{language}}",
+    "review_mode": "{{review_mode}}",
+    "focus": ["{{focus}}"]
+  },
+  "extraction_quality": {
+    "text_length": {{text_length}},
+    "confidence": {{confidence}},
+    "uncertain_regions": [
+      {{#each uncertain_regions}}
+      {
+        "page": {{page}},
+        "region": "{{region}}",
+        "reason": "{{reason}}"
+      }
+      {{/each}}
+    ]
+  },
+  "clauses": [
+    {{#each clauses}}
+    {
+      "id": "{{id}}",
+      "clause_id": {{clause_id}},
+      "title": "{{title}}",
+      "content": "{{content}}",
+      "category": "{{category}}",
+      "char_count": {{char_count}}
+    }{{#unless @last}},{{/unless}}
+    {{/each}}
+  ],
+  "risks": [
+    {{#each risks}}
+    {
+      "id": "{{id}}",
+      "category": "{{category}}",
+      "level": "{{level}}",
+      "title": "{{title}}",
+      "description": "{{description}}",
+      "source": "{{source}}",
+      "evidence": "{{evidence}}",
+      "suggestion": "{{suggestion}}",
+      "clause_id": "{{clause_id}}"
+    }{{#unless @last}},{{/unless}}
+    {{/each}}
+  ],
+  "compliance_issues": [
+    {{#each compliance_issues}}
+    {
+      "id": "{{id}}",
+      "type": "{{type}}",
+      "severity": "{{severity}}",
+      "title": "{{title}}",
+      "description": "{{description}}",
+      "location": "{{location}}",
+      "suggestion": "{{suggestion}}",
+      "clause_id": "{{clause_id}}"
+    }{{#unless @last}},{{/unless}}
+    {{/each}}
+  ],
+  "bilingual_issues": [
+    {{#each bilingual_issues}}
+    {
+      "id": "{{id}}",
+      "clause_id": "{{clause_id}}",
+      "issue_type": "{{issue_type}}",
+      "severity": "{{severity}}",
+      "title": "{{title}}",
+      "source_text": "{{source_text}}",
+      "target_text": "{{target_text}}",
+      "description": "{{description}}",
+      "suggestion": "{{suggestion}}"
+    }{{#unless @last}},{{/unless}}
+    {{/each}}
+  ],
+  "translation_summary": "{{translation_summary}}",
+  "uncertain_items": [
+    {{#each uncertain_items}}
+    "{{this}}"{{#unless @last}},{{/unless}}
+    {{/each}}
+  ],
+  "human_review_required": [
+    {{#each human_review_required}}
+    "{{this}}"{{#unless @last}},{{/unless}}
+    {{/each}}
+  ],
+  "final_summary": "{{final_summary}}"
+}
