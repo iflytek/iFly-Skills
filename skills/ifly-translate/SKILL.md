@@ -1,6 +1,10 @@
 ---
 name: ifly-translate
 description: iFlytek Machine Translation (机器翻译) — translate text between Chinese, English, Japanese, Korean, French, Spanish, German, Russian, Arabic, Thai, Vietnamese, and many more languages. Use when the user wants to translate text. Pure Python stdlib, no pip dependencies.
+metadata: {
+  "homepage": "https://www.xfyun.cn/services/machine_translation",
+  "openclaw": "{\"emoji\":\"🌐\",\"dimensions\":[\"机器翻译\",\"多语言翻译\"],\"user_instructions\":[\"把这段话翻译成英文\",\"翻译成中文\",\"帮我翻译一下\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"XFYUN_APP_ID\",\"XFYUN_API_KEY\",\"XFYUN_API_SECRET\"]},\"primaryEnv\":\"XFYUN_API_KEY\"}"
+}
 ---
 
 # ifly-translate

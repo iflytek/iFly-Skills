@@ -1,6 +1,10 @@
 ---
 name: ifly-pdf-image-ocr
 description: ifly-pdf-image-ocr skill supporting both image OCR (AI-powered LLM OCR) and PDF document recognition. Use when user asks to OCR images, extract text from images/PDFs, convert PDF to Word/Markdown, or perform any OCR tasks on images or PDFs. Supports multi-language text extraction, document layout understanding, and various output formats.
+metadata: {
+  "homepage": "https://www.xfyun.cn/services/ocr",
+  "openclaw": "{\"emoji\":\"📄\",\"dimensions\":[\"文档OCR\",\"PDF识别\"],\"user_instructions\":[\"OCR这个PDF\",\"提取图片中的文字\",\"帮我把这个文档转成文字\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"IFLY_APP_ID\",\"IFLY_API_KEY\",\"IFLY_API_SECRET\"]},\"primaryEnv\":\"IFLY_API_KEY\"}"
+}
 ---
 
 # ifly-pdf-image-ocr

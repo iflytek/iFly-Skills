@@ -1,6 +1,10 @@
 ---
 name: ifly-ocr-invoice
 description: Use when user asks to recognize invoices, extract receipt data, or OCR bills and tickets. Recognize and extract structured data from invoices, receipts, and bills using iFlytek OCR API (科大讯飞票据识别). Supports VAT invoices, taxi receipts, train tickets, toll invoices, medical bills, bank receipts, and more.
+metadata: {
+  "homepage": "https://www.xfyun.cn/services/ocr",
+  "openclaw": "{\"emoji\":\"🧾\",\"dimensions\":[\"票据识别\",\"发票OCR\"],\"user_instructions\":[\"识别这张发票\",\"提取发票信息\",\"帮我OCR这张票据\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"XFYUN_APP_ID\",\"XFYUN_API_KEY\",\"XFYUN_API_SECRET\"]},\"primaryEnv\":\"XFYUN_API_KEY\"}"
+}
 ---
 
 # ifly-ocr-invoice

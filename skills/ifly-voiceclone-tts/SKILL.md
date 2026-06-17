@@ -1,6 +1,10 @@
 ---
 name: ifly-voiceclone-tts
 description: "Use when user asks to clone a voice, train a custom voice model, or synthesize speech with a cloned voice. iFlytek Voice Clone tts(声音复刻) — train a custom voice model from audio samples and synthesize speech with the cloned voice. Supports the full workflow: get training text → create task → upload audio → submit training → poll results → synthesize with cloned voice. Pure Python stdlib, no pip dependencies."
+metadata: {
+  "homepage": "https://www.xfyun.cn/services/voice_clone",
+  "openclaw": "{\"emoji\":\"🎭\",\"dimensions\":[\"声音复刻\",\"语音克隆\"],\"user_instructions\":[\"帮我克隆这个声音\",\"用他的声音说这段话\",\"声音复刻\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"IFLY_APP_ID\",\"IFLY_API_KEY\",\"IFLY_API_SECRET\"]},\"primaryEnv\":\"IFLY_API_KEY\"}"
+}
 ---
 
 # ifly-voiceclone-tts
