@@ -1,18 +1,9 @@
 ---
 name: ifly-hyper-tts
-description: 讯飞超拟人语音合成 - 支持文本转语音、语音合成（发音人/语速/语调/音量/输出格式）。大模型语音合成技能。语音合成, 文字转语音, 超拟人, TTS. 用户指令如"把这段文案读出来"时使用此Skill。
-homepage: https://www.xfyun.cn/doc/spark/super%20smart-tts.html
+description: Use when user asks to synthesize speech, convert text to audio, or read text aloud. 讯飞超拟人语音合成 - 支持文本转语音、语音合成（发音人/语速/语调/音量/输出格式）。大模型语音合成技能。语音合成, 文字转语音, 超拟人, TTS.
 metadata: {
-  "openclaw": {
-    "emoji": "🎙️",
-    "dimensions": ["超拟人合成 Skill", "超拟人合成（大模型）"],
-    "user_instructions": ["把这段文案读出来", "读出这段文字", "把这段话转语音"],
-    "requires": {
-      "bins": ["python3"],
-      "env": ["XFEI_APP_ID", "XFEI_API_KEY", "XFEI_API_SECRET"]
-    },
-    "primaryEnv": "XFEI_API_KEY"
-  }
+  "homepage": "https://www.xfyun.cn/doc/spark/super%20smart-tts.html",
+  "openclaw": "{\"emoji\":\"🎙️\",\"dimensions\":[\"超拟人合成 Skill\",\"超拟人合成（大模型）\"],\"user_instructions\":[\"把这段文案读出来\",\"读出这段文字\",\"把这段话转语音\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"XFEI_APP_ID\",\"XFEI_API_KEY\",\"XFEI_API_SECRET\"]},\"primaryEnv\":\"XFEI_API_KEY\"}"
 }
 ---
 
@@ -273,7 +264,7 @@ Metadata: {"AIGC":{
 ### 1. 安装依赖
 
 ```bash
-pip install websocket-client
+pip install websocket-client>=1.6.0
 ```
 
 ### 2. 获取API凭证

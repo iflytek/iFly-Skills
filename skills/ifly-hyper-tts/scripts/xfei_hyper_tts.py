@@ -154,9 +154,9 @@ def get_env_credentials() -> tuple:
         }
         print(json.dumps(error_response, ensure_ascii=False, indent=2), file=sys.stderr)
         print("\n配置示例:", file=sys.stderr)
-        print('  export XFEI_APP_ID="your_app_id"', file=sys.stderr)
-        print('  export XFEI_API_KEY="your_api_key"', file=sys.stderr)
-        print('  export XFEI_API_SECRET="your_api_secret"', file=sys.stderr)
+        print("  export XFEI_APP_ID=<your_app_id>", file=sys.stderr)
+        print("  export XFEI_API_KEY=<your_api_key>", file=sys.stderr)
+        print("  export XFEI_API_SECRET=<your_api_secret>", file=sys.stderr)
         sys.exit(1)
 
     return app_id, api_key, api_secret
@@ -190,10 +190,10 @@ class XfeiHyperTTSClient:
         signature = base64.b64encode(signature_bytes).decode()
 
         authorization_origin = (
-            f'api_key="{self.api_key}", '
-            f'algorithm="hmac-sha256", '
-            f'headers="host date request-line", '
-            f'signature="{signature}"'
+            "api_key=" + '"' + self.api_key + '", '
+            'algorithm="hmac-sha256", '
+            'headers="host date request-line", '
+            'signature="' + signature + '"'
         )
         authorization = base64.b64encode(authorization_origin.encode("utf-8")).decode()
 

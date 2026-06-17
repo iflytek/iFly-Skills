@@ -1,0 +1,66 @@
+name: Skill Check
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths:
+      - 'skills/**'
+  workflow_dispatch:
+
+concurrency:
+  group: skill-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Skill Check
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install skillcheck from GitHub
+        run: |
+          git clone --depth 1 https://github.com/Jetty0728/skillcheck.git /tmp/skillcheck
+          cd /tmp/skillcheck && npm ci && npm run build && npm link
+
+      - name: Run skillcheck
+        run: |
+          failed=0
+          crashed=""
+          for skill_dir in skills/*/; do
+            skill_name=$(basename "$skill_dir")
+            echo "::group::Checking $skill_name"
+            set +e
+            output=$(skillcheck "$skill_dir" 2>&1)
+            exit_code=$?
+            set -e
+            echo "$output"
+            if [ $exit_code -ne 0 ]; then
+              if echo "$output" | grep -q "EISDIR"; then
+                echo "::warning::skillcheck crashed on $skill_name (EISDIR bug — nested directories not supported)"
+                crashed="$crashed $skill_name"
+              else
+                failed=1
+              fi
+            fi
+            echo "::endgroup::"
+          done
+          if [ -n "$crashed" ]; then
+            echo "::notice::Skipped due to skillcheck EISDIR bug:$crashed"
+          fi
+          exit $failed

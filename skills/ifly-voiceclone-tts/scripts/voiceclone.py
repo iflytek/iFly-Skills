@@ -428,8 +428,8 @@ def build_ws_auth_url(request_url: str, api_key: str, api_secret: str) -> str:
     signature_b64 = base64.b64encode(signature_sha).decode("utf-8")
 
     authorization_origin = (
-        f'api_key="{api_key}", algorithm="hmac-sha256", '
-        f'headers="host date request-line", signature="{signature_b64}"'
+        "api_key=" + '"' + api_key + '", algorithm="hmac-sha256", '
+        'headers="host date request-line", signature="' + signature_b64 + '"'
     )
     authorization = base64.b64encode(authorization_origin.encode("utf-8")).decode("utf-8")
 

@@ -1,9 +1,9 @@
 ---
-name: ifly-pdf&image-ocr
-description: ifly-pdf&image-ocr skill supporting both image OCR (AI-powered LLM OCR) and PDF document recognition. Use when user asks to OCR images, extract text from images/PDFs, convert PDF to Word/Markdown, or perform any OCR tasks on images or PDFs. Supports multi-language text extraction, document layout understanding, and various output formats.
+name: ifly-pdf-image-ocr
+description: ifly-pdf-image-ocr skill supporting both image OCR (AI-powered LLM OCR) and PDF document recognition. Use when user asks to OCR images, extract text from images/PDFs, convert PDF to Word/Markdown, or perform any OCR tasks on images or PDFs. Supports multi-language text extraction, document layout understanding, and various output formats.
 ---
 
-# ifly-pdf&image-ocr
+# ifly-pdf-image-ocr
 
 AI-powered OCR service for images and PDF documents using iFlytek's advanced recognition APIs.
 

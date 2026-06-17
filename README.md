@@ -19,20 +19,22 @@ Currently, the repository provides the following ready-to-use AI skills:
 
 | Skill Name | Description | Directory |
 |------------|-------------|-----------|
-| **Hyper TTS** | Ultra-realistic text-to-speech synthesis with advanced voice control. | [`ifly-hyper-tts`](./ifly-hyper-tts) |
-| **Image Understanding** | Multimodal capability to analyze and understand image contents. | [`ifly-image-understanding`](./ifly-image-understanding) |
-| **Invoice OCR** | Specialized OCR for extracting structured data from invoices. | [`ifly-ocr-invoice`](./ifly-ocr-invoice) |
-| **PDF/Image OCR** | General optical character recognition for documents and images. | [`ifly-pdf-image-ocr`](./ifly-pdf-image-ocr) |
-| **Speed Transcription** | High-speed audio transcription for voice-to-text scenarios. | [`ifly-speed-transcription`](./ifly-speed-transcription) |
-| **Text Proofread** | Intelligent text proofreading, error detection, and correction. | [`ifly-text-proofread`](./ifly-text-proofread) |
-| **Machine Translation** | High-quality, multi-language translation capabilities. | [`ifly-translate`](./ifly-translate) |
-| **Voice Clone TTS** | Voice cloning technology for customized text-to-speech generation. | [`ifly-voiceclone-tts`](./ifly-voiceclone-tts) |
+| **Hyper TTS** | Ultra-realistic text-to-speech synthesis with advanced voice control. | [`ifly-hyper-tts`](./skills/ifly-hyper-tts) |
+| **Image Understanding** | Multimodal capability to analyze and understand image contents. | [`ifly-image-understanding`](./skills/ifly-image-understanding) |
+| **Invoice OCR** | Specialized OCR for extracting structured data from invoices. | [`ifly-ocr-invoice`](./skills/ifly-ocr-invoice) |
+| **PDF/Image OCR** | General optical character recognition for documents and images. | [`ifly-pdf-image-ocr`](./skills/ifly-pdf-image-ocr) |
+| **Speed Transcription** | High-speed audio transcription for voice-to-text scenarios. | [`ifly-speed-transcription`](./skills/ifly-speed-transcription) |
+| **Text Proofread** | Intelligent text proofreading, error detection, and correction. | [`ifly-text-proofread`](./skills/ifly-text-proofread) |
+| **Machine Translation** | High-quality, multi-language translation capabilities. | [`ifly-translate`](./skills/ifly-translate) |
+| **Video Translate** | AI-powered video translation with dubbing and multilingual localization. | [`ifly-video-translate`](./skills/ifly-video-translate) |
+| **Voice Clone TTS** | Voice cloning technology for customized text-to-speech generation. | [`ifly-voiceclone-tts`](./skills/ifly-voiceclone-tts) |
+| **Contract Intelligence Review** | Intelligent contract review covering OCR, clause analysis, risk detection, and compliance. | [`ifly-contract-intelligence-review`](./skills/ifly-contract-intelligence-review) |
 
 ## 🛠️ Usage
 
 Each skill is packaged in its own directory containing specific instructions, scripts, and metadata. To use a specific skill:
 
-1. Navigate to the target skill's directory (e.g., `cd ifly-hyper-tts`).
+1. Navigate to the target skill's directory (e.g., `cd skills/ifly-hyper-tts`).
 2. Read the `SKILL.md` file for detailed API documentation, required environment variables (e.g., `XFEI_APP_ID`, `XFEI_API_KEY`, `XFEI_API_SECRET`), and usage examples.
 3. Use the provided Python scripts or integrate the capability into your own agent workflow.
 

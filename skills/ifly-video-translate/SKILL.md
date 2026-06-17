@@ -1,16 +1,9 @@
 ---
-name: xfei-video-translate
-description: Translate videos with AI-powered dubbing using iFlytek (Xfei) Video Translation API. Supports video language translation, voice dubbing, multilingual video localization, 视频翻译, 视频配音, 视频本地化. Features task creation, task list, task details retrieval. Ideal for content creators and localization teams.
-homepage: https://www.xfyun.cn/doc/Develop/Video_Translation
+name: ifly-video-translate
+description: Use when user asks to translate videos, dub video content, or localize videos into other languages. Translate videos with AI-powered dubbing using iFlytek (Xfei) Video Translation API. Supports video language translation, voice dubbing, multilingual video localization, 视频翻译, 视频配音, 视频本地化. Features task creation, task list, task details retrieval. Ideal for content creators and localization teams.
 metadata: {
-  "openclaw": {
-    "emoji": "🎬",
-    "requires": {
-      "bins": ["python3"],
-      "env": ["XFYUN_API_KEY", "XFYUN_API_SECRET"]
-    },
-    "primaryEnv": "XFYUN_API_KEY"
-  }
+  "homepage": "https://www.xfyun.cn/doc/Develop/Video_Translation",
+  "openclaw": "{\"emoji\":\"🎬\",\"requires\":{\"bins\":[\"python3\"],\"env\":[\"XFYUN_API_KEY\",\"XFYUN_API_SECRET\"]},\"primaryEnv\":\"XFYUN_API_KEY\"}"
 }
 ---
 
@@ -89,7 +82,7 @@ python3 scripts/xfei_video_translate.py --action get_task \
 ### 1. Install Dependency
 
 ```bash
-pip install requests
+pip install requests>=2.31.0
 ```
 
 ### 2. Configure Environment Variables

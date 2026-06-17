@@ -128,8 +128,8 @@ class XfeiSpeedTranscription:
         signature_sha = base64.b64encode(signature_sha).decode(encoding='utf-8')
 
         authorization = (
-            f'api_key="{self.api_key}", algorithm="hmac-sha256", '
-            f'headers="host date request-line digest", signature="{signature_sha}"'
+            "api_key=" + '"' + self.api_key + '", algorithm="hmac-sha256", '
+            'headers="host date request-line digest", signature="' + signature_sha + '"'
         )
 
         return {

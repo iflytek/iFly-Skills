@@ -1,0 +1,69 @@
+name: Skill Lint
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths:
+      - 'skills/**'
+  workflow_dispatch:
+
+concurrency:
+  group: skill-lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  lint:
+    name: Skill Linter
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build skill paths
+        id: paths
+        run: |
+          skill_paths=$(find skills -mindepth 1 -maxdepth 1 -type d | tr '\n' ' ')
+          echo "paths=$skill_paths" >> "$GITHUB_OUTPUT"
+
+      - name: Run skill-linter (SARIF)
+        id: lint
+        run: |
+          set +e
+          npx skill-linter@latest check ${{ steps.paths.outputs.paths }} \
+            --format sarif > skill-linter-results.sarif 2>/dev/null
+          exit_code=$?
+          set -e
+          echo "sarif-file=$(realpath skill-linter-results.sarif)" >> "$GITHUB_OUTPUT"
+          # Exit 0 (clean) and 1 (issues found) both produce valid SARIF
+          if [ $exit_code -le 1 ]; then
+            echo "Lint completed with results"
+          else
+            echo "::error::skill-linter exited with code $exit_code"
+            exit $exit_code
+          fi
+
+      - name: Upload SARIF to GitHub Security tab
+        if: always() && steps.lint.outputs.sarif-file != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.lint.outputs.sarif-file }}
+
+      - name: Run skill-linter (text report)
+        run: |
+          npx skill-linter@latest check ${{ steps.paths.outputs.paths }} \
+            --format github || true
