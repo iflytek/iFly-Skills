@@ -7,74 +7,30 @@ on:
       - "skills/**"
   workflow_dispatch:
     inputs:
-      skill:
-        description: "Skill name to publish (leave empty for all)"
+      skill_path:
+        description: "Path to a single skill folder (e.g. skills/ifly-translate). Leave empty to publish all."
         required: false
         default: ""
-      version:
-        description: "Version override (e.g. 1.1.0, leave empty for auto)"
+      dry_run:
+        description: "Dry run — preview without actually publishing"
         required: false
-        default: ""
-
-concurrency:
-  group: publish-clawhub-${{ github.ref }}
-  cancel-in-progress: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
     name: Publish Skills to ClawHub
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - name: Install ClawHub CLI
-        run: npm i -g clawhub
-
-      - name: Authenticate with ClawHub
-        run: clawhub login --token "${{ secrets.CLAWHUB_TOKEN }}" --no-input
-
-      - name: Verify ClawHub auth
-        run: clawhub whoami
-
-      - name: Determine skills to publish
-        id: skills
-        run: |
-          if [ -n "${{ github.event.inputs.skill }}" ]; then
-            echo "list=skills/${{ github.event.inputs.skill }}" >> "$GITHUB_OUTPUT"
-          else
-            # Publish all skills
-            list=$(find skills -maxdepth 1 -mindepth 1 -type d | sort | tr '\n' ' ')
-            echo "list=$list" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Publish skills to ClawHub
-        env:
-          OWNER: iflytek.skills
-          VERSION_OVERRIDE: ${{ github.event.inputs.version }}
-        run: |
-          failed=0
-          for skill_dir in ${{ steps.skills.outputs.list }}; do
-            skill_name=$(basename "$skill_dir")
-            echo "::group::Publishing $skill_name"
-            cmd="clawhub skill publish $skill_dir --owner $OWNER --no-input"
-            if [ -n "$VERSION_OVERRIDE" ]; then
-              cmd="$cmd --version $VERSION_OVERRIDE"
-            fi
-            echo "Running: $cmd"
-            if ! eval "$cmd"; then
-              echo "::error::Failed to publish $skill_name"
-              failed=1
-            fi
-            echo "::endgroup::"
-          done
-          exit $failed
+    uses: openclaw/clawhub/.github/workflows/skill-publish.yml@main
+    with:
+      root: skills
+      owner: iflytek.skills
+      dry_run: ${{ github.event.inputs.dry_run == 'true' }}
+      skill_path: ${{ github.event.inputs.skill_path }}
+      registry: https://clawhub.ai
+      site: https://clawhub.ai
+    secrets:
+      clawhub_token: ${{ secrets.CLAWHUB_TOKEN }}
