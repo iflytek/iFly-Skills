@@ -59,7 +59,7 @@ jobs:
 
       - name: Upload SARIF to GitHub Security tab
         if: always() && steps.lint.outputs.sarif-file != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ steps.lint.outputs.sarif-file }}
 
