@@ -19,22 +19,22 @@ Currently, the repository provides the following ready-to-use AI skills:
 
 | Skill Name | Description | Directory |
 |------------|-------------|-----------|
-| **Hyper TTS** | Ultra-realistic text-to-speech synthesis with advanced voice control. | [`ifly-hyper-tts`](./skills/ifly-hyper-tts) |
-| **Image Understanding** | Multimodal capability to analyze and understand image contents. | [`ifly-image-understanding`](./skills/ifly-image-understanding) |
-| **Invoice OCR** | Specialized OCR for extracting structured data from invoices. | [`ifly-ocr-invoice`](./skills/ifly-ocr-invoice) |
-| **PDF/Image OCR** | General optical character recognition for documents and images. | [`ifly-pdf-image-ocr`](./skills/ifly-pdf-image-ocr) |
-| **Speed Transcription** | High-speed audio transcription for voice-to-text scenarios. | [`ifly-speed-transcription`](./skills/ifly-speed-transcription) |
-| **Text Proofread** | Intelligent text proofreading, error detection, and correction. | [`ifly-text-proofread`](./skills/ifly-text-proofread) |
-| **Machine Translation** | High-quality, multi-language translation capabilities. | [`ifly-translate`](./skills/ifly-translate) |
-| **Video Translate** | AI-powered video translation with dubbing and multilingual localization. | [`ifly-video-translate`](./skills/ifly-video-translate) |
-| **Voice Clone TTS** | Voice cloning technology for customized text-to-speech generation. | [`ifly-voiceclone-tts`](./skills/ifly-voiceclone-tts) |
-| **Contract Intelligence Review** | Intelligent contract review covering OCR, clause analysis, risk detection, and compliance. | [`ifly-contract-intelligence-review`](./skills/ifly-contract-intelligence-review) |
+| **Hyper TTS** | Ultra-realistic text-to-speech synthesis with advanced voice control. | [`iflytek-hyper-tts`](./skills/iflytek-hyper-tts) |
+| **Image Understanding** | Multimodal capability to analyze and understand image contents. | [`iflytek-image-understanding`](./skills/iflytek-image-understanding) |
+| **Invoice OCR** | Specialized OCR for extracting structured data from invoices. | [`iflytek-ocr-invoice`](./skills/iflytek-ocr-invoice) |
+| **PDF/Image OCR** | General optical character recognition for documents and images. | [`iflytek-pdf-image-ocr`](./skills/iflytek-pdf-image-ocr) |
+| **Speed Transcription** | High-speed audio transcription for voice-to-text scenarios. | [`iflytek-speed-transcription`](./skills/iflytek-speed-transcription) |
+| **Text Proofread** | Intelligent text proofreading, error detection, and correction. | [`iflytek-text-proofread`](./skills/iflytek-text-proofread) |
+| **Machine Translation** | High-quality, multi-language translation capabilities. | [`iflytek-translate`](./skills/iflytek-translate) |
+| **Video Translate** | AI-powered video translation with dubbing and multilingual localization. | [`iflytek-video-translate`](./skills/iflytek-video-translate) |
+| **Voice Clone TTS** | Voice cloning technology for customized text-to-speech generation. | [`iflytek-voiceclone-tts`](./skills/iflytek-voiceclone-tts) |
+| **Contract Intelligence Review** | Intelligent contract review covering OCR, clause analysis, risk detection, and compliance. | [`iflytek-contract-intelligence-review`](./skills/iflytek-contract-intelligence-review) |
 
 ## 🛠️ Usage
 
 Each skill is packaged in its own directory containing specific instructions, scripts, and metadata. To use a specific skill:
 
-1. Navigate to the target skill's directory (e.g., `cd skills/ifly-hyper-tts`).
+1. Navigate to the target skill's directory (e.g., `cd skills/iflytek-hyper-tts`).
 2. Read the `SKILL.md` file for detailed API documentation, required environment variables (e.g., `XFEI_APP_ID`, `XFEI_API_KEY`, `XFEI_API_SECRET`), and usage examples.
 3. Use the provided Python scripts or integrate the capability into your own agent workflow.
 

@@ -19,22 +19,22 @@
 
 | 技能名称 | 功能描述 | 对应目录 |
 |------------|-------------|-----------|
-| **超拟人语音合成 (Hyper TTS)** | 提供高度拟人化的文本转语音合成能力，支持高级发音控制。 | [`ifly-hyper-tts`](./skills/ifly-hyper-tts) |
-| **图像理解 (Image Understanding)** | 多模态能力，能够分析和理解图像内容。 | [`ifly-image-understanding`](./skills/ifly-image-understanding) |
-| **发票 OCR (Invoice OCR)** | 专用的发票光学字符识别，用于提取结构化的发票数据。 | [`ifly-ocr-invoice`](./skills/ifly-ocr-invoice) |
-| **PDF/图片 OCR (PDF/Image OCR)** | 通用的文档和图像光学字符识别。 | [`ifly-pdf-image-ocr`](./skills/ifly-pdf-image-ocr) |
-| **极速语音转写 (Speed Transcription)** | 高速的音频转写功能，适用于语音转文本场景。 | [`ifly-speed-transcription`](./skills/ifly-speed-transcription) |
-| **文本纠错 (Text Proofread)** | 智能文本纠错、错误检测与修正。 | [`ifly-text-proofread`](./skills/ifly-text-proofread) |
-| **机器翻译 (Machine Translation)** | 高质量的多语种翻译能力。 | [`ifly-translate`](./skills/ifly-translate) |
-| **视频翻译 (Video Translate)** | AI 驱动的视频翻译，支持配音与多语种本地化。 | [`ifly-video-translate`](./skills/ifly-video-translate) |
-| **声音克隆 (Voice Clone TTS)** | 声音克隆技术，用于生成定制化的文本转语音。 | [`ifly-voiceclone-tts`](./skills/ifly-voiceclone-tts) |
-| **合同智能审核 (Contract Intelligence Review)** | 合同智能审核，覆盖 OCR 识别、条款分析、风险检测与合规校对。 | [`ifly-contract-intelligence-review`](./skills/ifly-contract-intelligence-review) |
+| **超拟人语音合成 (Hyper TTS)** | 提供高度拟人化的文本转语音合成能力，支持高级发音控制。 | [`iflytek-hyper-tts`](./skills/iflytek-hyper-tts) |
+| **图像理解 (Image Understanding)** | 多模态能力，能够分析和理解图像内容。 | [`iflytek-image-understanding`](./skills/iflytek-image-understanding) |
+| **发票 OCR (Invoice OCR)** | 专用的发票光学字符识别，用于提取结构化的发票数据。 | [`iflytek-ocr-invoice`](./skills/iflytek-ocr-invoice) |
+| **PDF/图片 OCR (PDF/Image OCR)** | 通用的文档和图像光学字符识别。 | [`iflytek-pdf-image-ocr`](./skills/iflytek-pdf-image-ocr) |
+| **极速语音转写 (Speed Transcription)** | 高速的音频转写功能，适用于语音转文本场景。 | [`iflytek-speed-transcription`](./skills/iflytek-speed-transcription) |
+| **文本纠错 (Text Proofread)** | 智能文本纠错、错误检测与修正。 | [`iflytek-text-proofread`](./skills/iflytek-text-proofread) |
+| **机器翻译 (Machine Translation)** | 高质量的多语种翻译能力。 | [`iflytek-translate`](./skills/iflytek-translate) |
+| **视频翻译 (Video Translate)** | AI 驱动的视频翻译，支持配音与多语种本地化。 | [`iflytek-video-translate`](./skills/iflytek-video-translate) |
+| **声音克隆 (Voice Clone TTS)** | 声音克隆技术，用于生成定制化的文本转语音。 | [`iflytek-voiceclone-tts`](./skills/iflytek-voiceclone-tts) |
+| **合同智能审核 (Contract Intelligence Review)** | 合同智能审核，覆盖 OCR 识别、条款分析、风险检测与合规校对。 | [`iflytek-contract-intelligence-review`](./skills/iflytek-contract-intelligence-review) |
 
 ## 🛠️ 如何使用
 
 每个技能都打包在各自的独立目录中，包含特定的说明、脚本和元数据。要使用某个特定技能：
 
-1. 进入目标技能的目录（例如：`cd skills/ifly-hyper-tts`）。
+1. 进入目标技能的目录（例如：`cd skills/iflytek-hyper-tts`）。
 2. 阅读目录下的 `SKILL.md` 文件，获取详细的 API 文档、所需的环境变量（如 `XFEI_APP_ID`, `XFEI_API_KEY`, `XFEI_API_SECRET`）以及使用示例。
 3. 使用提供的 Python 脚本，或者将该能力集成到您自己的智能体工作流中。
 

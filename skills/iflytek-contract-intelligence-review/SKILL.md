@@ -1,5 +1,5 @@
 ---
-name: ifly-contract-intelligence-review
+name: iflytek-contract-intelligence-review
 description: >
   Use when user asks to review contracts, detect contract risks, or perform compliance checks.
   合同智能审核 - 对合同扫描件、图片合同、双语合同进行完整审核。

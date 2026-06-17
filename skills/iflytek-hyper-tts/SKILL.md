@@ -1,5 +1,5 @@
 ---
-name: ifly-hyper-tts
+name: iflytek-hyper-tts
 description: Use when user asks to synthesize speech, convert text to audio, or read text aloud. 讯飞超拟人语音合成 - 支持文本转语音、语音合成（发音人/语速/语调/音量/输出格式）。大模型语音合成技能。语音合成, 文字转语音, 超拟人, TTS.
 metadata: {
   "homepage": "https://www.xfyun.cn/doc/spark/super%20smart-tts.html",

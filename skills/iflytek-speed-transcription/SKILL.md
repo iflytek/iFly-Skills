@@ -1,5 +1,5 @@
 ---
-name: ifly-speed-transcription
+name: iflytek-speed-transcription
 description: Ultra-fast speech transcription using iFLYTEK Speed Transcription API. Transcribe audio files (WAV/PCM/MP3) up to 5 hours in ~20 seconds per hour. Supports Chinese, English, and 202+ Chinese dialects with automatic language detection. Use when user asks to transcribe audio files, convert speech to text, or mentions "speed transcription" or "极速转写".
 metadata: {
   "homepage": "https://www.xfyun.cn/services/speed_transcription",

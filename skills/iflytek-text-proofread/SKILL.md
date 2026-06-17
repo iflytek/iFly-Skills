@@ -1,5 +1,5 @@
 ---
-name: ifly-text-proofread
+name: iflytek-text-proofread
 description: iFlytek Official Document Proofreading (公文校对) — detect and correct errors in Chinese text including typos, punctuation, word order, factual mistakes, sensitive content, and more (27 error types). Supports up to 220,000 characters. Use when the user wants to proofread, check, or correct Chinese text, especially official documents. Pure Python stdlib, no pip dependencies.
 metadata: {
   "homepage": "https://www.xfyun.cn/services/text_proofread",

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       skill_path:
-        description: "Path to a single skill folder (e.g. skills/ifly-translate). Leave empty to publish all."
+        description: "Path to a single skill folder (e.g. skills/iflytek-translate). Leave empty to publish all."
         required: false
         default: ""
       dry_run:

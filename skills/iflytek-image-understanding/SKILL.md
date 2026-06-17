@@ -1,5 +1,5 @@
 ---
-name: ifly-image-understanding
+name: iflytek-image-understanding
 description: Use when user asks to analyze an image, describe image contents, or answer questions about a picture. iFlytek Image Understanding (图片理解) — analyze and answer questions about images using Spark Vision model. WebSocket API, pure Python stdlib, no pip dependencies.
 metadata: {
   "homepage": "https://www.xfyun.cn/services/image_understanding",

@@ -13,12 +13,17 @@
   ],
   "runtime": "python",
   "entry_point": "scripts/main.py",
-  "supported_platforms": ["darwin", "linux", "win32"],
+  "supported_platforms": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
   "requirements": {
     "python": ">=3.9"
   },
   "author": {
     "name": "iFlytek"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "slug": "iflytek-contract-intelligence-review"
 }
