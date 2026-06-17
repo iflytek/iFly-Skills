@@ -3,8 +3,7 @@ name: Deploy iFly-Skills Docs
 on:
   push:
     branches:
-      - main
-      - master
+      - gh-page
     paths:
       - "docs/**"
       - ".github/workflows/deploy-pages.yml"
