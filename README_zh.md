@@ -53,6 +53,9 @@
 2. 阅读目录下的 `SKILL.md` 文件，获取详细的 API 文档、所需的环境变量（如 `XFEI_APP_ID`, `XFEI_API_KEY`, `XFEI_API_SECRET`）以及使用示例。
 3. 使用提供的 Python 脚本，或者将该能力集成到您自己的智能体工作流中。
 
+
+> 💡 **技能可以在哪里运行**：每个技能都遵循标准 `SKILL.md` 格式，可在任何支持技能的智能体宿主中使用——Claude Code、OpenClaw、Loomy 等。安装到 `~/.claude/skills` 的技能也会被内嵌 Claude 面板的桌面应用加载，例如本地知识库应用 [StashBase](https://github.com/liliu-z/stashbase)——适合对本地文档库批量执行 OCR、转写、校对，并让产出可被检索。
+
 ## 🤝 参与贡献
 
 我们非常欢迎您参与贡献，共同扩展科大讯飞的技能生态！
