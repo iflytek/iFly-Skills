@@ -44,6 +44,7 @@
 | **视频翻译 (Video Translate)** | AI 驱动的视频翻译，支持配音与多语种本地化。 | [`iflytek-video-translate`](./skills/iflytek-video-translate) |
 | **声音克隆 (Voice Clone TTS)** | 声音克隆技术，用于生成定制化的文本转语音。 | [`iflytek-voiceclone-tts`](./skills/iflytek-voiceclone-tts) |
 | **合同智能审核 (Contract Intelligence Review)** | 合同智能审核，覆盖 OCR 识别、条款分析、风险检测与合规校对。 | [`iflytek-contract-intelligence-review`](./skills/iflytek-contract-intelligence-review) |
+| **手绘动画架构图 (Animated Sketch Diagram)** | 手绘涂鸦风动画架构图/流程图，纯 SVG+CSS 单文件 HTML，可导出无缝循环 GIF。 | [`animated-sketch-diagram`](./skills/animated-sketch-diagram) |
 
 ## 🛠️ 如何使用
 

@@ -35,6 +35,13 @@
         "iflytek-text-proofread",
         "iflytek-contract-intelligence-review"
       ]
+    },
+    {
+      "title": "Diagrams & Visualization",
+      "description": "Hand-drawn animated architecture and flow diagrams.",
+      "skills": [
+        "animated-sketch-diagram"
+      ]
     }
   ]
 }

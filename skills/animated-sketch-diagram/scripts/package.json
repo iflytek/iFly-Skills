@@ -1,0 +1,8 @@
+{
+  "name": "animated-sketch-diagram-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright-core": "^1.49.0"
+  }
+}

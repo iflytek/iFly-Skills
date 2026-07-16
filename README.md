@@ -44,6 +44,7 @@ Currently, the repository provides the following ready-to-use AI skills:
 | **Video Translate** | AI-powered video translation with dubbing and multilingual localization. | [`iflytek-video-translate`](./skills/iflytek-video-translate) |
 | **Voice Clone TTS** | Voice cloning technology for customized text-to-speech generation. | [`iflytek-voiceclone-tts`](./skills/iflytek-voiceclone-tts) |
 | **Contract Intelligence Review** | Intelligent contract review covering OCR, clause analysis, risk detection, and compliance. | [`iflytek-contract-intelligence-review`](./skills/iflytek-contract-intelligence-review) |
+| **Animated Sketch Diagram** | Hand-drawn animated architecture diagrams — pure SVG+CSS single-file HTML with seamless-loop GIF export. | [`animated-sketch-diagram`](./skills/animated-sketch-diagram) |
 
 ## 🛠️ Usage
 
