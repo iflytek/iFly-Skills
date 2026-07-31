@@ -12,6 +12,13 @@
       ]
     },
     {
+      "title": "MiniMax Speech",
+      "description": "Text-to-speech synthesis powered by MiniMax.",
+      "skills": [
+        "minimax-tts"
+      ]
+    },
+    {
       "title": "Translation",
       "description": "Machine translation for text and videos across multiple languages.",
       "skills": [
