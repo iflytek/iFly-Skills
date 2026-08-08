@@ -180,10 +180,7 @@ class IflyPdfOCRClient:
         print(f"  Status: {status}")
 
         if not poll:
-            return {
-                'task_no': task_no,
-                'status': status
-            }
+            return start_result
 
         # Poll for results
         print(f"[2/2] Polling for results...")
