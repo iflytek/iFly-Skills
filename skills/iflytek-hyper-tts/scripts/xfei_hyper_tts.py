@@ -280,8 +280,6 @@ class XfeiHyperTTSClient:
                 break
 
         print(f"[2/3] 合成中: 发音人={voice_name}({vcn})", end="", file=sys.stderr)
-        if omni_params:
-            print(f", 属性={omni_params}", end="", file=sys.stderr)
         print(f", 文本长度={len(text)}字符", file=sys.stderr)
 
         audio_chunks: list[bytes] = []
