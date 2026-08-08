@@ -1,0 +1,33 @@
+name: Python Check
+
+on:
+  pull_request:
+    paths:
+      - "skills/**/*.py"
+  push:
+    branches: [main]
+    paths:
+      - "skills/**/*.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install Ruff
+        run: pip install ruff==0.16.2
+
+      - name: Check Python
+        run: |
+          python -m compileall -q skills
+          ruff check --select=E9,F63,F7,F82 skills
