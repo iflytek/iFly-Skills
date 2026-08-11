@@ -38,10 +38,9 @@ import ssl
 import socket
 import struct
 import sys
-from datetime import datetime
-from time import mktime
+from datetime import datetime, timezone
+from email.utils import format_datetime
 from urllib.parse import urlencode, urlparse
-from wsgiref.handlers import format_date_time
 
 WS_URL = "wss://spark-api.cn-huabei-1.xf-yun.com/v2.1/image"
 
@@ -49,7 +48,7 @@ WS_URL = "wss://spark-api.cn-huabei-1.xf-yun.com/v2.1/image"
 def build_auth_url(ws_url: str, api_key: str, api_secret: str) -> str:
     """Build HMAC-SHA256 signed WebSocket URL."""
     url_result = urlparse(ws_url)
-    date = format_date_time(mktime(datetime.now().timetuple()))
+    date = format_datetime(datetime.now(timezone.utc), usegmt=True)
 
     signature_origin = "host: {}\ndate: {}\nGET {} HTTP/1.1".format(
         url_result.hostname, date, url_result.path

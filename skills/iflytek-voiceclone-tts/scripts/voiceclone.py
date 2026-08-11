@@ -40,9 +40,8 @@ import threading
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime
-from time import mktime
-from wsgiref.handlers import format_date_time
+from datetime import datetime, timezone
+from email.utils import format_datetime
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -417,7 +416,7 @@ def build_ws_auth_url(request_url: str, api_key: str, api_secret: str) -> str:
     parsed = urllib.parse.urlparse(request_url)
     host = parsed.hostname
     path = parsed.path
-    date = format_date_time(mktime(datetime.now().timetuple()))
+    date = format_datetime(datetime.now(timezone.utc), usegmt=True)
 
     signature_origin = f"host: {host}\ndate: {date}\nGET {path} HTTP/1.1"
     signature_sha = hmac.new(

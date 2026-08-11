@@ -27,7 +27,8 @@ import hmac
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
+from email.utils import format_datetime
 from urllib.parse import urlencode, urlparse
 
 try:
@@ -177,7 +178,7 @@ class XfeiHyperTTSClient:
         parsed = urlparse(WS_URL)
         host   = parsed.netloc
         path   = parsed.path
-        date   = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+        date   = format_datetime(datetime.now(timezone.utc), usegmt=True)
 
         signature_origin = f"host: {host}\ndate: {date}\nGET {path} HTTP/1.1"
 
