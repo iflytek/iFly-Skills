@@ -8,6 +8,7 @@ Ultra-fast speech transcription: 1 hour audio in ~20 seconds
 import argparse
 import base64
 import datetime
+from email.utils import format_datetime
 import hashlib
 import hmac
 import json
@@ -16,9 +17,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from time import mktime
 from urllib.parse import urlparse
-from wsgiref.handlers import format_date_time
 
 import requests
 from urllib3 import encode_multipart_formdata
@@ -114,8 +113,8 @@ class XfeiSpeedTranscription:
         host = u.hostname
         path = u.path
 
-        now = datetime.datetime.now()
-        date = format_date_time(mktime(now.timetuple()))
+        now = datetime.datetime.now(datetime.timezone.utc)
+        date = format_datetime(now, usegmt=True)
 
         digest = "SHA-256=" + self._hashlib_256('')
         signature_origin = f"host: {host}\ndate: {date}\n{method} {path} HTTP/1.1\ndigest: {digest}"
