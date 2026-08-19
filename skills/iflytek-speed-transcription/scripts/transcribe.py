@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 from wsgiref.handlers import format_date_time
 
 import requests
+from requests import RequestException
 from urllib3 import encode_multipart_formdata
 
 
@@ -60,6 +61,14 @@ GENERIC_ERROR_HINT = (
 )
 
 
+class ApiTransportError(Exception):
+    """HTTP, network, or response decoding failure."""
+
+
+class ApiBusinessError(Exception):
+    """Business error returned by the iFLYTEK API."""
+
+
 def get_error_message(error_code: int) -> str:
     """根据错误码返回友好的提示信息"""
     error_code = int(error_code)
@@ -97,9 +106,11 @@ class XfeiSpeedTranscription:
         """Generate unique request ID."""
         return time.strftime("%Y%m%d%H%M%S")
 
-    def _hashlib_256(self, data: str) -> str:
+    def _hashlib_256(self, data) -> str:
         """Generate SHA-256 hash for digest."""
-        m = hashlib.sha256(bytes(data.encode(encoding='utf-8'))).digest()
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        m = hashlib.sha256(data).digest()
         return "SHA-256=" + base64.b64encode(m).decode(encoding='utf-8')
 
     def _assemble_auth_header(
@@ -117,7 +128,7 @@ class XfeiSpeedTranscription:
         now = datetime.datetime.now()
         date = format_date_time(mktime(now.timetuple()))
 
-        digest = "SHA-256=" + self._hashlib_256('')
+        digest = self._hashlib_256(body)
         signature_origin = f"host: {host}\ndate: {date}\n{method} {path} HTTP/1.1\ndigest: {digest}"
 
         signature_sha = hmac.new(
@@ -148,9 +159,10 @@ class XfeiSpeedTranscription:
 
         try:
             resp = requests.post(url, headers=headers, data=file_data, timeout=60)
+            resp.raise_for_status()
             return resp.json()
-        except Exception as e:
-            raise Exception(f"API call failed: {e}")
+        except (RequestException, ValueError) as e:
+            raise ApiTransportError(f"API request failed: {e}") from e
 
     def upload_small_file(self, file_path: Path) -> str:
         """Upload small file (< 30MB) directly."""
@@ -208,12 +220,11 @@ class XfeiSpeedTranscription:
         # Upload chunks
         with open(file_path, 'rb') as f:
             for slice_id in range(1, chunks + 1):
-                if slice_id == chunks:
-                    current_size = file_size % self.chunk_size
-                else:
-                    current_size = self.chunk_size
-
-                chunk_data = f.read(current_size)
+                chunk_data = f.read(self.chunk_size)
+                if not chunk_data:
+                    raise ApiTransportError(
+                        f"Unexpected end of file before chunk {slice_id}/{chunks}"
+                    )
 
                 file = {
                     "data": (str(file_path), chunk_data),
@@ -331,20 +342,15 @@ class XfeiSpeedTranscription:
 
         try:
             response = requests.post(url, data=body, headers=headers, timeout=60)
+            response.raise_for_status()
             result = response.json()
+        except (RequestException, ValueError) as e:
+            raise ApiTransportError(f"Create task request failed: {e}") from e
 
-            if result.get('code') != 0:
-                error_code = result.get('code')
-                friendly_msg = get_error_message(error_code)
-                if friendly_msg:
-                    raise Exception(f"错误码 {error_code}：\n{friendly_msg}\n\n原始错误：{result.get('message', 'Unknown error')}")
-                else:
-                    raise Exception(f"Create task failed: {result.get('message', 'Unknown error')}{GENERIC_ERROR_HINT}")
+        if result.get('code') != 0:
+             self._raise_business_error(result, "Create task")
 
-            return result['data']['task_id']
-
-        except Exception as e:
-            raise Exception(f"Create task failed: {e}")
+        return result['data']['task_id']
 
     def query_task(self, task_id: str) -> dict:
         """Query task status and results."""
@@ -363,20 +369,27 @@ class XfeiSpeedTranscription:
 
         try:
             response = requests.post(url, data=body, headers=headers, timeout=60)
+            response.raise_for_status()
             result = response.json()
+        except (RequestException, ValueError) as e:
+            raise ApiTransportError(f"Query request failed: {e}") from e
 
-            if result.get('code') != 0:
-                error_code = result.get('code')
-                friendly_msg = get_error_message(error_code)
-                if friendly_msg:
-                    raise Exception(f"错误码 {error_code}：\n{friendly_msg}\n\n原始错误：{result.get('message', 'Unknown error')}")
-                else:
-                    raise Exception(f"Query failed: {result.get('message', 'Unknown error')}{GENERIC_ERROR_HINT}")
+        if result.get('code') != 0:
+             self._raise_business_error(result, "Transcription task")
 
-            return result
+        return result
 
-        except Exception as e:
-            raise Exception(f"Query failed: {e}")
+    @staticmethod
+    def _raise_business_error(result: dict, operation: str):
+        """Raise a consistently formatted API business error."""
+        error_code = result.get('code')
+        message = result.get('message', 'Unknown error')
+        friendly_msg = get_error_message(error_code) if error_code is not None else None
+        if friendly_msg:
+            detail = f"错误码 {error_code}：\n{friendly_msg}\n\n原始错误：{message}"
+        else:
+            detail = f"{message}{GENERIC_ERROR_HINT}"
+        raise ApiBusinessError(f"{operation} failed: {detail}")
 
     def transcribe(
         self,
@@ -445,13 +458,18 @@ class XfeiSpeedTranscription:
 
                 if error_code:
                     friendly_msg = get_error_message(error_code)
-                    raise Exception(f"错误码 {error_code}：\n{friendly_msg}\n\n原始错误：{failed_msg}")
+                    raise ApiBusinessError(
+                        f"Transcription task failed: 错误码 {error_code}：\n"
+                        f"{friendly_msg}\n\n原始错误：{failed_msg}"
+                    )
                 else:
-                    raise Exception(f"Transcription failed: {failed_msg}{GENERIC_ERROR_HINT}")
+                    raise ApiBusinessError(
+                        f"Transcription task failed: {failed_msg}{GENERIC_ERROR_HINT}"
+                    )
             elif task_status in ['1', '2']:  # Pending/Processing
                 print(f"  Status: {'Processing' if task_status == '2' else 'Pending'}... ({attempt + 1}/{max_attempts})")
 
-        raise Exception(f"Timeout: Task not completed after {max_attempts * poll_interval}s")
+        raise ApiTransportError(f"Timeout: Task not completed after {max_attempts * poll_interval}s")
 
     def _parse_result(self, result: dict) -> dict:
         """Parse transcription result from API response."""
@@ -515,11 +533,63 @@ def load_config():
     return app_id, api_key, api_secret
 
 
+def format_output(result: dict, output_format: str) -> str:
+    """Format a parsed transcription result for stdout or a file."""
+    if output_format == "json":
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    return result.get("text", "")
+
+
+def wait_for_result(client, task_id: str, poll_interval: int = 5) -> dict:
+    """Poll an existing task until it completes or fails."""
+    max_attempts = 120
+    for attempt in range(max_attempts):
+        result = client.query_task(task_id)
+        task_status = result.get('data', {}).get('task_status')
+        if task_status in ['3', '4']:
+            return client._parse_result(result)
+        if task_status == '-1':
+            task_data = result.get('data', {})
+            raise ApiBusinessError(
+                f"Transcription task failed: {task_data.get('message', 'Unknown error')}"
+                f"{GENERIC_ERROR_HINT}"
+            )
+        if task_status not in ['1', '2']:
+            raise ApiBusinessError(f"Unknown transcription task status: {task_status}")
+        print(
+            f"  Status: {'Processing' if task_status == '2' else 'Pending'}... "
+            f"({attempt + 1}/{max_attempts})"
+        )
+        time.sleep(poll_interval)
+    raise ApiTransportError(
+        f"Timeout: Task not completed after {max_attempts * poll_interval}s"
+    )
+
+
+def write_or_print_result(result: dict, output_format: str, output_path: str = None):
+    """Print a transcription and optionally save it to disk."""
+    output = format_output(result, output_format)
+    if output_format == "json":
+        print(output)
+    else:
+        print(f"\n{'='*60}")
+        print("Transcription Result:")
+        print(f"{'='*60}")
+        print(output)
+        print(f"{'='*60}")
+
+    if output_path:
+        Path(output_path).write_text(output, encoding='utf-8')
+        print(f"\nSaved to: {output_path}")
+
 def main():
     parser = argparse.ArgumentParser(
         description="Transcribe audio files using Xfei Ultra-fast Speech Transcription API"
     )
-    parser.add_argument("file_path", help="Path to audio file")
+    parser.add_argument("file_path", nargs="?", help="Path to audio file")
+    parser.add_argument("--action", choices=["transcribe", "query"], default="transcribe",
+                        help="Transcribe a file or query an existing task")
+    parser.add_argument("--task-id", help="Existing task ID (required for --action query)")
     parser.add_argument("--language", default="zh_cn",
                         help="Language (default: zh_cn for Chinese/English/202 dialects)")
     parser.add_argument("--accent", default="mandarin",
@@ -538,6 +608,12 @@ def main():
                         help="Output format (default: text)")
 
     args = parser.parse_args()
+    if args.poll_interval <= 0:
+        parser.error("--poll-interval must be greater than 0")
+    if args.action == "query" and not args.task_id:
+        parser.error("--task-id is required when --action query is used")
+    if args.action == "transcribe" and not args.file_path:
+        parser.error("file_path is required when --action transcribe is used")
 
     # Load credentials
     app_id, api_key, api_secret = load_config()
@@ -546,12 +622,17 @@ def main():
     client = XfeiSpeedTranscription(app_id, api_key, api_secret)
 
     # Transcribe
-    file_path = Path(args.file_path)
-    if not file_path.exists():
-        print(f"Error: File not found: {file_path}", file=sys.stderr)
-        sys.exit(1)
-
     try:
+        if args.action == "query":
+            print(f"Querying task: {args.task_id}")
+            result = wait_for_result(client, args.task_id, args.poll_interval)
+            write_or_print_result(result, args.output_format, args.output)
+            return
+
+        file_path = Path(args.file_path)
+        if not file_path.exists():
+            parser.error(f"File not found: {file_path}")
+
         result = client.transcribe(
             file_path,
             poll=not args.no_poll,
@@ -567,33 +648,13 @@ def main():
             # Just show task ID
             print(f"Task ID: {result['task_id']}")
             print(f"\nTo query results:")
-            print(f"  python3 scripts/transcribe.py --action=query --task-id={result['task_id']}")
+            print( "  python3 scripts/transcribe.py --action query "
+                f"--task-id {result['task_id']}")
         else:
             # Show transcription
-            if args.output_format == "json":
-                output = json.dumps(result, ensure_ascii=False, indent=2)
-                print(output)
-            else:
-                text = result.get("text", "")
-                print(f"\n{'='*60}")
-                print("Transcription Result:")
-                print(f"{'='*60}")
-                print(text)
-                print(f"{'='*60}")
+            write_or_print_result(result, args.output_format, args.output)
 
-            # Save to file if specified
-            if args.output:
-                output_path = Path(args.output)
-                if args.output_format == "json":
-                    output_path.write_text(
-                        json.dumps(result, ensure_ascii=False, indent=2),
-                        encoding='utf-8'
-                    )
-                else:
-                    output_path.write_text(text, encoding='utf-8')
-                print(f"\nSaved to: {args.output}")
-
-    except Exception as e:
+    except (ApiTransportError, ApiBusinessError, OSError, KeyError) as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
