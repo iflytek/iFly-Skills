@@ -190,6 +190,29 @@ def _normalize_lang(lang):
 # CLI
 # ---------------------------------------------------------------------------
 
+# ─── Credentials ───────────────────────────────────────────────────────────
+# All iFlytek skills read IFLY_* credentials. The prefixes this skill required
+# before are still accepted so existing setups keep working (see issue #76).
+LEGACY_CREDENTIAL_PREFIXES = ("XFYUN", "XFEI")
+
+
+def resolve_credential(name: str) -> str:
+    """Return IFLY_<name>, falling back to a legacy prefix with a deprecation notice."""
+    value = os.environ.get("IFLY_" + name)
+    if value:
+        return value
+    for prefix in LEGACY_CREDENTIAL_PREFIXES:
+        legacy = prefix + "_" + name
+        value = os.environ.get(legacy)
+        if value:
+            print(
+                "Warning: {} is deprecated, please use IFLY_{}.".format(legacy, name),
+                file=sys.stderr,
+            )
+            return value
+    return ""
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="iFlytek Machine Translation (机器翻译)"
@@ -211,12 +234,12 @@ def main():
     args = parser.parse_args()
 
     # --- credentials ---
-    app_id = os.environ.get("XFYUN_APP_ID", "")
-    api_key = os.environ.get("XFYUN_API_KEY", "")
-    api_secret = os.environ.get("XFYUN_API_SECRET", "")
+    app_id = resolve_credential("APP_ID")
+    api_key = resolve_credential("API_KEY")
+    api_secret = resolve_credential("API_SECRET")
 
     if not all([app_id, api_key, api_secret]):
-        print("Error: Set XFYUN_APP_ID, XFYUN_API_KEY, and XFYUN_API_SECRET env vars.",
+        print("Error: Set IFLY_APP_ID, IFLY_API_KEY, and IFLY_API_SECRET env vars.",
               file=sys.stderr)
         sys.exit(1)
 

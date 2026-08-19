@@ -127,17 +127,40 @@ VOICE_LIST = [
 
 # ─── 鉴权模块 ──────────────────────────────────────────────────────────────
 
+# ─── Credentials ───────────────────────────────────────────────────────────
+# All iFlytek skills read IFLY_* credentials. The prefixes this skill required
+# before are still accepted so existing setups keep working (see issue #76).
+LEGACY_CREDENTIAL_PREFIXES = ("XFYUN", "XFEI")
+
+
+def resolve_credential(name: str) -> str:
+    """Return IFLY_<name>, falling back to a legacy prefix with a deprecation notice."""
+    value = os.environ.get("IFLY_" + name)
+    if value:
+        return value
+    for prefix in LEGACY_CREDENTIAL_PREFIXES:
+        legacy = prefix + "_" + name
+        value = os.environ.get(legacy)
+        if value:
+            print(
+                "Warning: {} is deprecated, please use IFLY_{}.".format(legacy, name),
+                file=sys.stderr,
+            )
+            return value
+    return ""
+
+
 def get_env_credentials() -> tuple:
     """从环境变量加载并验证API凭证"""
-    app_id     = os.getenv("XFEI_APP_ID")
-    api_key    = os.getenv("XFEI_API_KEY")
-    api_secret = os.getenv("XFEI_API_SECRET")
+    app_id     = resolve_credential("APP_ID")
+    api_key    = resolve_credential("API_KEY")
+    api_secret = resolve_credential("API_SECRET")
 
     missing = [
         name for name, val in [
-            ("XFEI_APP_ID", app_id),
-            ("XFEI_API_KEY", api_key),
-            ("XFEI_API_SECRET", api_secret),
+            ("IFLY_APP_ID", app_id),
+            ("IFLY_API_KEY", api_key),
+            ("IFLY_API_SECRET", api_secret),
         ]
         if not val
     ]

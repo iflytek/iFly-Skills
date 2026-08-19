@@ -13,10 +13,12 @@ pip install websocket-client
 ### 2. 配置环境变量
 
 ```bash
-export XFEI_APP_ID="your_app_id"
-export XFEI_API_KEY="your_api_key"
-export XFEI_API_SECRET="your_api_secret"
+export IFLY_APP_ID="your_app_id"
+export IFLY_API_KEY="your_api_key"
+export IFLY_API_SECRET="your_api_secret"
 ```
+
+> 兼容说明：旧的 `XFEI_*` / `XFYUN_*` 变量仍然可用，但已废弃，脚本会在 stderr 提示改用 `IFLY_*`。
 
 ### 3. 基本使用
 
@@ -81,7 +83,7 @@ python3 scripts/xfei_hyper_tts.py --action list_voices
 
 | 错误码 | 原因 | 解决方案 |
 |--------|------|----------|
-| MISSING_ENV_VARS | 未配置环境变量 | 设置 XFEI_APP_ID, XFEI_API_KEY, XFEI_API_SECRET |
+| MISSING_ENV_VARS | 未配置环境变量 | 设置 IFLY_APP_ID, IFLY_API_KEY, IFLY_API_SECRET |
 | TEXT_TOO_LONG | 文本超长（>64KB） | 拆分为多个短文本 |
 | CONNECTION_FAILED | 网络连接失败 | 检查网络连接 |
 | AUTH_ERROR_10313 | APP_ID与API_KEY不匹配 | 核对讯飞控制台凭证 |

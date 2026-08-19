@@ -3,7 +3,7 @@ name: iflytek-video-translate
 description: Use when user asks to translate videos, dub video content, or localize videos into other languages. Translate videos with AI-powered dubbing using iFlytek (Xfei) Video Translation API. Supports video language translation, voice dubbing, multilingual video localization, 视频翻译, 视频配音, 视频本地化. Features task creation, task list, task details retrieval. Ideal for content creators and localization teams.
 metadata: {
   "homepage": "https://www.xfyun.cn/doc/Develop/Video_Translation",
-  "openclaw": "{\"emoji\":\"🎬\",\"requires\":{\"bins\":[\"python3\"],\"env\":[\"XFYUN_API_KEY\",\"XFYUN_API_SECRET\"]},\"primaryEnv\":\"XFYUN_API_KEY\"}"
+  "openclaw": "{\"emoji\":\"🎬\",\"requires\":{\"bins\":[\"python3\"],\"env\":[\"IFLY_API_KEY\",\"IFLY_API_SECRET\"]},\"primaryEnv\":\"IFLY_API_KEY\"}"
 }
 ---
 
@@ -88,9 +88,11 @@ pip install requests>=2.31.0
 ### 2. Configure Environment Variables
 
 ```bash
-export XFYUN_API_KEY="your_api_key"
-export XFYUN_API_SECRET="your_api_secret"
+export IFLY_API_KEY="your_api_key"
+export IFLY_API_SECRET="your_api_secret"
 ```
+
+> 兼容说明：旧的 `XFEI_*` / `XFYUN_*` 变量仍然可用，但已废弃，脚本会在 stderr 提示改用 `IFLY_*`。
 
 ## Parameters
 
@@ -200,7 +202,7 @@ Standard response: `{"code": 0, "message": "success", "request_id": "xxx", "data
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| XFYUN_API_KEY and XFYUN_API_SECRET are required | No credentials configured | Set environment variables |
+| IFLY_API_KEY and IFLY_API_SECRET are required | No credentials configured | Set environment variables |
 | --file_url is required | No video URL provided | Provide valid OSS video URL |
 | --task_id is required | No task ID provided | Provide valid task ID |
 | API error XXXX | Request failed | Check message in response |

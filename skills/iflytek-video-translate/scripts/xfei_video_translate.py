@@ -248,6 +248,29 @@ Examples:
     return parser
 
 
+# ─── Credentials ───────────────────────────────────────────────────────────
+# All iFlytek skills read IFLY_* credentials. The prefixes this skill required
+# before are still accepted so existing setups keep working (see issue #76).
+LEGACY_CREDENTIAL_PREFIXES = ("XFYUN", "XFEI")
+
+
+def resolve_credential(name: str) -> str:
+    """Return IFLY_<name>, falling back to a legacy prefix with a deprecation notice."""
+    value = os.environ.get("IFLY_" + name)
+    if value:
+        return value
+    for prefix in LEGACY_CREDENTIAL_PREFIXES:
+        legacy = prefix + "_" + name
+        value = os.environ.get(legacy)
+        if value:
+            print(
+                "Warning: {} is deprecated, please use IFLY_{}.".format(legacy, name),
+                file=sys.stderr,
+            )
+            return value
+    return ""
+
+
 def main():
     parser = build_parser()
     args = parser.parse_args()
@@ -262,13 +285,13 @@ def main():
         sys.exit(1)
 
     # Get credentials from environment
-    api_key = os.getenv("XFYUN_API_KEY")
-    api_secret = os.getenv("XFYUN_API_SECRET")
+    api_key = resolve_credential("API_KEY")
+    api_secret = resolve_credential("API_SECRET")
 
     if not api_key or not api_secret:
-        print("Error: XFYUN_API_KEY and XFYUN_API_SECRET environment variables are required.", file=sys.stderr)
-        print("  export XFYUN_API_KEY=\"your_api_key\"", file=sys.stderr)
-        print("  export XFYUN_API_SECRET=\"your_api_secret\"", file=sys.stderr)
+        print("Error: IFLY_API_KEY and IFLY_API_SECRET environment variables are required.", file=sys.stderr)
+        print("  export IFLY_API_KEY=\"your_api_key\"", file=sys.stderr)
+        print("  export IFLY_API_SECRET=\"your_api_secret\"", file=sys.stderr)
         sys.exit(1)
 
     client = XfeiVideoTranslateClient(api_key, api_secret)

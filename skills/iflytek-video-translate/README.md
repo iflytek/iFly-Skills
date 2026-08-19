@@ -34,10 +34,12 @@ pip install requests
 The Skill comes with pre-configured API credentials. To use your own:
 
 ```bash
-export XFYUN_APP_ID="your_app_id"
-export XFYUN_API_KEY="your_api_key"
-export XFYUN_API_SECRET="your_api_secret"
+export IFLY_APP_ID="your_app_id"
+export IFLY_API_KEY="your_api_key"
+export IFLY_API_SECRET="your_api_secret"
 ```
+
+> Compatibility: the old `XFEI_*` / `XFYUN_*` variables still work but are deprecated; the script prints a notice on stderr asking you to switch to `IFLY_*`.
 
 ### 4. Create a Translation Task
 
@@ -86,9 +88,9 @@ python3 scripts/xfei_video_translate.py --action list_tasks
 
 | Variable | Description |
 |----------|-------------|
-| `XFYUN_APP_ID` | iFlytek Application ID |
-| `XFYUN_API_KEY` | iFlytek API Key |
-| `XFYUN_API_SECRET` | iFlytek API Secret |
+| `IFLY_APP_ID` | iFlytek Application ID |
+| `IFLY_API_KEY` | iFlytek API Key |
+| `IFLY_API_SECRET` | iFlytek API Secret |
 
 ## Requirements
 
