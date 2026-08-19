@@ -3,7 +3,7 @@ name: iflytek-translate
 description: iFlytek Machine Translation (机器翻译) — translate text between Chinese, English, Japanese, Korean, French, Spanish, German, Russian, Arabic, Thai, Vietnamese, and many more languages. Use when the user wants to translate text. Pure Python stdlib, no pip dependencies.
 metadata: {
   "homepage": "https://www.xfyun.cn/services/machine_translation",
-  "openclaw": "{\"emoji\":\"🌐\",\"dimensions\":[\"机器翻译\",\"多语言翻译\"],\"user_instructions\":[\"把这段话翻译成英文\",\"翻译成中文\",\"帮我翻译一下\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"XFYUN_APP_ID\",\"XFYUN_API_KEY\",\"XFYUN_API_SECRET\"]},\"primaryEnv\":\"XFYUN_API_KEY\"}"
+  "openclaw": "{\"emoji\":\"🌐\",\"dimensions\":[\"机器翻译\",\"多语言翻译\"],\"user_instructions\":[\"把这段话翻译成英文\",\"翻译成中文\",\"帮我翻译一下\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"IFLY_APP_ID\",\"IFLY_API_KEY\",\"IFLY_API_SECRET\"]},\"primaryEnv\":\"IFLY_API_KEY\"}"
 }
 ---
 
@@ -16,10 +16,12 @@ Translate text using iFlytek's Machine Translation API (机器翻译). Supports 
 1. Create an app at [讯飞控制台](https://console.xfyun.cn) with 机器翻译 service enabled
 2. Set environment variables:
    ```bash
-   export XFYUN_APP_ID="your_app_id"
-   export XFYUN_API_KEY="your_api_key"
-   export XFYUN_API_SECRET="your_api_secret"
+   export IFLY_APP_ID="your_app_id"
+   export IFLY_API_KEY="your_api_key"
+   export IFLY_API_SECRET="your_api_secret"
    ```
+
+> 兼容说明：旧的 `XFEI_*` / `XFYUN_*` 变量仍然可用，但已废弃，脚本会在 stderr 提示改用 `IFLY_*`。
 
 ## Usage
 
@@ -103,7 +105,7 @@ python3 scripts/translate.py --raw "测试翻译"
 
 - **Auth**: HMAC-SHA256 with Digest header (SHA-256 of body) — different from some other xfyun APIs
 - **Endpoint**: `POST https://itrans.xfyun.cn/v2/its`
-- **Env vars**: `XFYUN_APP_ID`, `XFYUN_API_KEY`, `XFYUN_API_SECRET`
+- **Env vars**: `IFLY_APP_ID`, `IFLY_API_KEY`, `IFLY_API_SECRET`
 - **Text is base64-encoded** in the request body
 - **No pip deps**: Uses only Python stdlib (`urllib`, `hmac`, `hashlib`, `json`, etc.)
 
@@ -145,9 +147,9 @@ python3 scripts/translate.py --raw "测试翻译"
 **解决方法**：
 1. 确认你正确设置了环境变量：
    ```bash
-   export XFYUN_APP_ID="你的APP_ID"
-   export XFYUN_API_KEY="你的API_KEY"
-   export XFYUN_API_SECRET="你的API_SECRET"
+   export IFLY_APP_ID="你的APP_ID"
+   export IFLY_API_KEY="你的API_KEY"
+   export IFLY_API_SECRET="你的API_SECRET"
    ```
 2. 检查是否有空格或多余的引号哦 ✧(≖ ◡ ≖)
 3. 去 [讯飞控制台](https://console.xfyun.cn) 确认你的密钥是否正确复制~

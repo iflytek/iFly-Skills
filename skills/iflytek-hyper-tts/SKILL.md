@@ -3,7 +3,7 @@ name: iflytek-hyper-tts
 description: Use when user asks to synthesize speech, convert text to audio, or read text aloud. 讯飞超拟人语音合成 - 支持文本转语音、语音合成（发音人/语速/语调/音量/输出格式）。大模型语音合成技能。语音合成, 文字转语音, 超拟人, TTS.
 metadata: {
   "homepage": "https://www.xfyun.cn/doc/spark/super%20smart-tts.html",
-  "openclaw": "{\"emoji\":\"🎙️\",\"dimensions\":[\"超拟人合成 Skill\",\"超拟人合成（大模型）\"],\"user_instructions\":[\"把这段文案读出来\",\"读出这段文字\",\"把这段话转语音\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"XFEI_APP_ID\",\"XFEI_API_KEY\",\"XFEI_API_SECRET\"]},\"primaryEnv\":\"XFEI_API_KEY\"}"
+  "openclaw": "{\"emoji\":\"🎙️\",\"dimensions\":[\"超拟人合成 Skill\",\"超拟人合成（大模型）\"],\"user_instructions\":[\"把这段文案读出来\",\"读出这段文字\",\"把这段话转语音\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"IFLY_APP_ID\",\"IFLY_API_KEY\",\"IFLY_API_SECRET\"]},\"primaryEnv\":\"IFLY_API_KEY\"}"
 }
 ---
 
@@ -235,7 +235,7 @@ Metadata: {"AIGC":{
 
 | 错误码 | 说明 | 处理建议 |
 |--------|------|----------|
-| ❌ | 未配置环境变量 | 嗨呀～还没配置讯飞API凭证呢！请设置 `XFEI_APP_ID`、`XFEI_API_KEY`、`XFEI_API_SECRET` 这三个环境变量哦～ |
+| ❌ | 未配置环境变量 | 嗨呀～还没配置讯飞API凭证呢！请设置 `IFLY_APP_ID`、`IFLY_API_KEY`、`IFLY_API_SECRET` 这三个环境变量哦～ |
 | 10009 | 输入数据非法 | 检查一下输入的数据吧～可能包含特殊字符或非法格式呢 🤔 |
 | 10010 | 没有授权许可或授权数已满 | 抱歉，当前应用没有权限或配额用完啦！请联系讯飞提交工单处理哦～ |
 | 10019 | session 超时 | 会话超时啦！检查一下数据是否发送完毕但没有关闭连接呢 🔌 |
@@ -288,10 +288,12 @@ pip install websocket-client>=1.6.0
 ### 4. 配置环境变量
 
 ```bash
-export XFEI_APP_ID="your_app_id"
-export XFEI_API_KEY="your_api_key"
-export XFEI_API_SECRET="your_api_secret"
+export IFLY_APP_ID="your_app_id"
+export IFLY_API_KEY="your_api_key"
+export IFLY_API_SECRET="your_api_secret"
 ```
+
+> 兼容说明：旧的 `XFEI_*` / `XFYUN_*` 变量仍然可用，但已废弃，脚本会在 stderr 提示改用 `IFLY_*`。
 
 ---
 

@@ -3,7 +3,7 @@ name: iflytek-ocr-invoice
 description: Use when user asks to recognize invoices, extract receipt data, or OCR bills and tickets. Recognize and extract structured data from invoices, receipts, and bills using iFlytek OCR API (科大讯飞票据识别). Supports VAT invoices, taxi receipts, train tickets, toll invoices, medical bills, bank receipts, and more.
 metadata: {
   "homepage": "https://www.xfyun.cn/services/ocr",
-  "openclaw": "{\"emoji\":\"🧾\",\"dimensions\":[\"票据识别\",\"发票OCR\"],\"user_instructions\":[\"识别这张发票\",\"提取发票信息\",\"帮我OCR这张票据\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"XFYUN_APP_ID\",\"XFYUN_API_KEY\",\"XFYUN_API_SECRET\"]},\"primaryEnv\":\"XFYUN_API_KEY\"}"
+  "openclaw": "{\"emoji\":\"🧾\",\"dimensions\":[\"票据识别\",\"发票OCR\"],\"user_instructions\":[\"识别这张发票\",\"提取发票信息\",\"帮我OCR这张票据\"],\"requires\":{\"bins\":[\"python3\"],\"env\":[\"IFLY_APP_ID\",\"IFLY_API_KEY\",\"IFLY_API_SECRET\"]},\"primaryEnv\":\"IFLY_API_KEY\"}"
 }
 ---
 
@@ -21,9 +21,11 @@ OCR-based invoice and receipt recognition using the iFlytek (科大讯飞) API. 
 
 - **Python 3** (standard library only, no pip install needed)
 - **Environment variables** (get from [讯飞控制台](https://console.xfyun.cn)):
-  - `XFYUN_APP_ID` — Application ID
-  - `XFYUN_API_KEY` — API Key
-  - `XFYUN_API_SECRET` — API Secret
+  - `IFLY_APP_ID` — Application ID
+  - `IFLY_API_KEY` — API Key
+  - `IFLY_API_SECRET` — API Secret
+
+> 兼容说明：旧的 `XFEI_*` / `XFYUN_*` 变量仍然可用，但已废弃，脚本会在 stderr 提示改用 `IFLY_*`。
 
 ## Supported Image Formats
 
@@ -115,7 +117,7 @@ Uses HMAC-SHA256 signature-based auth (讯飞鉴权). The script handles all sig
 | **10009** | 输入的数据格式不对 | 请检查一下：<br>• 图片格式对不对呀？（支持 png/jpg/bmp/gif/tif/pdf）<br>• 图片有没有损坏呀？<br>• 试试用图片查看器打开看看能不能显示？ |
 | **10010** | 授权额度不太够 | 去看看讯飞控制台吧，看看套餐是不是过期啦？或者额度用完了呢？ (｡•́︿•̀｡)<br>💰 [需要更多额度？点击购买](https://www.xfyun.cn/services/Invoice_recognition?target=price) |
 | **10019** | 等太久啦，超时了 | 可能图片太大啦！试着压缩一下图片，或者网络慢一点也会这样哦～ |
-| **10105** | **最常见的问题！** 认证失败啦 | 哎呀，这个一定要检查仔细哦：<br>① `XFYUN_APP_ID` 填好了吗？<br>② `XFYUN_API_KEY` 正确吗？<br>③ `XFYUN_API_SECRET` 没问题吧？<br>💡 小提示：从讯飞控制台**直接复制粘贴**是最好的方式，千万别手打哦，容易出错！ |
+| **10105** | **最常见的问题！** 认证失败啦 | 哎呀，这个一定要检查仔细哦：<br>① `IFLY_APP_ID` 填好了吗？<br>② `IFLY_API_KEY` 正确吗？<br>③ `IFLY_API_SECRET` 没问题吧？<br>💡 小提示：从讯飞控制台**直接复制粘贴**是最好的方式，千万别手打哦，容易出错！ |
 | **10114** | 会话超时啦 | 识别大图片需要耐心一点哦，确保网络稳定再试一次？ |
 | **10118** | 服务端解析失败 | 这是讯飞平台的问题啦，重试几次看看？如果一直不行就提交工单～ |
 | **10139** | 参数不对 | 检查一下调用的参数有没有写错？ |
@@ -127,7 +129,7 @@ Uses HMAC-SHA256 signature-based auth (讯飞鉴权). The script handles all sig
 | **10222 / 10223** | 负载均衡找不到节点 | 技术问题，提交工单处理一下吧～ |
 | **10225** | 找不到业务服务 | 检查一下 API 地址有没有写错？ |
 | **10300 / 10301** | 排序缓冲区出问题啦 | 内部问题，提交工单吧～ |
-| **10313** | **敲黑板！最常见！** AppID 不匹配 | 这个问题最多人遇到啦！请确认：<br>① 三个环境变量都设置了！<br>② `XFYUN_APP_ID` 是 AppID，不是 API Key 哦！<br>③ 确认应用和 API Key 在同一个讯飞账号下！<br>💡 [检查环境变量的快捷命令往下看 ↓](#q-一直提示-10105-unauthorized-怎么破) |
+| **10313** | **敲黑板！最常见！** AppID 不匹配 | 这个问题最多人遇到啦！请确认：<br>① 三个环境变量都设置了！<br>② `IFLY_APP_ID` 是 AppID，不是 API Key 哦！<br>③ 确认应用和 API Key 在同一个讯飞账号下！<br>💡 [检查环境变量的快捷命令往下看 ↓](#q-一直提示-10105-unauthorized-怎么破) |
 | **10317** | 版本号不对 | 检查一下 API 版本参数？ |
 | **10400 / 10401** | 协议序列化出错 | 内部问题，提交工单～ |
 | **10500** | 内部同步出错 | 先重试一次看看？可能只是临时小状况！ |
@@ -144,21 +146,21 @@ Uses HMAC-SHA256 signature-based auth (讯飞鉴权). The script handles all sig
 
 **Q: 一直提示 "10105 Unauthorized" 怎么破？(╥﹏╥)**
 > 别急别急，十有八九是环境变量的问题！按这个顺序检查：
-> 1. 三个环境变量都设好了吗？（`XFYUN_APP_ID`, `XFYUN_API_KEY`, `XFYUN_API_SECRET`）
+> 1. 三个环境变量都设好了吗？（`IFLY_APP_ID`, `IFLY_API_KEY`, `IFLY_API_SECRET`）
 > 2. 值是直接从讯飞控制台复制的吗？手打的话很容易漏掉字符哦！
 >
 > **✨ 快速确认环境变量（复制粘贴运行）：**
 >
 > ```bash
 > # macOS / Linux 用户复制这行：
-> echo "XFYUN_APP_ID: $XFYUN_APP_ID | XFYUN_API_KEY: $XFYUN_API_KEY | XFYUN_API_SECRET: $XFYUN_API_SECRET"
+> echo "IFLY_APP_ID: $IFLY_APP_ID | IFLY_API_KEY: $IFLY_API_KEY | IFLY_API_SECRET: $IFLY_API_SECRET"
 >
 > # Windows 用户在 cmd 里运行这行：
-> echo XFYUN_APP_ID: %XFYUN_APP_ID% ^|^| XFYUN_API_KEY: %XFYUN_API_KEY% ^|^| XFYUN_API_SECRET: %XFYUN_API_SECRET%
+> echo IFLY_APP_ID: %IFLY_APP_ID% ^|^| IFLY_API_KEY: %IFLY_API_KEY% ^|^| IFLY_API_SECRET: %IFLY_API_SECRET%
 > ```
 >
 > 如果显示为空或者显示错误，那就是还没设好哦！设置方法：
-> - **macOS/Linux**: 在终端运行 `export XFYUN_APP_ID=你的值`，然后 `echo 'export XFYUN_APP_ID=你的值' >> ~/.zshrc` 永久保存
+> - **macOS/Linux**: 在终端运行 `export IFLY_APP_ID=你的值`，然后 `echo 'export IFLY_APP_ID=你的值' >> ~/.zshrc` 永久保存
 > - **Windows**: 按 Win+R → 输入 `sysdm.cpl` → 高级 → 环境变量 → 新建
 
 **Q: 提示 "10200 read data timeout" 怎么办呀？(;´Д`)**

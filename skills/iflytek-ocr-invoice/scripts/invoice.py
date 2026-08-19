@@ -203,6 +203,29 @@ def format_result(parsed_json: str) -> str:
     return "\n".join(lines) if lines else parsed_json
 
 
+# ─── Credentials ───────────────────────────────────────────────────────────
+# All iFlytek skills read IFLY_* credentials. The prefixes this skill required
+# before are still accepted so existing setups keep working (see issue #76).
+LEGACY_CREDENTIAL_PREFIXES = ("XFYUN", "XFEI")
+
+
+def resolve_credential(name: str) -> str:
+    """Return IFLY_<name>, falling back to a legacy prefix with a deprecation notice."""
+    value = os.environ.get("IFLY_" + name)
+    if value:
+        return value
+    for prefix in LEGACY_CREDENTIAL_PREFIXES:
+        legacy = prefix + "_" + name
+        value = os.environ.get(legacy)
+        if value:
+            print(
+                "Warning: {} is deprecated, please use IFLY_{}.".format(legacy, name),
+                file=sys.stderr,
+            )
+            return value
+    return ""
+
+
 def main():
     parser = argparse.ArgumentParser(description="iFlytek Invoice Recognition (票据识别)")
     parser.add_argument("image", help="Path to invoice/receipt image (png, jpg, bmp, gif, tif, pdf)")
@@ -210,18 +233,18 @@ def main():
     args = parser.parse_args()
 
     # Read credentials from environment
-    app_id = os.environ.get("XFYUN_APP_ID")
-    api_key = os.environ.get("XFYUN_API_KEY")
-    api_secret = os.environ.get("XFYUN_API_SECRET")
+    app_id = resolve_credential("APP_ID")
+    api_key = resolve_credential("API_KEY")
+    api_secret = resolve_credential("API_SECRET")
 
     if not all([app_id, api_key, api_secret]):
         missing = []
         if not app_id:
-            missing.append("XFYUN_APP_ID")
+            missing.append("IFLY_APP_ID")
         if not api_key:
-            missing.append("XFYUN_API_KEY")
+            missing.append("IFLY_API_KEY")
         if not api_secret:
-            missing.append("XFYUN_API_SECRET")
+            missing.append("IFLY_API_SECRET")
         print(f"Error: Missing environment variables: {', '.join(missing)}", file=sys.stderr)
         print("Get credentials from https://console.xfyun.cn", file=sys.stderr)
         sys.exit(1)

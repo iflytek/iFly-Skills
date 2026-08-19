@@ -5,10 +5,12 @@
 ## 前置条件
 
 ```bash
-export XFYUN_APP_ID="your_app_id"
-export XFYUN_API_KEY="your_api_key"
-export XFYUN_API_SECRET="your_api_secret"
+export IFLY_APP_ID="your_app_id"
+export IFLY_API_KEY="your_api_key"
+export IFLY_API_SECRET="your_api_secret"
 ```
+
+> 兼容说明：旧的 `XFEI_*` / `XFYUN_*` 变量仍然可用，但已废弃，脚本会在 stderr 提示改用 `IFLY_*`。
 
 ## 快速开始
 

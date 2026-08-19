@@ -8,13 +8,15 @@
 pip install requests
 ```
 
-配置环境变量，注意这里使用的是 `XFEI_*`：
+配置环境变量（全仓库统一使用 `IFLY_*`）：
 
 ```bash
-export XFEI_APP_ID="your_app_id"
-export XFEI_API_KEY="your_api_key"
-export XFEI_API_SECRET="your_api_secret"
+export IFLY_APP_ID="your_app_id"
+export IFLY_API_KEY="your_api_key"
+export IFLY_API_SECRET="your_api_secret"
 ```
+
+> 兼容说明：旧的 `XFEI_*` / `XFYUN_*` 变量仍然可用，但已废弃，脚本会在 stderr 提示改用 `IFLY_*`。
 
 ## 快速开始
 
