@@ -30,7 +30,14 @@
 
 ## Claude Code
 
-本仓库已封装为 Claude Code 插件。克隆仓库后，可先校验插件，再直接加载：
+本仓库已封装为 Claude Code 插件。添加 iFLYTEK marketplace 后，即可安装完整技能集合：
+
+```bash
+claude plugin marketplace add iflytek/iFly-Skills
+claude plugin install ifly-skills@iflytek-skills
+```
+
+如需校验或直接加载本地检出：
 
 ```bash
 git clone https://github.com/iflytek/iFly-Skills.git

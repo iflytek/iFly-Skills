@@ -30,7 +30,14 @@ You can browse and install skills from the following registries:
 
 ## Claude Code
 
-This repository is packaged as a Claude Code plugin. Clone it, validate the plugin, and load it directly:
+This repository is packaged as a Claude Code plugin. Add the iFLYTEK marketplace and install the skill collection:
+
+```bash
+claude plugin marketplace add iflytek/iFly-Skills
+claude plugin install ifly-skills@iflytek-skills
+```
+
+To validate or load a checkout directly:
 
 ```bash
 git clone https://github.com/iflytek/iFly-Skills.git

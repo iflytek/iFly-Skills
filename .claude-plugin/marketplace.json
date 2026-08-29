@@ -1,0 +1,15 @@
+{
+  "name": "iflytek-skills",
+  "description": "Official iFLYTEK skills for speech, OCR, translation, proofreading, and multimodal AI workflows.",
+  "owner": {
+    "name": "iFLYTEK",
+    "url": "https://github.com/iflytek"
+  },
+  "plugins": [
+    {
+      "name": "ifly-skills",
+      "source": "./",
+      "description": "iFLYTEK skills for speech, OCR, translation, proofreading, and multimodal AI workflows."
+    }
+  ]
+}
