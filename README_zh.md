@@ -28,6 +28,18 @@
 | SkillsMP | [skillsmp.com/creators/iflytek](https://skillsmp.com/zh/creators/iflytek) |
 | LobeHub | [lobehub.com/skills?q=iflytek](https://lobehub.com/zh/skills?q=iflytek) |
 
+## Claude Code
+
+本仓库已封装为 Claude Code 插件。克隆仓库后，可先校验插件，再直接加载：
+
+```bash
+git clone https://github.com/iflytek/iFly-Skills.git
+claude plugin validate ./iFly-Skills --strict
+claude --plugin-dir ./iFly-Skills
+```
+
+插件技能使用 `ifly-skills` 命名空间，例如 `/ifly-skills:iflytek-hyper-tts`。调用前，请先配置对应技能所需的环境变量。
+
 ## 🌟 现有技能列表
 
 目前，仓库提供以下开箱即用的 AI 技能：

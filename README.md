@@ -28,6 +28,18 @@ You can browse and install skills from the following registries:
 | SkillsMP | [skillsmp.com/creators/iflytek](https://skillsmp.com/creators/iflytek) |
 | LobeHub | [lobehub.com/skills?q=iflytek](https://lobehub.com/skills?q=iflytek) |
 
+## Claude Code
+
+This repository is packaged as a Claude Code plugin. Clone it, validate the plugin, and load it directly:
+
+```bash
+git clone https://github.com/iflytek/iFly-Skills.git
+claude plugin validate ./iFly-Skills --strict
+claude --plugin-dir ./iFly-Skills
+```
+
+Plugin skills use the `ifly-skills` namespace, for example `/ifly-skills:iflytek-hyper-tts`. Configure the environment variables required by the selected skill before invoking it.
+
 ## 🌟 Available Skills
 
 Currently, the repository provides the following ready-to-use AI skills:
