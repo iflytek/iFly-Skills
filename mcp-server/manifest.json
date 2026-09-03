@@ -1,0 +1,84 @@
+{
+  "manifest_version": "0.4",
+  "name": "iflytek-skills",
+  "display_name": "iFLYTEK Skills",
+  "version": "0.1.0",
+  "description": "Run eight executable iFLYTEK AI skills through a local MCP server.",
+  "long_description": "A local stdio MCP server for translation, proofreading, speech synthesis, image understanding, invoice OCR, image/PDF OCR, and speech transcription. Calls are executed by the corresponding scripts checked into iflytek/iFly-Skills.",
+  "author": {
+    "name": "iFLYTEK",
+    "url": "https://github.com/iflytek"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iflytek/iFly-Skills.git"
+  },
+  "homepage": "https://github.com/iflytek/iFly-Skills",
+  "documentation": "https://github.com/iflytek/iFly-Skills/tree/main/mcp-server",
+  "support": "https://github.com/iflytek/iFly-Skills/issues/43",
+  "privacy_policies": [
+    "https://www.xfyun.cn/doc/policy/privacy.html"
+  ],
+  "server": {
+    "type": "uv",
+    "entry_point": "iflyskills_mcp/server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "iflyskills-mcp"],
+      "env": {
+        "IFLY_SKILLS_ROOT": "${__dirname}",
+        "IFLYSKILLS_ALLOWED_DIR": "${user_config.allowed_directory}",
+        "IFLYTEK_APP_ID": "${user_config.iflytek_app_id}",
+        "IFLYTEK_API_KEY": "${user_config.iflytek_api_key}",
+        "IFLYTEK_API_SECRET": "${user_config.iflytek_api_secret}"
+      }
+    }
+  },
+  "tools": [
+    {"name": "translate", "description": "Translate text between languages."},
+    {"name": "proofread", "description": "Proofread Chinese official-document text."},
+    {"name": "hyper_tts", "description": "Synthesize speech with an iFLYTEK voice."},
+    {"name": "image_understanding", "description": "Understand a local image."},
+    {"name": "ocr_invoice", "description": "Extract fields from an invoice image."},
+    {"name": "image_ocr", "description": "Recognize text in a local image."},
+    {"name": "pdf_ocr", "description": "Submit and poll OCR for a local PDF."},
+    {"name": "transcribe", "description": "Transcribe a local audio file."}
+  ],
+  "keywords": ["iflytek", "speech", "ocr", "translation", "multimodal", "mcp"],
+  "license": "Apache-2.0",
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.10,<4.0"
+    }
+  },
+  "user_config": {
+    "allowed_directory": {
+      "type": "directory",
+      "title": "Allowed input directory",
+      "description": "Only files below this directory can be read by image, PDF, or audio tools.",
+      "required": true
+    },
+    "iflytek_app_id": {
+      "type": "string",
+      "title": "iFLYTEK App ID",
+      "description": "APPID from the iFLYTEK Open Platform application console.",
+      "sensitive": true,
+      "required": true
+    },
+    "iflytek_api_key": {
+      "type": "string",
+      "title": "iFLYTEK API Key",
+      "description": "APIKey from the same iFLYTEK application.",
+      "sensitive": true,
+      "required": true
+    },
+    "iflytek_api_secret": {
+      "type": "string",
+      "title": "iFLYTEK API Secret",
+      "description": "APISecret from the same iFLYTEK application.",
+      "sensitive": true,
+      "required": true
+    }
+  }
+}

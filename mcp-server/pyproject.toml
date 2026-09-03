@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iflyskills-mcp"
+version = "0.1.0"
+description = "MCP server for the executable iFLYTEK skills in iFly-Skills."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [{ name = "iFLYTEK" }]
+dependencies = [
+    "mcp>=2.0.0,<3.0.0",
+    "PyYAML>=6.0.2,<7.0",
+    "requests>=2.32.0,<3.0",
+    "urllib3>=2.2.0,<3.0",
+    "websocket-client>=1.8.0,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.0,<9.0",
+    "ruff==0.16.2",
+]
+
+[project.scripts]
+iflyskills-mcp = "iflyskills_mcp.server:main"
+
+[tool.setuptools]
+packages = ["iflyskills_mcp"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+iflyskills_mcp = ["skills.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
