@@ -17,6 +17,7 @@ from .registry import Skill, SkillArg, get_skill
 DEFAULT_TIMEOUT_SECONDS = 600.0
 DEFAULT_MAX_ARTIFACT_BYTES = 20 * 1024 * 1024
 ALLOWED_INPUT_DIR = "IFLYSKILLS_ALLOWED_DIR"
+SERVER_ONLY_ENV = {"IFLYSKILLS_MCP_BEARER_TOKEN"}
 
 
 @dataclass(frozen=True)
@@ -160,6 +161,8 @@ def run_skill(
     env = dict(os.environ)
     for canonical_name in CANONICAL_CREDENTIALS:
         env.pop(canonical_name, None)
+    for server_only_name in SERVER_ONLY_ENV:
+        env.pop(server_only_name, None)
     env.update(child_credentials)
     env.setdefault("PYTHONIOENCODING", "utf-8")
 

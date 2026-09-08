@@ -1,6 +1,6 @@
 # iFly-Skills MCP Server
 
-Local stdio MCP server for the executable, single-step AI skills in this repository.
+Local stdio or authenticated SSE MCP server for the executable, single-step AI skills in this repository.
 The server uses the official MCP Python SDK v2 and runs the existing skill scripts
 without modifying them.
 
@@ -75,6 +75,39 @@ Example client entry, replacing both absolute paths:
 }
 ```
 
+## SSE transport
+
+Stdio remains the default. To expose the same tools over the MCP SSE transport on the
+loopback interface:
+
+```bash
+iflyskills-mcp --transport sse --host 127.0.0.1 --port 8000
+```
+
+Clients connect to `http://127.0.0.1:8000/sse`; the server advertises the paired
+`/messages/` endpoint for that session. DNS-rebinding protection accepts loopback Host
+and Origin values by default.
+
+Any non-loopback bind, including `0.0.0.0`, requires a bearer token supplied through the
+environment rather than a command-line argument:
+
+```bash
+export IFLYSKILLS_MCP_BEARER_TOKEN="$(openssl rand -hex 32)"
+iflyskills-mcp --transport sse --host 0.0.0.0 --port 8000
+```
+
+Send `Authorization: Bearer <token>` on both the SSE connection and its message POSTs.
+For a reverse proxy, explicitly add the public Host and browser Origin as needed:
+
+```bash
+iflyskills-mcp --transport sse --host 0.0.0.0 \
+  --allow-host mcp.example.com \
+  --allow-origin https://mcp.example.com
+```
+
+TLS termination, rate limiting, and multi-user identity belong at the reverse proxy or
+gateway. The server token is never forwarded to child skill processes.
+
 ## Docker
 
 ```bash
@@ -86,6 +119,21 @@ docker run --rm -i \
   -e IFLYTEK_API_KEY \
   -e IFLYTEK_API_SECRET \
   iflyskills-mcp
+```
+
+For authenticated SSE in Docker, publish the port only on the intended interface and pass
+the token through the environment:
+
+```bash
+docker run --rm \
+  -p 127.0.0.1:8000:8000 \
+  -v "$PWD/approved-inputs:/data:ro" \
+  -e IFLYSKILLS_ALLOWED_DIR=/data \
+  -e IFLYSKILLS_MCP_BEARER_TOKEN \
+  -e IFLYTEK_APP_ID \
+  -e IFLYTEK_API_KEY \
+  -e IFLYTEK_API_SECRET \
+  iflyskills-mcp --transport sse --host 0.0.0.0 --port 8000
 ```
 
 The image runs as an unprivileged user. Image, PDF, invoice, and audio inputs must resolve

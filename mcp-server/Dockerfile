@@ -20,4 +20,6 @@ ENV IFLY_SKILLS_ROOT=/app \
 
 USER iflyskills
 
+EXPOSE 8000
+
 ENTRYPOINT ["iflyskills-mcp"]

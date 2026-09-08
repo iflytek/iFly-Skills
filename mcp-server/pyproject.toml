@@ -14,7 +14,9 @@ dependencies = [
     "mcp>=2.0.0,<3.0.0",
     "PyYAML>=6.0.2,<7.0",
     "requests>=2.32.0,<3.0",
+    "starlette>=0.46.0,<2.0",
     "urllib3>=2.2.0,<3.0",
+    "uvicorn>=0.34.0,<1.0",
     "websocket-client>=1.8.0,<2.0",
 ]
 

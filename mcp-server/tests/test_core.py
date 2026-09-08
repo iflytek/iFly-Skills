@@ -175,7 +175,11 @@ def test_run_skill_scrubs_canonical_credentials_and_cleans_artifact(
         """import json, os, pathlib, sys
 output = pathlib.Path(sys.argv[sys.argv.index('--output') + 1])
 output.write_bytes(b'artifact')
-print(json.dumps({'mapped': os.getenv('XFEI_API_KEY'), 'canonical': os.getenv('IFLYTEK_API_KEY')}))
+print(json.dumps({
+    'mapped': os.getenv('XFEI_API_KEY'),
+    'canonical': os.getenv('IFLYTEK_API_KEY'),
+    'server_token': os.getenv('IFLYSKILLS_MCP_BEARER_TOKEN'),
+}))
 """,
         encoding="utf-8",
     )
@@ -189,6 +193,7 @@ print(json.dumps({'mapped': os.getenv('XFEI_API_KEY'), 'canonical': os.getenv('I
         lambda **kwargs: (os.open(artifact, os.O_CREAT | os.O_RDWR), str(artifact)),
     )
     monkeypatch.setenv(credentials.CANONICAL_API_KEY, "ambient-key")
+    monkeypatch.setenv("IFLYSKILLS_MCP_BEARER_TOKEN", "server-only")
 
     result = runner.run_skill(
         "test_skill",
@@ -201,7 +206,7 @@ print(json.dumps({'mapped': os.getenv('XFEI_API_KEY'), 'canonical': os.getenv('I
     )
 
     child_env = json.loads(result.stdout)
-    assert child_env == {"mapped": "override-key", "canonical": None}
+    assert child_env == {"mapped": "override-key", "canonical": None, "server_token": None}
     assert result.artifact_bytes == b"artifact"
     assert result.artifact_name == "artifact.bin"
     assert not artifact.exists()
