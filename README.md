@@ -54,6 +54,10 @@ Each skill is packaged in its own directory containing specific instructions, sc
 2. Read the `SKILL.md` file for detailed API documentation, required environment variables (e.g., `XFEI_APP_ID`, `XFEI_API_KEY`, `XFEI_API_SECRET`), and usage examples.
 3. Use the provided Python scripts or integrate the capability into your own agent workflow.
 
+## Usage recipes
+
+- [Translate English release notes and proofread the Chinese draft](docs/recipes/translate-and-proofread.md) — combine machine translation and document proofreading, preserve intermediate results, and review suggestions before publishing.
+
 ## 🤝 Contributing
 
 We welcome contributions to expand the iFLYTEK skills ecosystem!
