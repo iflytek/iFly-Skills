@@ -499,17 +499,37 @@ class XfeiSpeedTranscription:
         }
 
 
+# ─── Credentials ───────────────────────────────────────────────────────────
+# Prefer one credential namespace as a whole; never combine different apps.
+# Keep the skill's original prefix first when falling back to legacy settings.
+LEGACY_CREDENTIAL_PREFIXES = ('XFEI', 'XFYUN')
+
+
+def resolve_credentials(*names: str) -> tuple:
+    """Read one namespace, preferring IFLY even when it is incomplete or empty."""
+    fields = ("APP_ID", "API_KEY", "API_SECRET")
+    for prefix in ("IFLY",) + LEGACY_CREDENTIAL_PREFIXES:
+        if any(prefix + "_" + field in os.environ for field in fields):
+            if prefix != "IFLY":
+                print(
+                    "Warning: {}_* is deprecated; use IFLY_* instead.".format(prefix),
+                    file=sys.stderr,
+                )
+            return tuple(os.environ.get(prefix + "_" + name, "") for name in names)
+    return ("",) * len(names)
+
+
 def load_config():
     """Load API credentials from environment variables."""
-    app_id = os.getenv("XFEI_APP_ID")
-    api_key = os.getenv("XFEI_API_KEY")
-    api_secret = os.getenv("XFEI_API_SECRET")
+    app_id, api_key, api_secret = resolve_credentials(
+        "APP_ID", "API_KEY", "API_SECRET"
+    )
 
     if not all([app_id, api_key, api_secret]):
         print("Error: Missing credentials. Set environment variables:", file=sys.stderr)
-        print("  XFEI_APP_ID", file=sys.stderr)
-        print("  XFEI_API_KEY", file=sys.stderr)
-        print("  XFEI_API_SECRET", file=sys.stderr)
+        print("  IFLY_APP_ID", file=sys.stderr)
+        print("  IFLY_API_KEY", file=sys.stderr)
+        print("  IFLY_API_SECRET", file=sys.stderr)
         sys.exit(1)
 
     return app_id, api_key, api_secret

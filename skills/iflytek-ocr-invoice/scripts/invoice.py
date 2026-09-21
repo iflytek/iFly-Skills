@@ -5,9 +5,9 @@ Supports: VAT invoices, taxi receipts, train tickets, toll invoices,
 medical bills, bank receipts, and more.
 
 Environment variables:
-    XFYUN_APP_ID      - Required. App ID from https://console.xfyun.cn
-    XFYUN_API_KEY     - Required. API Key
-    XFYUN_API_SECRET  - Required. API Secret
+    IFLY_APP_ID      - Required. App ID from https://console.xfyun.cn
+    IFLY_API_KEY     - Required. API Key
+    IFLY_API_SECRET  - Required. API Secret
 
 Usage:
     python invoice.py <image_path> [--raw]
@@ -203,6 +203,26 @@ def format_result(parsed_json: str) -> str:
     return "\n".join(lines) if lines else parsed_json
 
 
+# ─── Credentials ───────────────────────────────────────────────────────────
+# Prefer one credential namespace as a whole; never combine different apps.
+# Keep the skill's original prefix first when falling back to legacy settings.
+LEGACY_CREDENTIAL_PREFIXES = ('XFYUN', 'XFEI')
+
+
+def resolve_credentials(*names: str) -> tuple:
+    """Read one namespace, preferring IFLY even when it is incomplete or empty."""
+    fields = ("APP_ID", "API_KEY", "API_SECRET")
+    for prefix in ("IFLY",) + LEGACY_CREDENTIAL_PREFIXES:
+        if any(prefix + "_" + field in os.environ for field in fields):
+            if prefix != "IFLY":
+                print(
+                    "Warning: {}_* is deprecated; use IFLY_* instead.".format(prefix),
+                    file=sys.stderr,
+                )
+            return tuple(os.environ.get(prefix + "_" + name, "") for name in names)
+    return ("",) * len(names)
+
+
 def main():
     parser = argparse.ArgumentParser(description="iFlytek Invoice Recognition (票据识别)")
     parser.add_argument("image", help="Path to invoice/receipt image (png, jpg, bmp, gif, tif, pdf)")
@@ -210,18 +230,18 @@ def main():
     args = parser.parse_args()
 
     # Read credentials from environment
-    app_id = os.environ.get("XFYUN_APP_ID")
-    api_key = os.environ.get("XFYUN_API_KEY")
-    api_secret = os.environ.get("XFYUN_API_SECRET")
+    app_id, api_key, api_secret = resolve_credentials(
+        "APP_ID", "API_KEY", "API_SECRET"
+    )
 
     if not all([app_id, api_key, api_secret]):
         missing = []
         if not app_id:
-            missing.append("XFYUN_APP_ID")
+            missing.append("IFLY_APP_ID")
         if not api_key:
-            missing.append("XFYUN_API_KEY")
+            missing.append("IFLY_API_KEY")
         if not api_secret:
-            missing.append("XFYUN_API_SECRET")
+            missing.append("IFLY_API_SECRET")
         print(f"Error: Missing environment variables: {', '.join(missing)}", file=sys.stderr)
         print("Get credentials from https://console.xfyun.cn", file=sys.stderr)
         sys.exit(1)

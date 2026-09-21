@@ -1,0 +1,9 @@
+# Complete version pins for the nine bundled atomic skills (Python >=3.10).
+# Includes requests' transitive dependencies; urllib3 is also imported directly.
+# This is a dependency-version lock, not a platform/wheel hash lock.
+requests==2.34.2
+websocket-client==1.9.2
+urllib3==2.8.0
+charset-normalizer==3.5.1
+idna==3.20
+certifi==2026.7.22

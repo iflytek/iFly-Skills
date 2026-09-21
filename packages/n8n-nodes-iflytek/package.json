@@ -1,0 +1,48 @@
+{
+  "name": "n8n-nodes-iflytek",
+  "version": "0.0.0-dev.0",
+  "private": true,
+  "description": "iFLYTEK skills for self-hosted n8n (development skeleton)",
+  "license": "Apache-2.0",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "iflytek",
+    "ifly-skills"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iflytek/iFly-Skills.git",
+    "directory": "packages/n8n-nodes-iflytek"
+  },
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "files": [
+    "dist/credentials",
+    "runtime",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/stage-runtime.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run build && npm test",
+    "prepack": "npm run build"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/IflyApi.credentials.js"
+    ],
+    "nodes": []
+  },
+  "peerDependencies": {
+    "n8n-workflow": ">=2.39.3 <3"
+  },
+  "devDependencies": {
+    "n8n-workflow": "2.39.3",
+    "typescript": "5.9.3"
+  }
+}

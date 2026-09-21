@@ -51,7 +51,7 @@ Currently, the repository provides the following ready-to-use AI skills:
 Each skill is packaged in its own directory containing specific instructions, scripts, and metadata. To use a specific skill:
 
 1. Navigate to the target skill's directory (e.g., `cd skills/iflytek-hyper-tts`).
-2. Read the `SKILL.md` file for detailed API documentation, required environment variables (e.g., `XFEI_APP_ID`, `XFEI_API_KEY`, `XFEI_API_SECRET`), and usage examples.
+2. Read the `SKILL.md` file for detailed API documentation, required environment variables (e.g., `IFLY_APP_ID`, `IFLY_API_KEY`, `IFLY_API_SECRET`), and usage examples.
 3. Use the provided Python scripts or integrate the capability into your own agent workflow.
 
 ## 🤝 Contributing

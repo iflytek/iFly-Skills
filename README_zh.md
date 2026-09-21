@@ -51,7 +51,7 @@
 每个技能都打包在各自的独立目录中，包含特定的说明、脚本和元数据。要使用某个特定技能：
 
 1. 进入目标技能的目录（例如：`cd skills/iflytek-hyper-tts`）。
-2. 阅读目录下的 `SKILL.md` 文件，获取详细的 API 文档、所需的环境变量（如 `XFEI_APP_ID`, `XFEI_API_KEY`, `XFEI_API_SECRET`）以及使用示例。
+2. 阅读目录下的 `SKILL.md` 文件，获取详细的 API 文档、所需的环境变量（如 `IFLY_APP_ID`, `IFLY_API_KEY`, `IFLY_API_SECRET`）以及使用示例。
 3. 使用提供的 Python 脚本，或者将该能力集成到您自己的智能体工作流中。
 
 ## 🤝 参与贡献

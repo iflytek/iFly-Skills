@@ -29,15 +29,17 @@ pip install requests
 2. Create an app with **视频翻译** service enabled
 3. Enable the desired voice(s) in the console
 
-### 3. (Optional) Configure Your Own Credentials
+### 3. Configure Credentials
 
-The Skill comes with pre-configured API credentials. To use your own:
+Configure your shared iFLYTEK application credentials. Video Translation reads the API Key and API Secret; the App ID may remain configured for other skills:
 
 ```bash
-export XFYUN_APP_ID="your_app_id"
-export XFYUN_API_KEY="your_api_key"
-export XFYUN_API_SECRET="your_api_secret"
+export IFLY_APP_ID="your_app_id"
+export IFLY_API_KEY="your_api_key"
+export IFLY_API_SECRET="your_api_secret"
 ```
+
+> Compatibility: use one credential namespace as a whole. If any `IFLY_*` credential variable is set (even empty), only that group is used and missing fields fail validation. Otherwise prefer `XFYUN_*`, then `XFEI_*`; never mix groups. Legacy prefixes emit a migration notice on stderr without credential values.
 
 ### 4. Create a Translation Task
 
@@ -86,9 +88,9 @@ python3 scripts/xfei_video_translate.py --action list_tasks
 
 | Variable | Description |
 |----------|-------------|
-| `XFYUN_APP_ID` | iFlytek Application ID |
-| `XFYUN_API_KEY` | iFlytek API Key |
-| `XFYUN_API_SECRET` | iFlytek API Secret |
+| `IFLY_APP_ID` | Shared application ID; not read by this video API |
+| `IFLY_API_KEY` | iFlytek API Key |
+| `IFLY_API_SECRET` | iFlytek API Secret |
 
 ## Requirements
 
