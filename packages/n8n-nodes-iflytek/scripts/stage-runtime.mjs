@@ -58,7 +58,7 @@ export async function stageRuntime({
   repositoryRoot = await realpath(repositoryRoot);
   const catalogBytes = await readSource(packageRoot, 'skills.json');
   const catalog = JSON.parse(catalogBytes);
-  if (catalog.schemaVersion !== 1 || catalog.stage !== 'skeleton' || !Array.isArray(catalog.skills)) {
+  if (catalog.schemaVersion !== 1 || !Array.isArray(catalog.skills)) {
     throw new Error('Unsupported skill catalog');
   }
   const ids = new Set();
@@ -80,7 +80,7 @@ export async function stageRuntime({
     for (const file of skill.runtimeFiles) {
       assertRelativeFile(file);
       if (!file.startsWith('scripts/') || !file.endsWith('.py')) {
-        throw new Error(`Only explicitly listed Python scripts are bundled at this stage: ${file}`);
+        throw new Error(`Only explicitly listed Python scripts may be bundled: ${file}`);
       }
       const target = `skills/${skill.id}/${file}`;
       if (files.has(target)) throw new Error(`Duplicate runtime file: ${target}`);
@@ -93,7 +93,6 @@ export async function stageRuntime({
   const git = (args) => execFileSync('git', ['-C', repositoryRoot, ...args], { encoding: 'utf8' }).trim();
   const manifest = {
     schemaVersion: 1,
-    stage: catalog.stage,
     sourceCommit: git(['rev-parse', 'HEAD']),
     sourceTreeDirty: git(['status', '--porcelain', '--', 'skills']) !== '',
     catalogSha256: sha256(catalogBytes),

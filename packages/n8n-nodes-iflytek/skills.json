@@ -1,12 +1,10 @@
 {
   "schemaVersion": 1,
-  "stage": "skeleton",
   "skills": [
     {
       "id": "iflytek-translate",
       "nodeClass": "IflyTranslate",
       "nodeName": "iflyTranslate",
-      "phase": "mvp",
       "credential": "iflyApi",
       "operations": ["translate"],
       "runtimeFiles": ["scripts/translate.py"]
@@ -15,7 +13,6 @@
       "id": "iflytek-text-proofread",
       "nodeClass": "IflyTextProofread",
       "nodeName": "iflyTextProofread",
-      "phase": "mvp",
       "credential": "iflyApi",
       "operations": ["check"],
       "runtimeFiles": ["scripts/text_proofread.py"]
@@ -24,7 +21,6 @@
       "id": "iflytek-ocr-invoice",
       "nodeClass": "IflyOcrInvoice",
       "nodeName": "iflyOcrInvoice",
-      "phase": "mvp",
       "credential": "iflyApi",
       "operations": ["recognize"],
       "runtimeFiles": ["scripts/invoice.py"]
@@ -33,7 +29,6 @@
       "id": "iflytek-hyper-tts",
       "nodeClass": "IflyHyperTts",
       "nodeName": "iflyHyperTts",
-      "phase": "mvp",
       "credential": "iflyApi",
       "operations": ["synthesize", "listVoices"],
       "runtimeFiles": ["scripts/xfei_hyper_tts.py"]
@@ -42,7 +37,6 @@
       "id": "iflytek-pdf-image-ocr",
       "nodeClass": "IflyPdfImageOcr",
       "nodeName": "iflyPdfImageOcr",
-      "phase": "basic",
       "credential": "iflyApi",
       "operations": ["recognizeImage", "createPdfTask", "getPdfTask", "getResult"],
       "runtimeFiles": ["scripts/image_ocr.py", "scripts/pdf_ocr.py"]
@@ -51,7 +45,6 @@
       "id": "iflytek-speed-transcription",
       "nodeClass": "IflySpeedTranscription",
       "nodeName": "iflySpeedTranscription",
-      "phase": "basic",
       "credential": "iflyApi",
       "operations": ["createTask", "getTask", "getResult"],
       "runtimeFiles": ["scripts/transcribe.py"]
@@ -60,7 +53,6 @@
       "id": "iflytek-image-understanding",
       "nodeClass": "IflyImageUnderstanding",
       "nodeName": "iflyImageUnderstanding",
-      "phase": "basic",
       "credential": "iflyApi",
       "operations": ["analyze"],
       "runtimeFiles": ["scripts/image_understanding.py"]
@@ -69,7 +61,6 @@
       "id": "iflytek-video-translate",
       "nodeClass": "IflyVideoTranslate",
       "nodeName": "iflyVideoTranslate",
-      "phase": "advanced",
       "credential": "iflyApi",
       "operations": ["createTask", "listTasks", "getTask", "confirmTranscript"],
       "runtimeFiles": ["scripts/xfei_video_translate.py"]
@@ -78,7 +69,6 @@
       "id": "iflytek-voiceclone-tts",
       "nodeClass": "IflyVoicecloneTts",
       "nodeName": "iflyVoicecloneTts",
-      "phase": "advanced",
       "credential": "iflyApi",
       "operations": ["getTrainingText", "createTraining", "uploadSample", "submitTraining", "getTraining", "synthesize"],
       "runtimeFiles": ["scripts/voiceclone.py"]
@@ -87,21 +77,19 @@
       "id": "iflytek-contract-intelligence-review",
       "nodeClass": "IflyContractReview",
       "nodeName": "iflyContractReview",
-      "phase": "scenario",
       "credential": "iflyApi",
       "operations": ["review"],
       "runtimeFiles": [],
-      "deferredReason": "Real OCR, translation and LLM clients must be implemented before bundling this workflow."
+      "deferredReason": "The workflow contains unimplemented OCR, translation and LLM clients and is not bundled."
     },
     {
       "id": "animated-sketch-diagram",
       "nodeClass": "IflyAnimatedSketch",
       "nodeName": "iflyAnimatedSketch",
-      "phase": "scenario",
       "credential": null,
       "operations": ["renderHtmlToGif"],
       "runtimeFiles": [],
-      "deferredReason": "Local JavaScript renderer requires a Python bridge, Playwright, a browser and ffmpeg; no API credential is needed."
+      "deferredReason": "The local JavaScript renderer uses no API credential. Its bridge adapter is not implemented; rendering resources and browser/ffmpeg dependencies are not bundled."
     }
   ]
 }

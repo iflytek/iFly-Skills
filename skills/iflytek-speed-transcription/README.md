@@ -8,7 +8,7 @@
 pip install requests
 ```
 
-配置环境变量（全仓库统一使用 `IFLY_*`）：
+本 Skill 使用以下 `IFLY_*` 凭证环境变量：
 
 ```bash
 export IFLY_APP_ID="your_app_id"
