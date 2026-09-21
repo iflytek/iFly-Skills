@@ -49,7 +49,7 @@ async function fixture(t, credentials = []) {
 }
 const request = (mode, extra = {}) => ({ skill, operation, parameters: { mode }, ...extra });
 
-test('real packaged bridge loads original voice data without credentials', async (t) => {
+test('packaged listVoices reads local voice constants without credentials', async (t) => {
   const f = await fixture(t);
   const runner = new PythonRunner({ ...f.config, runtimeRoot: path.join(pkg, 'runtime') });
   const output = await runner.run({ skill, operation }, consume);

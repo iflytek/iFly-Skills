@@ -10,7 +10,7 @@ export interface ItemOperation {
   skill: string; operation: string; input?: RunRequest['input']; parameters?: RunRequest['parameters'];
   binaryInputs?: Record<string, string>; outputBinaryPrefix?: string;
 }
-// Called once per item by future node classes. Default errors propagate through
+// Per-item helper for node execute methods. Default errors propagate through
 // n8n; continueOnFail is intentionally the node's responsibility.
 export async function executeSkill(
   context: IExecuteFunctions, runner: PythonRunner, itemIndex: number, item: ItemOperation,

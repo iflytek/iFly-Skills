@@ -49,13 +49,14 @@ def load_packaged_module(relative_path):
 
 
 def list_voices(request):
+    """Read bundled voice constants; does not authenticate or synthesize speech."""
     if set(request['input']) - {'files'} or request['input'].get('files') or request['parameters']:
         raise BridgeError('INVALID_INPUT')
     skill = load_packaged_module('skills/iflytek-hyper-tts/scripts/xfei_hyper_tts.py')
     return {'defaultVoice': skill.DEFAULT_VOICE, 'freeVoices': skill.FREE_VOICES, 'voices': skill.VOICE_LIST}, []
 
 
-# Enable real adapters incrementally. Test adapters are never packaged here.
+# Fixed dispatch table for packaged adapters; test adapters are excluded.
 OPERATIONS = {('iflytek-hyper-tts', 'listVoices'): list_voices}
 
 
