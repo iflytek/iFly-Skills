@@ -1,0 +1,11 @@
+{
+  "protocolVersion": 1,
+  "operations": [
+    {
+      "skill": "iflytek-hyper-tts",
+      "operation": "listVoices",
+      "credentials": [],
+      "artifactMimeTypes": []
+    }
+  ]
+}

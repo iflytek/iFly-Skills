@@ -18,7 +18,7 @@ async function fixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'ifly-package-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(path.join(root, 'python'));
-  for (const file of ['skills.json', 'python/requirements-core.lock']) {
+  for (const file of ['skills.json', 'python/requirements-core.lock', 'python/bridge.py', 'python/operations.json']) {
     await copyFile(path.join(packageRoot, file), path.join(root, file));
   }
   return root;
@@ -65,8 +65,8 @@ test('staging preserves source bytes, is reproducible, and removes stale output'
   assert.equal(manifest.catalogSha256, digest(await readFile(path.join(root, 'skills.json'))));
   assert.deepEqual(manifest.skills, catalog.skills);
   for (const [file, meta] of Object.entries(manifest.files)) {
-    const original = file.startsWith('skills/')
-      ? path.join(repositoryRoot, file) : path.join(root, 'python/requirements-core.lock');
+    const original = file.startsWith('skills/') ? path.join(repositoryRoot, file)
+      : path.join(root, 'python', path.basename(file));
     const bytes = await readFile(path.join(runtime, file));
     assert.deepEqual(bytes, await readFile(original));
     assert.deepEqual(meta, { sha256: digest(bytes), bytes: bytes.length });

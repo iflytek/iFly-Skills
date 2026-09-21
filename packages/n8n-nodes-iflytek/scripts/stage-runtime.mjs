@@ -58,7 +58,7 @@ export async function stageRuntime({
   repositoryRoot = await realpath(repositoryRoot);
   const catalogBytes = await readSource(packageRoot, 'skills.json');
   const catalog = JSON.parse(catalogBytes);
-  if (catalog.schemaVersion !== 1 || !Array.isArray(catalog.skills)) {
+  if (catalog.schemaVersion !== 1 || catalog.stage !== 'execution-layer' || !Array.isArray(catalog.skills)) {
     throw new Error('Unsupported skill catalog');
   }
   const ids = new Set();
@@ -80,7 +80,7 @@ export async function stageRuntime({
     for (const file of skill.runtimeFiles) {
       assertRelativeFile(file);
       if (!file.startsWith('scripts/') || !file.endsWith('.py')) {
-        throw new Error(`Only explicitly listed Python scripts may be bundled: ${file}`);
+        throw new Error(`Only explicitly listed Python scripts are bundled at this stage: ${file}`);
       }
       const target = `skills/${skill.id}/${file}`;
       if (files.has(target)) throw new Error(`Duplicate runtime file: ${target}`);
@@ -89,14 +89,34 @@ export async function stageRuntime({
   }
   const requirementsPath = 'requirements/requirements-core.lock';
   files.set(requirementsPath, await readSource(packageRoot, 'python/requirements-core.lock'));
+  files.set('bridge/bridge.py', await readSource(packageRoot, 'python/bridge.py'));
+  const operationsBytes = await readSource(packageRoot, 'python/operations.json');
+  const operations = JSON.parse(operationsBytes);
+  if (operations.protocolVersion !== 1 || !Array.isArray(operations.operations)) {
+    throw new Error('Invalid enabled operations manifest');
+  }
+  const enabled = new Set();
+  for (const operation of operations.operations) {
+    const skill = catalog.skills.find((entry) => entry.id === operation.skill);
+    const key = `${operation.skill}/${operation.operation}`;
+    if (!skill?.operations.includes(operation.operation) || enabled.has(key)
+      || !Array.isArray(operation.credentials)
+      || !operation.credentials.every((name) => ['appId', 'apiKey', 'apiSecret'].includes(name))
+      || !Array.isArray(operation.artifactMimeTypes)) throw new Error('Invalid enabled operation');
+    enabled.add(key);
+  }
+  files.set('bridge/operations.json', operationsBytes);
 
   const git = (args) => execFileSync('git', ['-C', repositoryRoot, ...args], { encoding: 'utf8' }).trim();
   const manifest = {
     schemaVersion: 1,
+    stage: catalog.stage,
     sourceCommit: git(['rev-parse', 'HEAD']),
-    sourceTreeDirty: git(['status', '--porcelain', '--', 'skills']) !== '',
+    sourceTreeDirty: git(['status', '--porcelain', '--', 'skills', 'packages/n8n-nodes-iflytek']) !== '',
     catalogSha256: sha256(catalogBytes),
     credentialType: 'iflyApi',
+    protocolVersion: operations.protocolVersion,
+    enabledOperations: operations.operations,
     runtimeRequirements: { python: '>=3.10', pythonRequirements: requirementsPath },
     skills: catalog.skills,
     files: Object.fromEntries([...files].sort(([a], [b]) => a.localeCompare(b))
@@ -123,5 +143,5 @@ export async function stageRuntime({
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const manifest = await stageRuntime();
-  console.log(`Staged ${Object.keys(manifest.files).length} files from ${manifest.sourceCommit.slice(0, 7)}${manifest.sourceTreeDirty ? ' (local skill changes included)' : ''}`);
+  console.log(`Staged ${Object.keys(manifest.files).length} files from ${manifest.sourceCommit.slice(0, 7)}${manifest.sourceTreeDirty ? ' (local source changes included)' : ''}`);
 }

@@ -2,7 +2,7 @@
   "name": "n8n-nodes-iflytek",
   "version": "0.0.0-dev.0",
   "private": true,
-  "description": "iFLYTEK skills for self-hosted n8n (development skeleton)",
+  "description": "iFLYTEK skills for self-hosted n8n (shared execution layer, development preview)",
   "license": "Apache-2.0",
   "keywords": [
     "n8n-community-node-package",
@@ -20,6 +20,7 @@
   },
   "files": [
     "dist/credentials",
+    "dist/shared",
     "runtime",
     "README.md",
     "LICENSE"
@@ -42,6 +43,7 @@
     "n8n-workflow": ">=2.39.3 <3"
   },
   "devDependencies": {
+    "@types/node": "24.13.6",
     "n8n-workflow": "2.39.3",
     "typescript": "5.9.3"
   }

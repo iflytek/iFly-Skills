@@ -1,51 +1,112 @@
 # n8n-nodes-iflytek
 
-iFly-Skills 的自托管 n8n 社区包开发骨架，提供共享凭证定义、Skill 目录和原脚本打包工具。版本为 `0.0.0-dev.0`，保留 `private: true`；尚无已注册的业务节点，未发布 npm。
+iFly-Skills 的自托管 n8n 社区包开发预览。当前已完成第 2 步包骨架和第 3 步公共执行层，版本 `0.0.0-dev.0`，保留 `private: true`。`n8n.nodes` 仍为空；业务节点、真实收费 API 验收和 npm 发布在后续阶段实施。
 
-## 当前交付范围
+## 当前能力与目录
 
-- `credentials/IflyApi.credentials.ts`：共享 `iflyApi` 凭证，包含 App ID、API Key、API Secret；字段说明标注对应的 `IFLY_*` 变量名。从 n8n 读取凭证并注入子进程的执行入口尚未实现。
-- `skills.json`：11 个 Skill 的候选节点类名、内部名、操作名和凭证类型，同时作为脚本打包白名单。清单中的名称不代表已有节点类或可执行操作。
-- `scripts/stage-runtime.mjs`：复制九个原子 Skill 的 10 个 Python 脚本，生成依赖和文件校验清单。合同审核的部分 API 客户端尚未实现；手绘图尚无本包适配入口，渲染资源及浏览器/ffmpeg 依赖未打包。这两项的排除原因记录在清单中。
-- `python/requirements-core.lock`：原子能力的直接、间接 Python 依赖版本锁定；不包含浏览器/ffmpeg，也不是跨平台 wheel/hash 锁。
-- `tests/`：凭证加载、清单完整性、打包内容及构建失败保护测试。
+| 目录/文件 | 职责 |
+| --- | --- |
+| `credentials/IflyApi.credentials.ts` | 共享 `iflyApi` 三字段凭证；API Key/Secret 为密码输入 |
+| `skills.json` | 11 个 Skill 的节点/操作规划与原脚本白名单，不等于全部已可执行 |
+| `shared/PythonRunner.ts` | 公共执行入口：排队、独立环境、协议、文件回收 |
+| `shared/processControl.ts` | `spawn`、输出限额、超时/取消终止与每 worker 共享队列 |
+| `shared/executeSkill.ts` | n8n 凭证、取消信号、binary helper、item 关联与错误映射 |
+| `shared/binaryFiles.ts` | 每次调用的临时文件、产物路径/大小检查和清理 |
+| `shared/credentialEnv.ts`、`protocol.ts`、`errors.ts`、`operationManifest.ts` | 环境白名单、协议、固定错误信息和启用操作白名单 |
+| `python/bridge.py` | 单请求 Python 入口，固定分派并复用原模块 |
+| `python/operations.json` | 实际启用操作、所需凭证字段和允许的产物 MIME 类型 |
+| `python/requirements-core.lock` | 九个原子能力的直接与间接依赖版本锁 |
+| `scripts/stage-runtime.mjs` | 白名单复制、启用操作检查及 SHA-256 清单生成 |
+| `tests/` | 包测试、真实进程测试与不进入制品的故障注入 fixture |
 
-`package.json` 中的 `n8n.credentials` 注册编译后的凭证类，`n8n.nodes` 为空数组。本包尚未实现 Python bridge、Runner、业务节点或 n8n 文件处理；打包的原脚本仍通过各自 CLI 调用。
+当前唯一启用的操作是 `iflytek-hyper-tts/listVoices`：通过 bridge 导入原 Hyper TTS 模块，返回默认音色、免费音色和完整音色列表，无需凭证，不请求服务端。它用于验证真实公共调用链；`synthesize` 等未启用操作会明确报错。
 
-清单中的 `credential` 表示该 Skill 服务调用使用的目标凭证类型，不表示鉴权已在本包接通。合同条目记录为 `iflyApi`；手绘图现有的本地 JavaScript 渲染器不读取 API 凭证，因此记录为 `null`。
+九个原子 Skill 的 10 个脚本继续随包分发。合同真实客户端及手绘图 bridge/浏览器/ffmpeg 留到场景节点阶段；合同将复用 `iflyApi`，本地手绘图 Render 无需 API 凭证。不会从普通参数加载脚本、模块、解释器或 endpoint。
 
-## 构建与校验
+## 安装依赖、构建与测试
 
-在仓库内本包目录执行（需要 Git、Node.js 24 和 npm）：
+需要 Node.js 24、npm、Git（仅构建时）及 Python 3.10 以上。先在包目录安装开发依赖，并在仓库外创建独立 Python 环境：
 
 ```sh
 npm ci
-npm run check
-npm pack --dry-run
-npm pack --pack-destination <仓库外的已有目录>
+python -m venv <venv-directory>
+<venv-python> -m pip install -r python/requirements-core.lock
+<venv-python> -m pip check
 ```
 
-`npm run build` 编译 TypeScript 并从当前仓库工作树生成 `runtime/`；`npm pack` 会先重新构建。安装后的制品包含脚本快照，无需仓库或 Git。构建工具、测试和 TypeScript 源码不进入 npm 制品。
+Windows 的 `<venv-python>` 为 `Scripts/python.exe`，Linux 为 `bin/python`。将测试解释器设为绝对路径，再验证：
 
-生成目录为 `dist/`、`runtime/`，开发依赖在 `node_modules/`，均被 Git 忽略。源码、构建工具和依赖锁用于重新生成这些内容。
-
-`runtime/manifest.json` 记录源码 HEAD、Skill 工作树是否有未提交改动、原始清单 SHA-256、逐文件 SHA-256/字节数及 Skill 目录。`sourceTreeDirty` 表示构建时 `skills/` 是否有未提交改动；为真时，HEAD 不能单独代表脚本内容，应同时核对文件校验值。用于发布的制品须从干净的固定提交构建。
-
-## Python 依赖
-
-Python 声明下限为 3.10。管理员在执行节点的宿主机/容器中预装依赖；npm 安装不自动调用 pip。以下示例中 `<包目录>` 可以是本地构建目录或解包后的 npm 包目录：
+```powershell
+# Windows PowerShell
+$env:IFLY_TEST_PYTHON = 'C:\path\to\venv\Scripts\python.exe'
+npm run check
+```
 
 ```sh
-python -m venv <仓库外的虚拟环境目录>
-<虚拟环境的Python路径> -m pip install -r <包目录>/runtime/requirements/requirements-core.lock
-<虚拟环境的Python路径> -m pip check
-<虚拟环境的Python路径> <包目录>/runtime/skills/iflytek-hyper-tts/scripts/xfei_hyper_tts.py --action list_voices
+# Linux/macOS shell
+IFLY_TEST_PYTHON=/absolute/venv/bin/python npm run check
 ```
 
-Windows 解释器位于 `Scripts/python.exe`，Linux 位于 `bin/python`。`--help` 显示 CLI 帮助；Hyper TTS 的 `--action list_voices` 只输出脚本内置的音色数据，不使用 API 凭证、不请求服务端。这些本地检查不验证 API 鉴权或语音合成。Hyper TTS 语音合成本身需要 App ID、API Key、API Secret 和相应服务权限。
+未设置 `IFLY_TEST_PYTHON` 时，测试使用 `python` 命令解析出的解释器，仍需预装 core 依赖。测试只使用本地数据和模拟上游结果，不调用收费 API。测试临时目录位于系统临时目录并在结束后清理。
 
-## 验证与发布边界
+```sh
+npm pack --dry-run
+npm pack --pack-destination <existing-directory-outside-repository>
+```
 
-开发依赖为 Node.js 24、TypeScript 5.9.3 和 `n8n-workflow` 2.39.3 类型。已在 Windows、Node.js 24.18.0、npm 11.16.0、Python 3.14.7 上检查构建、离线测试和 tarball。n8n 实例安装、画布加载、业务调用、Python 最低版本、Linux Docker 及跨 worker 行为尚未验证。
+`npm run build` 编译 TypeScript，并生成 `runtime/bridge/`、`runtime/skills/`、`runtime/requirements/` 和 manifest；`npm pack` 会先重新构建。安装后的脚本快照不依赖仓库或 Git。npm 不自动运行 pip；Python 解释器与系统依赖由管理员预装。
 
-发布前需要实现业务节点，并完成制品安装测试、许可和兼容检查，再移除 `private` 并确定发布版本。`n8n-community-node-package` 关键词仅用于社区包识别，不代表自动安装、verified 审核通过或 n8n Cloud 兼容。
+`node_modules/` 是可复用开发依赖；`dist/`、`runtime/` 是可重建产物，均被 Git 忽略。Python 缓存与 tarball 不应进入版本库。测试 fixture、源码构建工具不进入 npm 制品；共享编译代码和 runtime 进入制品。无需空 `nodes/`、部署或工作流目录。
+
+## 公共调用约定
+
+后续节点按 item 顺序调用 `executeSkill(context, runner, itemIndex, operation)`。`runner` 从管理员配置创建并复用，不将构造配置暴露为工作流表单。直接离线调用示例：
+
+```javascript
+const { PythonRunner } = require('./dist/shared/PythonRunner');
+
+async function listVoices() {
+  const runner = new PythonRunner({ pythonExecutable: '/absolute/venv/bin/python' });
+  return runner.run(
+    { skill: 'iflytek-hyper-tts', operation: 'listVoices' },
+    async (response, files) => response,
+  );
+}
+```
+
+Windows 使用解释器的 Windows 绝对路径。
+
+- 请求采用协议版本 1：`requestId`、`input`、`parameters`；Runner 生成 requestId，文件通过 `input.files` 中的临时相对路径传递。`input.files` 是保留字段，调用方用 `files`/`binaryInputs` 提供 binary。
+- 成功必须同时满足单个 UTF-8 JSON、匹配的版本/requestId、退出码 0 和 `ok: true`。`queued`/`running` 必须带 `data.taskId`；公共层支持该结构，长任务业务操作尚未启用。
+- `run` 的消费回调收到结构化结果和有界文件 Buffer；artifact 本地路径不出现在返回 envelope。回调完成后才清理目录，因此 n8n 的 binary 存储可以先完成。各后续 adapter 的 `data` 也必须只返回业务值，不放工作目录或诊断信息。
+- `executeSkill` 使用 `getCredentials('iflyApi', itemIndex)`、`getExecutionCancelSignal()`、`getBinaryDataBuffer` 和 `prepareBinaryData`；输出保留 `pairedItem`。异常转换为带 itemIndex 和 requestId 的 `NodeOperationError`。节点自行遵循 n8n 的继续失败/错误分支选项，公共层不吞错。
+- 只注入启用操作要求的 `IFLY_*` 字段，不继承宿主其他凭证、`PYTHONPATH`、`NODE_OPTIONS` 或代理配置。Python 以 `-I -B -u -X utf8` 启动；运行时不生成字节码缓存。管理员代理/CA 扩展尚未提供。
+- 不解析 CLI 人类可读输出。bridge 在模块调用期间丢弃普通 stdout/stderr 诊断；Runner 有界读取协议、丢弃原始 stderr，并使用本地固定错误消息，避免泄露凭证、输入或异常文本。将来 adapter 需将上游业务码明确映射为协议错误。
+
+## 执行限制与清理
+
+| 项目 | 当前实现 |
+| --- | --- |
+| 子进程及等待队列 | 每 Node.js worker 共享最多 2 个执行槽、32 个等待项；超出报错 |
+| 超时 | 默认 120 秒，配置范围 1～600000 毫秒；覆盖排队和 Runner 调用，超时后停止子进程 |
+| stdout / stderr | 默认及最大值为 8 MiB / 256 KiB，可配置更低上限 |
+| stdin | 1 MiB 上限；每次调用最多 16 个输入文件和 16 个输出产物 |
+| binary | 每次输入/输出各默认 32 MiB，可配置至 64 MiB；n8n 读取 helper 自身的内存限制由宿主控制 |
+| 产物 | 拒绝绝对/越界路径、符号链接、硬链接、重复、空文件及超限文件；MIME 必须在操作白名单中 |
+| 终止 | Windows 使用固定 `taskkill.exe /PID <数字> /T /F`；POSIX 使用独立进程组，先 TERM，250 毫秒后 KILL |
+| 清理 | 正常、错误、超时、取消及 binary 存储失败均清理本次目录；清理失败明确报错 |
+| 重试 | 公共层不自动重试，包括限流、未知提交结果和超时 |
+
+回调及 n8n binary helper 的 Promise 无法被公共层强行中断；它们完成后会检查取消/超时状态并清理，不会把超时结果返回为成功。不能用这个超时替代宿主存储超时配置。
+
+当前处理受控的 Python 子进程树。宿主崩溃、进程被外部强杀、子进程主动逃离进程组以及未来浏览器渲染的隔离/残留回收属于生产与场景节点验收范围；尚未实现跨进程活动任务注册或 TTL 清扫，不自动删除其他调用的临时目录。
+
+## 验证与后续边界
+
+实测 Windows、Node.js 24.18.0、npm 11.16.0、Python 3.14.7；TypeScript 5.9.3、`n8n-workflow` 2.39.3 和 Node 类型已锁定。n8n 2.39.8 为选定的后续实例验证基线；当前只做类型检查及模拟执行上下文测试，没有启动 n8n 服务。Linux/POSIX 终止分支和 Python 最低版本尚待相应平台实测。
+
+公共层通过真实 Python、无凭证音色读取、故障注入和仓库外制品运行验证。第 4 步开始交付 MVP 节点、业务 adapter 和工作流，后续补齐长任务、合同/渲染、Linux Docker 与 worker 验收。
+
+`runtime/manifest.json` 记录源码 HEAD、Skill/包工作树是否有改动、清单与各 runtime 文件 SHA-256、协议版本和实际启用操作；脏工作树快照以文件 hash 为准。发布必须使用干净固定提交，完成实例验收后再移除 `private`。
+
+实施总计划由维护者单独保存；本包 README 提供仓库内可复现的开发与执行说明。`n8n-community-node-package` 关键词仅表示社区包元数据，不代表自动安装、verified 审核通过或 n8n Cloud 兼容。

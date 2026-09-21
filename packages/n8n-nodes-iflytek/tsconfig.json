@@ -9,7 +9,7 @@
     "skipLibCheck": true,
     "noEmitOnError": true,
     "forceConsistentCasingInFileNames": true,
-    "types": []
+    "types": ["node"]
   },
-  "include": ["credentials/**/*.ts"]
+  "include": ["credentials/**/*.ts", "shared/**/*.ts"]
 }
