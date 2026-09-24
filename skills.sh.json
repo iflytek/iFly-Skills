@@ -42,6 +42,13 @@
       "skills": [
         "animated-sketch-diagram"
       ]
+    },
+    {
+      "title": "Developer Tools & Networking",
+      "description": "Secure peer transfer and temporary development connectivity.",
+      "skills": [
+        "tailcat-secure-transfer"
+      ]
     }
   ]
 }
