@@ -79,8 +79,15 @@
       "nodeName": "iflyContractReview",
       "credential": "iflyApi",
       "operations": ["review"],
-      "runtimeFiles": [],
-      "deferredReason": "The workflow contains unimplemented OCR, translation and LLM clients and is not bundled."
+      "runtimeFiles": [
+        "scripts/errors.py",
+        "scripts/processors/__init__.py",
+        "scripts/processors/text_cleaner.py", "scripts/processors/clause_splitter.py",
+        "scripts/processors/risk_detector.py", "scripts/processors/compliance_checker.py",
+        "scripts/processors/bilingual_checker.py", "scripts/processors/report_builder.py",
+        "scripts/utils/__init__.py", "scripts/utils/validation.py",
+        "scripts/utils/file_utils.py", "scripts/utils/logger.py"
+      ]
     },
     {
       "id": "animated-sketch-diagram",
@@ -88,8 +95,10 @@
       "nodeName": "iflyAnimatedSketch",
       "credential": null,
       "operations": ["renderHtmlToGif"],
-      "runtimeFiles": [],
-      "deferredReason": "The local JavaScript renderer uses no API credential. Its bridge adapter is not implemented; rendering resources and browser/ffmpeg dependencies are not bundled."
+      "runtimeFiles": [
+        "scripts/render-gif.mjs",
+        "assets/fonts/Kalam-400.woff2"
+      ]
     }
   ]
 }

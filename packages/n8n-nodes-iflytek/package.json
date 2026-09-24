@@ -2,7 +2,7 @@
   "name": "n8n-nodes-iflytek",
   "version": "0.0.0-dev.0",
   "private": true,
-  "description": "iFLYTEK skills for self-hosted n8n (shared execution layer, development preview)",
+  "description": "iFLYTEK skills for self-hosted n8n (development preview)",
   "license": "Apache-2.0",
   "keywords": [
     "n8n-community-node-package",
@@ -20,13 +20,14 @@
   },
   "files": [
     "dist/credentials",
+    "dist/nodes",
     "dist/shared",
     "runtime",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/stage-runtime.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && node scripts/stage-runtime.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test tests/*.test.mjs",
     "check": "npm run build && npm test",
@@ -37,7 +38,22 @@
     "credentials": [
       "dist/credentials/IflyApi.credentials.js"
     ],
-    "nodes": []
+    "nodes": [
+      "dist/nodes/IflyTranslate/IflyTranslate.node.js",
+      "dist/nodes/IflyTextProofread/IflyTextProofread.node.js",
+      "dist/nodes/IflyOcrInvoice/IflyOcrInvoice.node.js",
+      "dist/nodes/IflyHyperTts/IflyHyperTts.node.js",
+      "dist/nodes/IflyPdfImageOcr/IflyPdfImageOcr.node.js",
+      "dist/nodes/IflySpeedTranscription/IflySpeedTranscription.node.js",
+      "dist/nodes/IflyImageUnderstanding/IflyImageUnderstanding.node.js",
+      "dist/nodes/IflyVideoTranslate/IflyVideoTranslate.node.js",
+      "dist/nodes/IflyVoicecloneTts/IflyVoicecloneTts.node.js",
+      "dist/nodes/IflyContractReview/IflyContractReview.node.js",
+      "dist/nodes/IflyAnimatedSketch/IflyAnimatedSketch.node.js"
+    ]
+  },
+  "dependencies": {
+    "playwright-core": "1.61.1"
   },
   "peerDependencies": {
     "n8n-workflow": ">=2.39.3 <3"

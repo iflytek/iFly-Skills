@@ -2,10 +2,154 @@
   "protocolVersion": 1,
   "operations": [
     {
+      "skill": "iflytek-translate",
+      "operation": "translate",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-text-proofread",
+      "operation": "check",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-ocr-invoice",
+      "operation": "recognize",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-hyper-tts",
+      "operation": "synthesize",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": ["audio/mpeg"]
+    },
+    {
       "skill": "iflytek-hyper-tts",
       "operation": "listVoices",
       "credentials": [],
       "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-pdf-image-ocr",
+      "operation": "recognizeImage",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-pdf-image-ocr",
+      "operation": "createPdfTask",
+      "credentials": ["appId", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-pdf-image-ocr",
+      "operation": "getPdfTask",
+      "credentials": ["appId", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-pdf-image-ocr",
+      "operation": "getResult",
+      "credentials": ["appId", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-speed-transcription",
+      "operation": "createTask",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-speed-transcription",
+      "operation": "getTask",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-speed-transcription",
+      "operation": "getResult",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-image-understanding",
+      "operation": "analyze",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-video-translate",
+      "operation": "createTask",
+      "credentials": ["apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-video-translate",
+      "operation": "listTasks",
+      "credentials": ["apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-video-translate",
+      "operation": "getTask",
+      "credentials": ["apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-video-translate",
+      "operation": "confirmTranscript",
+      "credentials": ["apiKey", "apiSecret"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-voiceclone-tts",
+      "operation": "getTrainingText",
+      "credentials": ["appId", "apiKey"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-voiceclone-tts",
+      "operation": "createTraining",
+      "credentials": ["appId", "apiKey"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-voiceclone-tts",
+      "operation": "uploadSample",
+      "credentials": ["appId", "apiKey"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-voiceclone-tts",
+      "operation": "submitTraining",
+      "credentials": ["appId", "apiKey"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-voiceclone-tts",
+      "operation": "getTraining",
+      "credentials": ["appId", "apiKey"],
+      "artifactMimeTypes": []
+    },
+    {
+      "skill": "iflytek-voiceclone-tts",
+      "operation": "synthesize",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": ["audio/mpeg", "audio/L16", "audio/speex", "audio/opus"]
+    },
+    {
+      "skill": "iflytek-contract-intelligence-review",
+      "operation": "review",
+      "credentials": ["appId", "apiKey", "apiSecret"],
+      "artifactMimeTypes": ["text/markdown", "application/json"]
+    },
+    {
+      "skill": "animated-sketch-diagram",
+      "operation": "renderHtmlToGif",
+      "credentials": [],
+      "artifactMimeTypes": ["image/gif"]
     }
   ]
 }

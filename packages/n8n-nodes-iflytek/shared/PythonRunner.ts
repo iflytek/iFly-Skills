@@ -14,6 +14,7 @@ export interface RunRequest {
 export interface RunnerConfig {
   // Administrator/package configuration only. Never expose these as workflow inputs.
   pythonExecutable: string; runtimeRoot?: string; temporaryRoot?: string;
+  nodeExecutable?: string; chromeExecutable?: string; ffmpegExecutable?: string;
   timeoutMs?: number; stdoutBytes?: number; stderrBytes?: number; binaryBytes?: number;
 }
 export type ExecutionResult = Omit<Success, 'artifacts'>;
@@ -50,6 +51,17 @@ export class PythonRunner {
       check();
       const operation = await operationDefinition(this.runtimeRoot, request.skill, request.operation);
       const env = credentialEnvironment(operation.credentials, request.credentials);
+      if (operation.skill === 'animated-sketch-diagram') {
+        const paths = {
+          IFLYTEK_NODE_EXECUTABLE: this.config.nodeExecutable ?? process.execPath,
+          IFLYTEK_CHROME_EXECUTABLE: this.config.chromeExecutable,
+          IFLYTEK_FFMPEG_EXECUTABLE: this.config.ffmpegExecutable,
+        };
+        for (const [name, value] of Object.entries(paths)) {
+          if (!value || !path.isAbsolute(value) || value.includes('\0')) throw new ExecutionError('INVALID_INPUT');
+          env[name] = value;
+        }
+      }
       const input = request.input ?? {};
       const parameters = request.parameters ?? {};
       if (!isObject(input) || !isObject(parameters) || Object.hasOwn(input, 'files')) throw new ExecutionError('INVALID_INPUT');

@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { stageRuntime } from '../scripts/stage-runtime.mjs';
+import { bridgeFiles, stageRuntime } from '../scripts/stage-runtime.mjs';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = path.resolve(packageRoot, '../..');
@@ -17,8 +17,8 @@ const catalog = await json(path.join(packageRoot, 'skills.json'));
 async function fixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'ifly-package-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, 'python'));
-  for (const file of ['skills.json', 'python/requirements-core.lock', 'python/bridge.py', 'python/operations.json']) {
+  for (const file of ['skills.json', 'python/requirements-core.lock', 'python/requirements-full.lock', ...bridgeFiles.map(file => `python/${file}`)]) {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
     await copyFile(path.join(packageRoot, file), path.join(root, file));
   }
   return root;
@@ -29,7 +29,19 @@ test('registered compiled credential loads without runtime JS dependencies', asy
   assert.equal(pkg.name, 'n8n-nodes-iflytek');
   assert.equal(pkg.private, true);
   assert.ok(pkg.keywords.includes('n8n-community-node-package'));
-  assert.deepEqual(pkg.n8n.nodes, []);
+  assert.deepEqual(pkg.n8n.nodes, [
+    'dist/nodes/IflyTranslate/IflyTranslate.node.js',
+    'dist/nodes/IflyTextProofread/IflyTextProofread.node.js',
+    'dist/nodes/IflyOcrInvoice/IflyOcrInvoice.node.js',
+    'dist/nodes/IflyHyperTts/IflyHyperTts.node.js',
+    'dist/nodes/IflyPdfImageOcr/IflyPdfImageOcr.node.js',
+    'dist/nodes/IflySpeedTranscription/IflySpeedTranscription.node.js',
+    'dist/nodes/IflyImageUnderstanding/IflyImageUnderstanding.node.js',
+    'dist/nodes/IflyVideoTranslate/IflyVideoTranslate.node.js',
+    'dist/nodes/IflyVoicecloneTts/IflyVoicecloneTts.node.js',
+    'dist/nodes/IflyContractReview/IflyContractReview.node.js',
+    'dist/nodes/IflyAnimatedSketch/IflyAnimatedSketch.node.js',
+  ]);
   assert.equal(pkg.n8n.credentials.length, 1);
   const { IflyApi } = createRequire(import.meta.url)(path.join(packageRoot, pkg.n8n.credentials[0]));
   const credential = new IflyApi();
@@ -41,18 +53,23 @@ test('registered compiled credential loads without runtime JS dependencies', asy
   }
 });
 
-test('catalog covers all repository skills once and records deferred capabilities', async () => {
+test('catalog bundles all repository skills with explicit runtime resources', async () => {
   const directories = (await readdir(path.join(repositoryRoot, 'skills'), { withFileTypes: true }))
     .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
   assert.equal(directories.length, 11);
   assert.deepEqual(catalog.skills.map(({ id }) => id).sort(), directories);
   assert.equal(new Set(catalog.skills.map(({ nodeClass }) => nodeClass)).size, 11);
   assert.equal(new Set(catalog.skills.map(({ nodeName }) => nodeName)).size, 11);
-  assert.equal(catalog.skills.filter(({ runtimeFiles }) => runtimeFiles.length > 0).length, 9);
-  assert.equal(catalog.skills.flatMap(({ runtimeFiles }) => runtimeFiles).length, 10);
+  assert.equal(catalog.skills.filter(({ runtimeFiles }) => runtimeFiles.length > 0).length, 11);
+  const sketch = catalog.skills.find(({ id }) => id === 'animated-sketch-diagram');
+  for (const file of ['scripts/render-gif.mjs', 'assets/fonts/Kalam-400.woff2']) {
+    assert.ok(sketch.runtimeFiles.includes(file));
+  }
+  assert.ok(bridgeFiles.includes('diagram/licenses/animated-sketch-diagram-MIT.txt'));
+  assert.ok(bridgeFiles.includes('diagram/licenses/Kalam-OFL.txt'));
   for (const skill of catalog.skills) {
     assert.equal(skill.credential, skill.id === 'animated-sketch-diagram' ? null : 'iflyApi');
-    if (skill.runtimeFiles.length === 0) assert.ok(skill.deferredReason);
+    assert.equal(skill.deferredReason, undefined);
   }
 });
 
@@ -66,7 +83,7 @@ test('staging preserves source bytes, is reproducible, and removes stale output'
   assert.deepEqual(manifest.skills, catalog.skills);
   for (const [file, meta] of Object.entries(manifest.files)) {
     const original = file.startsWith('skills/') ? path.join(repositoryRoot, file)
-      : path.join(root, 'python', path.basename(file));
+      : path.join(root, 'python', file.startsWith('bridge/') ? file.slice('bridge/'.length) : path.basename(file));
     const bytes = await readFile(path.join(runtime, file));
     assert.deepEqual(bytes, await readFile(original));
     assert.deepEqual(meta, { sha256: digest(bytes), bytes: bytes.length });

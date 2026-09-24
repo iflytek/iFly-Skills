@@ -11,5 +11,5 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["credentials/**/*.ts", "shared/**/*.ts"]
+  "include": ["credentials/**/*.ts", "shared/**/*.ts", "nodes/**/*.ts"]
 }

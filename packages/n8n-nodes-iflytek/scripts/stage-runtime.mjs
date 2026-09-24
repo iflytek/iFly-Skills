@@ -7,6 +7,14 @@ import { fileURLToPath } from 'node:url';
 const defaultPackageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
+export const bridgeFiles = [
+  'bridge.py', 'skill_compat.py', 'operations.json', 'contract/__init__.py', 'contract/config.py', 'contract/main.py', 'contract/report.py',
+  'contract/clients/__init__.py', 'contract/clients/iflytek.py', 'contract/clients/ocr_client.py',
+  'contract/clients/image_client.py', 'contract/clients/translate_client.py', 'contract/clients/llm_review_client.py',
+  'diagram/render.py', 'diagram/render-gif.mjs', 'diagram/workflow.html',
+  'diagram/licenses/animated-sketch-diagram-MIT.txt', 'diagram/licenses/Kalam-OFL.txt',
+];
+
 function assertRelativeFile(name) {
   if (typeof name !== 'string' || !/^[a-zA-Z0-9_./-]+$/.test(name)
     || name.split('/').some((part) => !part || part === '.' || part === '..')) {
@@ -79,8 +87,9 @@ export async function stageRuntime({
     names.add(skill.nodeName);
     for (const file of skill.runtimeFiles) {
       assertRelativeFile(file);
-      if (!file.startsWith('scripts/') || !file.endsWith('.py')) {
-        throw new Error(`Only explicitly listed Python scripts may be bundled: ${file}`);
+      if (!(/^scripts\/[a-zA-Z0-9_./-]+\.(py|mjs)$/.test(file)
+        || /^assets\/[a-zA-Z0-9_./-]+\.(html|woff2|txt)$/.test(file) || file === 'LICENSE')) {
+        throw new Error(`Unsupported runtime source type: ${file}`);
       }
       const target = `skills/${skill.id}/${file}`;
       if (files.has(target)) throw new Error(`Duplicate runtime file: ${target}`);
@@ -89,7 +98,10 @@ export async function stageRuntime({
   }
   const requirementsPath = 'requirements/requirements-core.lock';
   files.set(requirementsPath, await readSource(packageRoot, 'python/requirements-core.lock'));
-  files.set('bridge/bridge.py', await readSource(packageRoot, 'python/bridge.py'));
+  files.set('requirements/requirements-full.lock', await readSource(packageRoot, 'python/requirements-full.lock'));
+  for (const file of bridgeFiles) {
+    files.set(`bridge/${file}`, await readSource(packageRoot, `python/${file}`));
+  }
   const operationsBytes = await readSource(packageRoot, 'python/operations.json');
   const operations = JSON.parse(operationsBytes);
   if (operations.protocolVersion !== 1 || !Array.isArray(operations.operations)) {
@@ -116,7 +128,11 @@ export async function stageRuntime({
     credentialType: 'iflyApi',
     protocolVersion: operations.protocolVersion,
     enabledOperations: operations.operations,
-    runtimeRequirements: { python: '>=3.10', pythonRequirements: requirementsPath },
+    runtimeRequirements: {
+      python: '>=3.10', pythonRequirements: requirementsPath,
+      fullPythonRequirements: 'requirements/requirements-full.lock',
+      renderer: { node: '>=24 <25', playwrightCore: '1.61.1', browser: 'administrator-installed Chromium', ffmpeg: 'administrator-installed' },
+    },
     skills: catalog.skills,
     files: Object.fromEntries([...files].sort(([a], [b]) => a.localeCompare(b))
       .map(([name, bytes]) => [name, { sha256: sha256(bytes), bytes: bytes.length }])),

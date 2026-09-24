@@ -59,7 +59,8 @@ test('packaged listVoices reads local voice constants without credentials', asyn
   assert.equal(output.result.ok, true);
   assert.equal(Object.hasOwn(output.result, 'artifacts'), false);
   await assert.rejects(runner.run({ skill, operation, input: { unexpected: true } }, consume), errorCode('INVALID_INPUT'));
-  await assert.rejects(runner.run({ skill, operation: 'synthesize' }, consume), errorCode('UNSUPPORTED_OPERATION'));
+  await assert.rejects(runner.run({ skill, operation: 'notEnabled' }, consume), errorCode('UNSUPPORTED_OPERATION'));
+  await assert.rejects(runner.run({ skill, operation: 'synthesize' }, consume), errorCode('AUTH_FAILED'));
 });
 
 test('UTF-8 chunks, queued results and output envelopes are handled correctly', async (t) => {

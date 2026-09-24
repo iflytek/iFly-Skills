@@ -4,7 +4,7 @@ export const messages = {
   UNSUPPORTED_OPERATION: 'This operation is not enabled in the installed package.',
   AUTH_FAILED: 'Required iFLYTEK credentials are missing or invalid.',
   PYTHON_NOT_FOUND: 'Python could not be started. Configure an absolute Python executable path.',
-  DEPENDENCY_MISSING: 'Install the Python dependencies listed in runtime/requirements/requirements-core.lock.',
+  DEPENDENCY_MISSING: 'Install the operation dependencies and configure runtime executable paths as described in the package README.',
   RUNTIME_MISSING: 'The packaged Python runtime is missing or invalid. Rebuild or reinstall the package.',
   PROCESS_TIMEOUT: 'The execution deadline was exceeded; no automatic retry was performed.',
   EXECUTION_CANCELLED: 'Execution was cancelled.',
