@@ -286,7 +286,16 @@ class TrainClient:
             headers=headers,
         )
         with urllib.request.urlopen(req, timeout=60) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            result = json.loads(resp.read().decode("utf-8"))
+        self._raise_for_api_error(result, path)
+        return result
+
+    @staticmethod
+    def _raise_for_api_error(result: dict, path: str) -> None:
+        code = result.get("retcode", result.get("code"))
+        if code is not None and str(code) not in {"0", "000000"}:
+            message = result.get("message", result.get("desc", "unknown API error"))
+            raise RuntimeError(f"Training API {path} failed (code {code}): {message}")
 
     def get_training_text(self, text_id: int = 5001) -> dict:
         """Get the list of training text segments."""
@@ -399,7 +408,9 @@ class TrainClient:
             headers=headers,
         )
         with urllib.request.urlopen(req, timeout=120) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            result = json.loads(resp.read().decode("utf-8"))
+        self._raise_for_api_error(result, "/task/submitWithAudio")
+        return result
 
     def submit_task(self, task_id: int) -> dict:
         """Submit a training task for processing."""
@@ -562,11 +573,18 @@ class VoiceCloneSynthesizer:
         ws_thread = threading.Thread(target=ws.connect, daemon=True)
         ws_thread.start()
 
-        self.done.wait(timeout=120)
+        if not self.done.wait(timeout=120):
+            try:
+                ws.close()
+            except Exception:
+                pass
+            raise TimeoutError("TTS WebSocket timed out after 120 seconds")
 
         if self.error:
             raise RuntimeError(self.error)
 
+        if not self.audio_chunks:
+            raise RuntimeError("TTS returned no audio data")
         return b"".join(self.audio_chunks)
 
 
@@ -752,7 +770,7 @@ def cmd_synth(args):
 
     try:
         audio_data = synth.synthesize(text)
-    except RuntimeError as e:
+    except (RuntimeError, TimeoutError) as e:
         print(f"Synthesis failed: {e}", file=sys.stderr)
         sys.exit(1)
 

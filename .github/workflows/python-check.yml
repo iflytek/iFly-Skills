@@ -3,10 +3,14 @@ name: Python Check
 on:
   pull_request:
     paths:
+      - 'tests/iflytek_voiceclone_tts/**'
+      - 'tests/iflytek_speed_transcription/**'
       - "skills/**/*.py"
   push:
     branches: [main]
     paths:
+      - 'tests/iflytek_voiceclone_tts/**'
+      - 'tests/iflytek_speed_transcription/**'
       - "skills/**/*.py"
   workflow_dispatch:
 
@@ -24,10 +28,16 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install Ruff
-        run: pip install ruff==0.16.2
+      - name: Install Python check dependencies
+        run: pip install ruff==0.16.2 -r tests/iflytek_speed_transcription/requirements.txt
 
       - name: Check Python
         run: |
-          python -m compileall -q skills
-          ruff check --select=E9,F63,F7,F82 skills
+          python -m compileall -q skills tests
+          ruff check --select=E9,F63,F7,F82 skills tests
+
+      - name: Run Speed Transcription offline regression tests
+        run: python -m unittest discover -s tests/iflytek_speed_transcription -p 'test_*.py' -v
+
+      - name: Run Voice Clone TTS offline regression tests
+        run: python -m unittest discover -s tests/iflytek_voiceclone_tts -p 'test_*.py' -v
