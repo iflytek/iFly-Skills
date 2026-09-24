@@ -27,7 +27,7 @@ async function fixture(t) {
 test('registered compiled credential loads without runtime JS dependencies', async () => {
   const pkg = await json(path.join(packageRoot, 'package.json'));
   assert.equal(pkg.name, 'n8n-nodes-iflytek');
-  assert.equal(pkg.private, true);
+  assert.notEqual(pkg.private, true);
   assert.ok(pkg.keywords.includes('n8n-community-node-package'));
   assert.deepEqual(pkg.n8n.nodes, [
     'dist/nodes/IflyTranslate/IflyTranslate.node.js',

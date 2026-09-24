@@ -6,6 +6,7 @@ import type {
 import { ExecutionError } from '../shared/errors';
 import { executeSkill, type ItemOperation } from '../shared/executeSkill';
 import { PythonRunner } from '../shared/PythonRunner';
+import { executionLimits } from '../shared/executionConfig';
 
 export const credential: NonNullable<INodeTypeDescription['credentials']>[number] = {
   name: 'iflyApi', required: true,
@@ -29,6 +30,7 @@ export function runner(): PythonRunner {
   if (temporaryRoot !== undefined && !path.isAbsolute(temporaryRoot)) throw new ExecutionError('INVALID_INPUT');
   return new PythonRunner({
     pythonExecutable: executable, temporaryRoot,
+    timeoutMs: executionLimits().timeoutMs,
     chromeExecutable: process.env.IFLYTEK_CHROME_EXECUTABLE,
     ffmpegExecutable: process.env.IFLYTEK_FFMPEG_EXECUTABLE,
   });

@@ -17,6 +17,7 @@ MAX_REQUEST_BYTES = 1024 * 1024
 # -I excludes the script directory; only fixed package code supplies adapters.
 sys.path.insert(0, str(BRIDGE_ROOT))
 import skill_compat
+from public_url import public_url
 
 
 class BridgeError(Exception):
@@ -283,8 +284,8 @@ def create_pdf_task(request):
     files = request['input'].get('files')
     if export_format not in ('word', 'markdown', 'json') or not isinstance(pdf_url, str):
         raise BridgeError('INVALID_INPUT')
-    if pdf_url and (len(pdf_url) > 2048 or not pdf_url.startswith(('http://', 'https://'))):
-        raise BridgeError('INVALID_INPUT')
+    if pdf_url:
+        _url_parameter({'pdfUrl': pdf_url}, 'pdfUrl')
     pdf_path = None
     if isinstance(files, dict) and files.get('pdf'):
         pdf_path = Path(_pdf_input_path(files['pdf']))
@@ -351,6 +352,8 @@ def _transcription_parameters(parameters):
         elif target in ('smoothproc', 'colloqproc') and type(value) is not bool:
             raise BridgeError('INVALID_INPUT')
         values[target] = value
+        if target == 'callback_url' and value:
+            _url_parameter({'callbackUrl': value}, 'callbackUrl')
     return values
 
 
@@ -436,10 +439,10 @@ def analyze_image(request):
 
 
 def _url_parameter(parameters, name):
-    value = parameters.get(name)
-    if not isinstance(value, str) or not value.startswith(('http://', 'https://')) or len(value) > 2048:
-        raise BridgeError('INVALID_INPUT')
-    return value
+    try:
+        return public_url(parameters.get(name))
+    except ValueError as error:
+        raise BridgeError('INVALID_INPUT') from error
 
 
 def _remote_task_id(request, name):
@@ -563,9 +566,8 @@ def voice_create_training(request):
         raise BridgeError('INVALID_INPUT')
     if resource_name is not None and (not isinstance(resource_name, str) or len(resource_name) > 256):
         raise BridgeError('INVALID_INPUT')
-    if callback_url is not None and (not isinstance(callback_url, str) or len(callback_url) > 2048
-                                      or not callback_url.startswith(('http://', 'https://'))):
-        raise BridgeError('INVALID_INPUT')
+    if callback_url is not None:
+        _url_parameter({'callbackUrl': callback_url}, 'callbackUrl')
     try:
         result = _training_result(_voice_client(skill).create_task(
             name=name, sex=sex, engine=engine, language=language,
@@ -592,8 +594,8 @@ def voice_upload_sample(request):
     files = request['input'].get('files')
     if not isinstance(audio_url, str):
         raise BridgeError('INVALID_INPUT')
-    if audio_url and (not audio_url.startswith(('http://', 'https://')) or len(audio_url) > 2048):
-        raise BridgeError('INVALID_INPUT')
+    if audio_url:
+        _url_parameter({'audioUrl': audio_url}, 'audioUrl')
     has_file = isinstance(files, dict) and 'audio' in files
     if bool(audio_url) == has_file:
         raise BridgeError('INVALID_INPUT')

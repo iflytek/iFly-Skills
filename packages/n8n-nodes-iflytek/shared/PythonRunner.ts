@@ -6,10 +6,12 @@ import { ExecutionError, safeError } from './errors';
 import { defaultRuntimeRoot, operationDefinition, runtimeFile } from './operationManifest';
 import { acquire, runProcess } from './processControl';
 import { decodeResponse, isObject, type JsonObject, type Success } from './protocol';
+import { processQueue } from './executionQueue';
+import type { ExecutionEvent, ExecutionObserver } from './telemetry';
 
 export interface RunRequest {
   skill: string; operation: string; input?: JsonObject; parameters?: JsonObject;
-  credentials?: Credentials; files?: Record<string, InputFile>; signal?: AbortSignal;
+  credentials?: Credentials; files?: Record<string, InputFile>; signal?: AbortSignal; observer?: ExecutionObserver;
 }
 export interface RunnerConfig {
   // Administrator/package configuration only. Never expose these as workflow inputs.
@@ -46,10 +48,28 @@ export class PythonRunner {
     const timer = setTimeout(() => controller.abort(new ExecutionError('PROCESS_TIMEOUT')), this.timeoutMs);
     let directory: InvocationDirectory | undefined;
     let release: (() => void) | undefined;
+    const startedAt = performance.now();
+    let queueMs = 0;
+    let skill = 'unknown', operationName = 'unknown';
+    let failure: ExecutionError | undefined;
+    let exitCode: number | null | undefined;
+    let outputBytes = 0;
+    const emit = (event: ExecutionEvent['event']) => {
+      if (!request.observer) return;
+      try {
+        const { active, queued } = processQueue().snapshot();
+        request.observer({ event, requestId, skill, operation: operationName, workerPid: process.pid,
+          active, queued, queueMs: Math.round(queueMs), durationMs: Math.round(performance.now() - startedAt),
+          ...(event === 'finished' ? { status: failure ? 'failed' : 'succeeded', errorCode: failure?.code, exitCode,
+            inputBytes: Object.values(request.files ?? {}).reduce((sum, file) => sum + file.data.length, 0), outputBytes } : {}),
+        });
+      } catch { /* Observability must not change the result or trigger a retry. */ }
+    };
     const check = () => { if (controller.signal.aborted) throw controller.signal.reason; };
     try {
       check();
       const operation = await operationDefinition(this.runtimeRoot, request.skill, request.operation);
+      skill = operation.skill; operationName = operation.operation;
       const env = credentialEnvironment(operation.credentials, request.credentials);
       if (operation.skill === 'animated-sketch-diagram') {
         const paths = {
@@ -65,8 +85,11 @@ export class PythonRunner {
       const input = request.input ?? {};
       const parameters = request.parameters ?? {};
       if (!isObject(input) || !isObject(parameters) || Object.hasOwn(input, 'files')) throw new ExecutionError('INVALID_INPUT');
-      release = await acquire(controller.signal);
+      const queueStartedAt = performance.now();
+      try { release = await acquire(controller.signal); }
+      finally { queueMs = performance.now() - queueStartedAt; }
       check();
+      emit('started');
       let bridge: string;
       try { bridge = await runtimeFile(this.runtimeRoot, 'bridge/bridge.py'); }
       catch { throw new ExecutionError('RUNTIME_MISSING'); }
@@ -85,9 +108,11 @@ export class PythonRunner {
         cwd: directory.root, env, request: bytes, signal: controller.signal,
         stdoutBytes: this.stdoutBytes, stderrBytes: this.stderrBytes,
       });
+      exitCode = output.exitCode;
       check();
       const response = decodeResponse(output.bytes, requestId, output.exitCode);
       const files = await directory.collect(response.artifacts, operation.artifactMimeTypes, this.binaryBytes);
+      outputBytes = files.reduce((sum, file) => sum + file.data.length, 0);
       check();
       const { artifacts: _artifacts, ...result } = response;
       // n8n persistence completes before invocation files are removed.
@@ -95,14 +120,21 @@ export class PythonRunner {
       check();
       return value;
     } catch (error) {
-      const safe = safeError(error);
-      safe.requestId = requestId;
-      throw safe;
+      failure = safeError(error);
+      failure.requestId = requestId;
+      throw failure;
     } finally {
       clearTimeout(timer);
       request.signal?.removeEventListener('abort', abort);
       try { await directory?.cleanup(); }
-      finally { release?.(); }
+      catch (error) {
+        failure = safeError(error, 'CLEANUP_FAILED');
+        failure.requestId = requestId;
+        throw failure;
+      } finally {
+        release?.();
+        emit('finished');
+      }
     }
   }
 }

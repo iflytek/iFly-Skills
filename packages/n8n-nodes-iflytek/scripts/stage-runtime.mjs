@@ -8,7 +8,7 @@ const defaultPackageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.u
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 export const bridgeFiles = [
-  'bridge.py', 'skill_compat.py', 'operations.json', 'contract/__init__.py', 'contract/config.py', 'contract/main.py', 'contract/report.py',
+  'bridge.py', 'skill_compat.py', 'public_url.py', 'operations.json', 'contract/__init__.py', 'contract/config.py', 'contract/main.py', 'contract/report.py',
   'contract/clients/__init__.py', 'contract/clients/iflytek.py', 'contract/clients/ocr_client.py',
   'contract/clients/image_client.py', 'contract/clients/translate_client.py', 'contract/clients/llm_review_client.py',
   'diagram/render.py', 'diagram/render-gif.mjs', 'diagram/workflow.html',

@@ -5,6 +5,7 @@ import type { Credentials } from './credentialEnv';
 import { ExecutionError, safeError } from './errors';
 import { operationDefinition } from './operationManifest';
 import { PythonRunner, type RunRequest } from './PythonRunner';
+import { executionObserver } from './telemetry';
 
 export interface ItemOperation {
   skill: string; operation: string; input?: RunRequest['input']; parameters?: RunRequest['parameters'];
@@ -38,7 +39,7 @@ export async function executeSkill(
       if (total > 64 * 1024 * 1024) throw new ExecutionError('INVALID_INPUT');
       files[name] = { data };
     }
-    return await runner.run({ ...item, credentials, files, signal }, async (result, artifacts) => {
+    return await runner.run({ ...item, credentials, files, signal, observer: executionObserver(context, itemIndex) }, async (result, artifacts) => {
       const output: INodeExecutionData = { json: result as unknown as IDataObject, pairedItem: { item: itemIndex } };
       if (artifacts.length) {
         output.binary = {};

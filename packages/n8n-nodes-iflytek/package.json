@@ -1,19 +1,45 @@
 {
   "name": "n8n-nodes-iflytek",
-  "version": "0.0.0-dev.0",
-  "private": true,
-  "description": "iFLYTEK skills for self-hosted n8n (development preview)",
+  "version": "0.1.0",
+  "description": "iFLYTEK Skills for self-hosted n8n: speech AI, multimodal understanding, document intelligence, and multilingual processing, including ASR, TTS, voice cloning, OCR, translation, proofreading, and more.",
   "license": "Apache-2.0",
+  "author": {
+    "name": "iFLYTEK",
+    "url": "https://github.com/iflytek"
+  },
+  "homepage": "https://github.com/iflytek/iFly-Skills/tree/main/packages/n8n-nodes-iflytek#readme",
+  "bugs": {
+    "url": "https://github.com/iflytek/iFly-Skills/issues"
+  },
   "keywords": [
     "n8n-community-node-package",
     "n8n",
     "iflytek",
-    "ifly-skills"
+    "iflytek-skills",
+    "tts",
+    "stt",
+    "text-to-speech",
+    "speech-to-text",
+    "voice-cloning",
+    "ocr",
+    "invoice-ocr",
+    "pdf-ocr",
+    "translation",
+    "video-translation",
+    "proofreading",
+    "image-understanding",
+    "contract-review",
+    "diagram-rendering",
+    "html-to-gif"
   ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/iflytek/iFly-Skills.git",
     "directory": "packages/n8n-nodes-iflytek"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "engines": {
     "node": ">=24.0.0 <25"
@@ -23,6 +49,7 @@
     "dist/nodes",
     "dist/shared",
     "runtime",
+    "docs",
     "README.md",
     "LICENSE"
   ],
@@ -31,6 +58,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test tests/*.test.mjs",
     "check": "npm run build && npm test",
+    "test:acceptance": "node scripts/acceptance.mjs",
     "prepack": "npm run build"
   },
   "n8n": {

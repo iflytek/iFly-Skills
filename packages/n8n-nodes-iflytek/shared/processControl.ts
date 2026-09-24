@@ -1,35 +1,11 @@
 import { spawn } from 'node:child_process';
 import * as path from 'node:path';
 import { ExecutionError } from './errors';
+import { processQueue } from './executionQueue';
 
 // One bounded queue shared by every Runner in this Node.js worker.
-let active = 0;
-interface Waiter { start: () => void; signal: AbortSignal; abort: () => void }
-const waiting: Waiter[] = [];
 export function acquire(signal: AbortSignal): Promise<() => void> {
-  return new Promise((resolve, reject) => {
-    const start = () => {
-      signal.removeEventListener('abort', abort);
-      active++;
-      let released = false;
-      resolve(() => {
-        if (released) return;
-        released = true;
-        active--;
-        waiting.shift()?.start();
-      });
-    };
-    const abort = () => {
-      const index = waiting.findIndex((entry) => entry.start === start);
-      if (index !== -1) waiting.splice(index, 1);
-      reject(signal.reason);
-    };
-    if (signal.aborted) { reject(signal.reason); return; }
-    if (active < 2) { start(); return; }
-    if (waiting.length >= 32) { reject(new ExecutionError('QUEUE_FULL')); return; }
-    signal.addEventListener('abort', abort, { once: true });
-    waiting.push({ start, signal, abort });
-  });
+  return processQueue().acquire(signal);
 }
 
 async function stopTree(pid: number): Promise<void> {

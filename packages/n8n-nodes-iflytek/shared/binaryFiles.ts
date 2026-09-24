@@ -1,6 +1,6 @@
 import { lstat, mkdtemp, open, realpath, rm, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
-import { tmpdir } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
 import { ExecutionError } from './errors';
 import type { Artifact } from './protocol';
 
@@ -10,7 +10,16 @@ export class InvocationDirectory {
   private constructor(readonly root: string, private readonly parent: string) {}
   static async create(parent = tmpdir()): Promise<InvocationDirectory> {
     const base = await realpath(parent);
-    return new InvocationDirectory(await mkdtemp(path.join(base, 'ifly-exec-')), base);
+    const directory = new InvocationDirectory(await mkdtemp(path.join(base, 'ifly-exec-')), base);
+    try {
+      await writeFile(path.join(directory.root, '.ifly-owner.json'), JSON.stringify({
+        version: 1, hostname: hostname(), pid: process.pid, createdAt: Date.now(),
+      }), { flag: 'wx', mode: 0o600 });
+      return directory;
+    } catch {
+      await directory.cleanup();
+      throw new ExecutionError('BINARY_IO');
+    }
   }
   async writeInputs(inputs: Record<string, InputFile>, maxBytes: number): Promise<Record<string, string>> {
     const result: Record<string, string> = Object.create(null);

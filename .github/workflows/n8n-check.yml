@@ -1,0 +1,85 @@
+name: n8n package checks
+
+on:
+  pull_request:
+    paths:
+      - 'packages/n8n-nodes-iflytek/**'
+      - 'skills/**'
+      - '.github/workflows/n8n-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/n8n-nodes-iflytek/**'
+      - 'skills/**'
+      - '.github/workflows/n8n-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: packages/n8n-nodes-iflytek
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: npm ci
+      - run: python -m pip install -r python/requirements-full.lock
+      - run: python -m pip check
+      - name: Select the test interpreter
+        run: python -c "import os,sys; open(os.environ['GITHUB_ENV'], 'a').write('IFLY_TEST_PYTHON=' + sys.executable + '\n')"
+      - run: npm run check
+      - run: npm run typecheck
+      - name: Check the installed runtime inputs without paid API calls
+        run: IFLYTEK_PYTHON_EXECUTABLE="$IFLY_TEST_PYTHON" node dist/shared/preflight.js
+      - run: npm pack --dry-run --ignore-scripts
+      - run: git diff --exit-code -- ../../skills
+
+  n8n:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['2.39.8', '2.40.5']
+    defaults:
+      run:
+        shell: bash
+        working-directory: packages/n8n-nodes-iflytek
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - run: npm ci
+      - run: python -m pip install -r python/requirements-core.lock
+      - run: npm run build
+      - name: Install the packed node and real n8n in separate temporary directories
+        run: |
+          mkdir -p "$RUNNER_TEMP/ifly-host" "$RUNNER_TEMP/ifly-community" "$RUNNER_TEMP/ifly-pack"
+          ifly_tarball=$(npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/ifly-pack" --json | node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(0, "utf8"))[0].filename)')
+          npm install --prefix "$RUNNER_TEMP/ifly-host" --no-audit --no-fund "n8n@${{ matrix.version }}"
+          npm install --prefix "$RUNNER_TEMP/ifly-community" --no-audit --no-fund "$RUNNER_TEMP/ifly-pack/$ifly_tarball"
+      - name: Run actual engine, expression, multi-item and error-flow checks
+        run: |
+          node scripts/n8n-acceptance.mjs --n8n-root "$RUNNER_TEMP/ifly-host/node_modules/n8n" \
+            --community-root "$RUNNER_TEMP/ifly-community" --python "$(python -c 'import sys; print(sys.executable)')" \
+            --report "$RUNNER_TEMP/ifly-compatibility.json"

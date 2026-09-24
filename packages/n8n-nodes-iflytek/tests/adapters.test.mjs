@@ -133,6 +133,8 @@ async function fixture(t) {
   await mkdir(temporaryRoot);
   await cp(path.join(packageRoot, 'runtime/bridge/bridge.py'), path.join(runtimeRoot, 'bridge/bridge.py'));
   await cp(path.join(packageRoot, 'runtime/bridge/operations.json'), path.join(runtimeRoot, 'bridge/operations.json'));
+  await cp(path.join(packageRoot, 'runtime/bridge/public_url.py'), path.join(runtimeRoot, 'bridge/public_url.py'));
+  await writeFile(path.join(runtimeRoot, 'bridge/public_url.py'), '\n# Test-only deterministic DNS; no network traffic.\nsocket.getaddrinfo = lambda *a, **k: [(2, 1, 6, "", ("8.8.8.8", 443))]\n', { flag: 'a' });
   // This fixture isolates bridge field mapping. Real compatibility behavior is
   // covered separately by atomic-clients.test.mjs against the staged Skill files.
   await writeFile(path.join(runtimeRoot, 'bridge/skill_compat.py'), `

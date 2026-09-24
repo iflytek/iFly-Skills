@@ -63,6 +63,7 @@ class AtomicClients(unittest.TestCase):
         self.stack.enter_context(patch.dict(os.environ, {
             'TMP': str(self.root), 'IFLY_APP_ID': 'app', 'IFLY_API_KEY': 'key', 'IFLY_API_SECRET': 'secret'}))
         self.stack.enter_context(patch('socket.socket.connect', side_effect=AssertionError('Unexpected network')))
+        self.stack.enter_context(patch('socket.getaddrinfo', return_value=[(2, 1, 6, '', ('8.8.8.8', 443))]))
         self.modules = {}
         self.original_definitions = []
         self.stack.enter_context(patch.object(bridge, 'load_packaged_module', side_effect=self.module))

@@ -1,5 +1,24 @@
 # Changelog
 
+## Execution controls and operational acceptance
+
+### Added
+
+- Added bounded administrator settings for per-process concurrency, pending requests, and execution deadlines.
+- Added opt-in n8n execution metadata logging with request correlation, queue and total duration, controlled error codes, and binary byte counts.
+- Added an installed-package preflight command for runtime integrity, registered modules, pinned Python dependencies, and local execution.
+- Added invocation ownership markers and an offline recovery command that retains active, foreign, recent, or unrecognized directories.
+- Added local load and real n8n acceptance harnesses, regression coverage, compatibility CI, and operational guidance for recovery, duplicate-charge prevention, and package rollback.
+
+### Changed
+
+- Validated public file and callback URLs in the package adapter, rejecting private DNS destinations, URL credentials, unsupported ports, and ambiguous syntax.
+- Included n8n operational documentation and the business-ledger SQL example under the package's `docs/` directory, with updated documentation links and acceptance-script paths.
+- Expanded the npm description and keywords to describe the supported iFLYTEK Skills capabilities.
+- Reworked the shipped README and documentation for package users, including installation, credentials, compatibility, and troubleshooting; kept source build and test instructions in a repository-only contribution guide.
+- Set the package version to `0.1.0`, synchronized the lockfile, and removed the private-package flag.
+- Added npm author, homepage, issue tracker, and public registry metadata; made the CI tarball installation independent of the package version.
+
 ## PR #91 — n8n integration scaffold
 
 ### Added
