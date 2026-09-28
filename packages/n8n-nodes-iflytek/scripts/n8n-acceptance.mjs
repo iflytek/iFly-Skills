@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { N8nHarness, until } from './n8n-harness.mjs';
+import { N8nHarness, readNodeTypes, until } from './n8n-harness.mjs';
 
 const args = process.argv.slice(2);
 const option = name => args[args.indexOf(name) + 1];
@@ -14,7 +14,7 @@ const report = { kind: 'real-n8n-compatibility', n8n: host.version, assertions: 
 try {
   await host.start();
   console.log('n8n ready: ' + host.version);
-  const types = await fetch(host.url + '/types/nodes.json', { headers: { cookie: host.cookie } }).then(r => r.json());
+  const types = await readNodeTypes(host.url, host.cookie);
   assert.equal(types.filter(type => type.name.startsWith('n8n-nodes-iflytek.')).length, 11);
   report.assertions.registeredNodes = 11;
   const workflow = await host.create('Local constants and expressions', [

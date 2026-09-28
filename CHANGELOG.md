@@ -1,5 +1,14 @@
 # Changelog
 
+## n8n CI compatibility fixes
+
+### Fixed
+
+- Signed speed-transcription JSON and multipart request bodies in the package adapter without relying on the upstream digest-prefix convention or modifying Skill sources.
+- Updated offline HTTP response doubles and verified transcription request digests and HMAC signatures against the actual transmitted bytes.
+- Waited for complete n8n node-type metadata during acceptance checks, with bounded retries for startup file generation, concise failure diagnostics, and regression coverage for partial responses and failure cases.
+- Added a browser-specific AppArmor user-namespace allowance on restricted Linux CI runners and a sandboxed Chromium startup check before rendering tests.
+
 ## Voice training compatibility and secure transport
 
 ### Changed

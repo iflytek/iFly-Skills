@@ -26,6 +26,41 @@ export async function until(check, label, timeoutMs = 120000) {
   throw new Error('Timed out: ' + label);
 }
 
+export async function readNodeTypes(url, cookie, timeoutMs = 30000) {
+  // n8n can report readiness while its frontend is still streaming nodes.json
+  // to disk. Wait for complete JSON; a successful health check is not enough.
+  let lastResponse = 'No response';
+  try {
+    return await until(async () => {
+      const response = await fetch(url + '/types/nodes.json', {
+        headers: { cookie }, signal: AbortSignal.timeout(Math.min(timeoutMs, 5000)),
+      });
+      if (response.status === 404 || response.status === 503) {
+        lastResponse = `HTTP ${response.status}`;
+        await response.body?.cancel();
+        return false;
+      }
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error(`Node type metadata: HTTP ${response.status}`);
+      }
+      const text = await response.text();
+      let types;
+      try { types = JSON.parse(text); }
+      catch (error) {
+        if (!(error instanceof SyntaxError)) throw error;
+        lastResponse = `Incomplete or invalid JSON (${text.length} characters)`;
+        return false;
+      }
+      assert.ok(Array.isArray(types), 'Node type metadata must be an array');
+      return types;
+    }, 'complete n8n node type metadata', timeoutMs);
+  } catch (error) {
+    // Do not print the multi-megabyte metadata body on a parsing failure.
+    throw new Error(`${error.message}; last response: ${lastResponse}`, { cause: error });
+  }
+}
+
 export class N8nHarness {
   constructor(n8nRoot, communityRoot, python, extraEnv = {}) {
     assert.equal(process.platform, 'linux', 'This infrastructure harness targets Linux; run it in WSL or CI.');

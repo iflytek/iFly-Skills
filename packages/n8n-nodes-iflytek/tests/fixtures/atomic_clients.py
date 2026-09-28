@@ -34,6 +34,10 @@ class Response:
         self.value = value
     def json(self):
         return self.value
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            import requests
+            raise requests.HTTPError(f'HTTP {self.status_code}')
     def read(self):
         return json.dumps(self.value).encode()
     def __enter__(self):
@@ -100,6 +104,17 @@ class AtomicClients(unittest.TestCase):
         origin = f"host: {parts.netloc}\ndate: {query['date'][0]}\n{method} {parts.path} HTTP/1.1"
         signature = base64.b64encode(hmac.new(b'secret', origin.encode(), hashlib.sha256).digest()).decode()
         self.assertIn(signature, base64.b64decode(query['authorization'][0]).decode())
+
+    def transcription_signature(self, url, headers, body):
+        data = body.encode('utf-8') if isinstance(body, str) else body
+        digest = 'SHA-256=' + base64.b64encode(hashlib.sha256(data).digest()).decode()
+        self.assertEqual(headers['digest'], digest)
+        endpoint = urlsplit(url)
+        self.assertEqual(headers['host'], endpoint.hostname)
+        origin = f"host: {endpoint.hostname}\ndate: {headers['date']}\nPOST {endpoint.path} HTTP/1.1\ndigest: {digest}"
+        signature = base64.b64encode(hmac.new(b'secret', origin.encode(), hashlib.sha256).digest()).decode()
+        self.assertEqual(headers['authorization'],
+                         f'api_key="key", algorithm="hmac-sha256", headers="host date request-line digest", signature="{signature}"')
 
     def test_image_ocr_real_signing_payload_and_error(self):
         module = self.client('iflytek-pdf-image-ocr', 'image_ocr')
@@ -224,11 +239,11 @@ class AtomicClients(unittest.TestCase):
                 else:
                     self.assertEqual(bridge.analyze_image(request)[0]['text'], 'description')
 
-    def test_transcription_real_upload_task_query_and_single_digest_prefix(self):
+    def test_transcription_real_upload_task_query_and_body_signature(self):
         module = self.client('iflytek-speed-transcription', 'transcribe')
         request = self.request(files={'audio': self.file('audio', b'MP3 input')})
         def post(url, **kwargs):
-            self.assertEqual(kwargs['headers']['digest'].count('SHA-256='), 1)
+            self.transcription_signature(url, kwargs['headers'], kwargs['data'])
             if url.endswith('/file/upload'):
                 return Response({'code': 0, 'data': {'url': 'https://example.invalid/a.mp3'}})
             body = json.loads(kwargs['data'])
@@ -249,6 +264,7 @@ class AtomicClients(unittest.TestCase):
         client.chunk_size = 4
         chunks = []
         def post(url, **kwargs):
+            self.transcription_signature(url, kwargs['headers'], kwargs['data'])
             if url.endswith('/upload'):
                 header = ('Content-Type: ' + kwargs['headers']['content-type'] + '\r\n\r\n').encode()
                 message = BytesParser(policy=policy.default).parsebytes(header + kwargs['data'])

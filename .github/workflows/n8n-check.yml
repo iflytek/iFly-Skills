@@ -52,6 +52,28 @@ jobs:
           sudo apt-get install -y --no-install-recommends ffmpeg
           node node_modules/playwright-core/cli.js install --with-deps chromium
           node -e 'const fs = require("node:fs"); fs.appendFileSync(process.env.GITHUB_ENV, "IFLY_TEST_CHROME=" + require("playwright-core").chromium.executablePath() + "\nIFLY_TEST_FFMPEG=/usr/bin/ffmpeg\n")'
+      - name: Prepare and verify the Linux Chromium sandbox
+        if: runner.os == 'Linux'
+        run: |
+          # Ubuntu 24.04+ restricts unprivileged user namespaces with AppArmor.
+          # Grant access only to this downloaded test browser; keep its sandbox enabled.
+          if [[ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]] && \
+             [[ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)" == 1 ]]; then
+            cat > "$RUNNER_TEMP/ifly-chromium.apparmor" <<EOF
+          profile ifly-n8n-ci-chromium "$IFLY_TEST_CHROME" flags=(unconfined) {
+            userns,
+          }
+          EOF
+            sudo apparmor_parser --replace "$RUNNER_TEMP/ifly-chromium.apparmor"
+          fi
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright-core';
+          const browser = await chromium.launch({
+            executablePath: process.env.IFLY_TEST_CHROME, chromiumSandbox: true,
+            env: { PATH: process.env.PATH, TMPDIR: process.env.RUNNER_TEMP },
+          });
+          await browser.close();
+          JS
       - run: npm run check
       - run: npm run typecheck
       - name: Check the installed runtime inputs without paid API calls
