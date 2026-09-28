@@ -1,0 +1,46 @@
+name: n8n node issue
+description: Report installation, execution, or compatibility problems with n8n-nodes-iflytek.
+title: '[n8n] '
+body:
+  - type: markdown
+    attributes:
+      value: 'Do not include API keys, secrets, signed URLs, private documents, or exported credentials. Remove pinned execution data from workflow exports.'
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: 'Package, n8n, Node.js, and Python versions.'
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: 'OS/architecture, native or container (image tag/digest), and single-process or queue deployment.'
+    validations:
+      required: true
+  - type: input
+    id: operation
+    attributes:
+      label: Node and operation
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: 'Steps, expected result, actual result, and a sanitized minimal workflow when useful.'
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: 'Controlled error code, requestId if available, and sanitized preflight results. State whether service permissions and quota were checked; do not include credential values.'
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Sensitive information
+      options:
+        - label: 'I removed credentials, signed URLs, pinned data, and private business content.'
+          required: true

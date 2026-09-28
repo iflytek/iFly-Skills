@@ -11,7 +11,7 @@
 
 ## 安装节点包
 
-对于 registry 中已有的发布版本，可由实例管理员在 n8n 的 **Settings → Community Nodes → Install** 中安装 `n8n-nodes-iflytek`。实例须允许安装社区节点；包的可安装状态以 registry 和实例策略为准。
+对于 registry 中已有的发布版本，可由实例管理员在 n8n 的 **Settings → Community Nodes → Install** 中安装 `n8n-nodes-iflytek`。实例须允许安装未验证的社区节点；包的可安装状态以 registry 和实例策略为准。`n8n-community-node-package` 关键词用于 npm 社区包检索，不授予 n8n 官方认证，也不自动进入编辑器的已验证节点目录。
 
 也可以按 n8n 的 [社区节点手动安装说明](https://docs.n8n.io/integrations/community-nodes/installation/manual-install/) 安装。在该实例实际使用的社区节点目录中执行以下命令，将 `VERSION` 替换为已发布的版本号：
 
@@ -29,6 +29,9 @@ npm install --save-exact "n8n-nodes-iflytek@VERSION"
 | `runtime/requirements/` | Python 依赖版本锁 |
 | `runtime/bridge/diagram/workflow.html` | 手绘图 HTML 模板 |
 | `docs/` | 安装、兼容和运行说明 |
+| `workflows/` | 可手动导入的示例工作流 JSON |
+
+实例管理员负责安装 n8n 宿主及其依赖，并维护宿主版本与依赖安全。
 
 后续示例中的“包目录”均指这个已安装目录。普通使用不需要 checkout 仓库、编译 TypeScript 或执行源码测试。
 

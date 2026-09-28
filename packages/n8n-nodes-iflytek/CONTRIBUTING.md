@@ -2,6 +2,8 @@
 
 本文件面向修改本包源码的贡献者，保留在仓库中，不进入 npm 制品。安装包用户请从 [README](README.md) 开始。
 
+npm 制品、版本标签、发布权限及维护流程见 [发布维护指南](RELEASING.md)。
+
 ## 本地开发
 
 从完整的 iFly-Skills 仓库 checkout 工作；构建需要读取仓库内的原 Skill 文件。准备 Node.js 24、npm、Git 和 Python 3.10 或更高版本，在独立 venv 安装 full 依赖：

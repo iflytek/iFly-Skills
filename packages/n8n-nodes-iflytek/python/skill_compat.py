@@ -76,22 +76,6 @@ def proofread_post(module, url, body, app_id):
 
 def transcription_client(module, app_id, api_key, api_secret):
     class Transcription(module.XfeiSpeedTranscription):
-        def _assemble_auth_header(self, requset_url, file_data_type, method='POST', body=''):
-            # Sign the actual JSON or multipart bytes, independently of the
-            # upstream helper's historical digest-prefix convention.
-            endpoint = urlsplit(requset_url)
-            date = format_datetime(datetime.now(timezone.utc), usegmt=True)
-            body_bytes = body.encode('utf-8') if isinstance(body, str) else body
-            digest = 'SHA-256=' + base64.b64encode(hashlib.sha256(body_bytes).digest()).decode()
-            origin = f'host: {endpoint.hostname}\ndate: {date}\n{method} {endpoint.path} HTTP/1.1\ndigest: {digest}'
-            signature = base64.b64encode(hmac.new(self.api_secret.encode(), origin.encode(), hashlib.sha256).digest()).decode()
-            return {
-                'host': endpoint.hostname, 'date': date, 'digest': digest,
-                'content-type': file_data_type,
-                'authorization': (f'api_key="{self.api_key}", algorithm="hmac-sha256", '
-                                  f'headers="host date request-line digest", signature="{signature}"'),
-            }
-
         def upload_large_file(self, file_path):
             request_id = self._generate_request_id()
             common = {'app_id': self.app_id, 'request_id': request_id}

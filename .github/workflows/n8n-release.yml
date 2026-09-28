@@ -1,0 +1,150 @@
+name: n8n release
+
+on:
+  push:
+    tags: ['n8n-v*']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish the validated npm package (run on an n8n-vVERSION tag)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n8n-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      dist-tag: ${{ steps.version.outputs.dist-tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+      - id: version
+        name: Require a version tag reachable from main
+        shell: bash
+        run: |
+          test "$GITHUB_REF_TYPE" = tag
+          git merge-base --is-ancestor HEAD origin/main
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import { releaseTag } from './packages/n8n-nodes-iflytek/scripts/prepare-release.mjs';
+          const pkg = JSON.parse(fs.readFileSync('packages/n8n-nodes-iflytek/package.json', 'utf8'));
+          assert.equal(process.env.GITHUB_REF_NAME, 'n8n-v' + pkg.version);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${pkg.version}\ndist-tag=${releaseTag(pkg.version)}\n`);
+          JS
+
+  checks:
+    needs: source
+    uses: ./.github/workflows/n8n-check.yml
+
+  package:
+    needs: checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/n8n-nodes-iflytek
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run release:prepare -- --output "$RUNNER_TEMP/release"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install the candidate tarball and check its bundled runtime
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/candidate" --no-audit --no-fund "$RUNNER_TEMP/release/"*.tgz
+          installed="$RUNNER_TEMP/candidate/node_modules/n8n-nodes-iflytek"
+          python -m pip install -r "$installed/runtime/requirements/requirements-core.lock"
+          IFLYTEK_PYTHON_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')" node "$installed/dist/shared/preflight.js"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: n8n-package
+          path: ${{ runner.temp }}/release/
+          retention-days: 30
+
+  publish:
+    needs: [source, package]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.repository == 'iflytek/iFly-Skills'
+    runs-on: ubuntu-latest
+    environment: n8n-release
+    permissions:
+      contents: write
+      id-token: write
+    defaults:
+      run:
+        working-directory: packages/n8n-nodes-iflytek
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+          registry-url: https://registry.npmjs.org
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v5
+        with:
+          name: n8n-package
+          path: packages/n8n-nodes-iflytek/.release
+      - name: Publish the reviewed tarball or verify a matching existing version
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd .release
+          sha256sum --check SHA256SUMS
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const release = JSON.parse(fs.readFileSync('release.json', 'utf8'));
+          assert.ok(release.publishable && !release.sourceTreeDirty);
+          assert.equal(release.sourceCommit, process.env.GITHUB_SHA);
+          const response = await fetch(`https://registry.npmjs.org/${release.package}/${release.version}`, { signal: AbortSignal.timeout(30000) });
+          if (response.status === 404) {
+            execFileSync('npm', ['publish', release.filename, '--access', 'public', '--provenance', '--tag', release.distTag], { stdio: 'inherit' });
+          } else {
+            assert.equal(response.status, 200);
+            assert.equal((await response.json()).dist.integrity, release.integrity, 'Existing version differs; do not overwrite it');
+          }
+          JS
+      - run: npm run release:verify -- --release .release/release.json
+      - name: Install the registry version and exercise real n8n
+        env:
+          IFLY_VERSION: ${{ needs.source.outputs.version }}
+        run: |
+          python -m pip install -r python/requirements-core.lock
+          mkdir -p "$RUNNER_TEMP/host"
+          cp tests/host/package*.json tests/host/*.mjs "$RUNNER_TEMP/host/"
+          npm ci --prefix "$RUNNER_TEMP/host" --omit=dev --no-audit --no-fund
+          npm run test:security --prefix "$RUNNER_TEMP/host"
+          npm install --prefix "$RUNNER_TEMP/community" --no-audit --no-fund "n8n-nodes-iflytek@$IFLY_VERSION"
+          node scripts/n8n-acceptance.mjs --n8n-root "$RUNNER_TEMP/host/node_modules/n8n" \
+            --community-root "$RUNNER_TEMP/community" --python "$(python -c 'import sys; print(sys.executable)')" \
+            --report "$PWD/.release/registry-installation.json"
+      - name: Create the release with package verification reports
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IFLY_VERSION: ${{ needs.source.outputs.version }}
+          IFLY_DIST_TAG: ${{ needs.source.outputs.dist-tag }}
+        run: |
+          options=(--verify-tag --title "n8n-nodes-iflytek $IFLY_VERSION" --notes-file CHANGELOG.md)
+          if [[ "$IFLY_DIST_TAG" == beta ]]; then options+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" "${options[@]}" .release/*

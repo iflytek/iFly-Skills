@@ -6,18 +6,47 @@ on:
       - 'packages/n8n-nodes-iflytek/**'
       - 'skills/**'
       - '.github/workflows/n8n-check.yml'
+      - '.github/workflows/n8n-release.yml'
   push:
     branches: [main]
     paths:
       - 'packages/n8n-nodes-iflytek/**'
       - 'skills/**'
       - '.github/workflows/n8n-check.yml'
+      - '.github/workflows/n8n-release.yml'
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
 
 jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [package, host]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+      - name: Audit locked production dependencies
+        env:
+          IFLY_AUDIT_TARGET: ${{ matrix.target }}
+        shell: bash
+        run: |
+          cd packages/n8n-nodes-iflytek
+          if [[ "$IFLY_AUDIT_TARGET" == host ]]; then cd tests/host; fi
+          npm audit --omit=dev --audit-level=critical --json > "$RUNNER_TEMP/audit-$IFLY_AUDIT_TARGET.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-audit-${{ matrix.target }}
+          path: ${{ runner.temp }}/audit-${{ matrix.target }}.json
+
   offline:
     strategy:
       fail-fast: false
@@ -82,12 +111,17 @@ jobs:
       - run: git diff --exit-code -- ../../skills
 
   n8n:
+    name: n8n (${{ matrix.version }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        version: ['2.39.8', '2.40.5']
+        include:
+          - version: '2.39.8'
+            locked-host: false
+          - version: '2.40.7'
+            locked-host: true
     defaults:
       run:
         shell: bash
@@ -104,10 +138,19 @@ jobs:
       - run: python -m pip install -r python/requirements-core.lock
       - run: npm run build
       - name: Install the packed node and real n8n in separate temporary directories
+        env:
+          IFLY_LOCKED_HOST: ${{ matrix.locked-host }}
+          IFLY_N8N_VERSION: ${{ matrix.version }}
         run: |
           mkdir -p "$RUNNER_TEMP/ifly-host" "$RUNNER_TEMP/ifly-community" "$RUNNER_TEMP/ifly-pack"
           ifly_tarball=$(npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/ifly-pack" --json | node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(0, "utf8"))[0].filename)')
-          npm install --prefix "$RUNNER_TEMP/ifly-host" --no-audit --no-fund "n8n@${{ matrix.version }}"
+          if [[ "$IFLY_LOCKED_HOST" == true ]]; then
+            cp tests/host/package*.json tests/host/*.mjs "$RUNNER_TEMP/ifly-host/"
+            npm ci --prefix "$RUNNER_TEMP/ifly-host" --omit=dev --no-audit --no-fund
+            npm run test:security --prefix "$RUNNER_TEMP/ifly-host"
+          else
+            npm install --prefix "$RUNNER_TEMP/ifly-host" --no-audit --no-fund "n8n@$IFLY_N8N_VERSION"
+          fi
           npm install --prefix "$RUNNER_TEMP/ifly-community" --no-audit --no-fund "$RUNNER_TEMP/ifly-pack/$ifly_tarball"
       - name: Run actual engine, expression, multi-item and error-flow checks
         run: |

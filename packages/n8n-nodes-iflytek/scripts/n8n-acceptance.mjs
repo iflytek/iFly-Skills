@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { N8nHarness, readNodeTypes, until } from './n8n-harness.mjs';
+import { checkTemplates } from './n8n-template-checks.mjs';
 
 const args = process.argv.slice(2);
 const option = name => args[args.indexOf(name) + 1];
@@ -17,6 +18,8 @@ try {
   const types = await readNodeTypes(host.url, host.cookie);
   assert.equal(types.filter(type => type.name.startsWith('n8n-nodes-iflytek.')).length, 11);
   report.assertions.registeredNodes = 11;
+  await checkTemplates(host, path.join(host.communityRoot, 'node_modules/n8n-nodes-iflytek'));
+  report.assertions.templateImportAndOfflineExpressions = true;
   const workflow = await host.create('Local constants and expressions', [
     host.node('Start', 'n8n-nodes-base.manualTrigger'),
     host.node('Input', 'n8n-nodes-base.set', { mode: 'raw', jsonOutput: '{"operations":["listVoices","listVoices"]}', options: {} }, { typeVersion: 3.4 }),
@@ -67,7 +70,7 @@ try {
   const manifest = JSON.parse(await readFile(path.join(host.communityRoot, 'node_modules/n8n-nodes-iflytek/runtime/manifest.json'), 'utf8'));
   report.sourceCommit = manifest.sourceCommit;
   report.sourceTreeDirty = manifest.sourceTreeDirty;
-  report.boundary = 'Real n8n engine with installed community package and Python. Uses only local listVoices and controlled input failure; no paid API calls or canvas UI.';
+  report.boundary = 'Real n8n engine with installed community package and Python. Checks template import and fixture-based expressions, local listVoices and controlled input failure; no paid API calls or canvas UI.';
 } finally {
   await host.cleanup();
 }

@@ -6,12 +6,12 @@
 
 | 组件 | 要求或已验证版本 | 使用说明 |
 | --- | --- | --- |
-| n8n | 已验证 2.39.8、2.40.5 | 覆盖节点注册、手动/生产执行、多 item、表达式和错误继续；不代表每个远端服务操作均已获得授权验证 |
+| n8n | 已验证 2.39.8、2.40.5、2.40.7 | 覆盖节点注册、手动/生产执行、多 item、表达式和错误继续；不代表每个远端服务操作均已获得授权验证 |
 | Node.js | 24.x；已验证 24.18.0 | 用于运行 n8n；包的 engines 范围为 `>=24 <25` |
 | Python | 最低 3.10；已验证 3.10.12、3.13.14 | 使用独立 venv，依赖版本按随包锁文件安装 |
 | Windows | x64，Python 3.13.14 | 已验证本地执行及 Edge/ffmpeg 渲染 |
 | Linux | Ubuntu 22.04 / WSL2，x64，Python 3.10.12 | 已验证本地执行、队列恢复，以及 Chrome Headless Shell 149.0.7827.55 / ffmpeg 4.4.2 的渲染、取消和 binary 清理 |
-| Linux 容器 | Docker 29.1.3，Ubuntu 22.04，x64，n8n 2.40.5 | 已验证节点加载、Webhook 执行与沙箱渲染；非 root、只读根目录、移除 capabilities，并配置 [Chromium seccomp](installation.md#linux-容器中的渲染) |
+| Linux 容器 | Docker 29.1.3，Ubuntu 22.04，x64；宿主执行验证至 n8n 2.40.7 | 已验证锁定宿主、节点加载和 Webhook 执行；沙箱渲染在 2.40.5 容器验证。使用非 root、只读根目录、移除 capabilities 及 [Chromium seccomp](installation.md#linux-容器中的渲染) |
 | 手绘图 | Chromium、Chrome 或 Edge，以及 ffmpeg | 管理员预装并配置绝对路径；Linux 必须支持浏览器 sandbox |
 
 上述 n8n 版本的 npm 元数据要求 Node.js `>=24.0.0`；本包的支持范围限定为已验证的 24.x。

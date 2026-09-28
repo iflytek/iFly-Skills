@@ -1,0 +1,191 @@
+{
+  "name": "iFLYTEK - Review Chinese text and translate",
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "text-input",
+      "name": "Text input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"originalText\":\"请校对这段中文文本。\",\"approvedText\":\"\",\"approvedForTranslation\":false}",
+        "options": {}
+      }
+    },
+    {
+      "id": "proofread",
+      "name": "Proofread",
+      "type": "n8n-nodes-iflytek.iflyTextProofread",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "text": "={{ $json.originalText }}"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "review-output",
+      "name": "Review output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { originalText: $(\"Text input\").item.json.originalText, proofreading: $json.data.result, approvedText: $(\"Text input\").item.json.approvedText, approvedForTranslation: $(\"Text input\").item.json.approvedForTranslation } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "translation-approved",
+      "name": "Translation approved",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.approvedForTranslation === true && $json.approvedText.trim().length > 0 }}",
+              "value2": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "translate",
+      "name": "Translate",
+      "type": "n8n-nodes-iflytek.iflyTranslate",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "text": "={{ $json.approvedText }}",
+        "fromLanguage": "cn",
+        "toLanguage": "en"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "review-suggestions",
+      "name": "Review suggestions",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        180
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "instructions",
+      "name": "Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        180,
+        -300
+      ],
+      "parameters": {
+        "content": "Select your iFlytek API credential on Proofread and Translate. First run: inspect Review output; translation stays off. After reviewing suggestions, put the chosen text in Text input.approvedText and set approvedForTranslation=true, then run again. This reruns proofreading and calls translation; both can incur charges. Suggestions are never applied automatically.",
+        "width": 650,
+        "height": 230
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Text input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text input": {
+      "main": [
+        [
+          {
+            "node": "Proofread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proofread": {
+      "main": [
+        [
+          {
+            "node": "Review output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review output": {
+      "main": [
+        [
+          {
+            "node": "Translation approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Translation approved": {
+      "main": [
+        [
+          {
+            "node": "Translate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Review suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

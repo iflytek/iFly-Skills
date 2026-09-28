@@ -1,8 +1,12 @@
 # n8n-nodes-iflytek
 
+中文 · [English](README.en.md)
+
 `n8n-nodes-iflytek` 为自托管 n8n 提供 iFLYTEK Skills 节点，支持语音转写与合成、声音克隆、票据和 PDF/图片 OCR、文本和视频翻译、中文校对、图片理解、合同审核及 HTML 手绘图渲染。
 
 远端服务使用共享的 **iFlytek API** 凭证。本地手绘图渲染和静态音色列表不需要 API 凭证；实际语音合成仍需要服务授权。
+
+本包通过 npm 的 `n8n-community-node-package` 关键词供社区包检索。发布后可能需要等待搜索索引更新；可按完整包名安装，再在节点选择器中搜索 `iFlytek`。关键词不代表 n8n 官方认证，也不保证出现在编辑器的已验证节点目录；本包依赖本地 Python 子进程，不支持 n8n Cloud。
 
 ## 快速开始
 
@@ -124,8 +128,10 @@ JSON 输出同时包含 `ok`、`status`、`requestId` 和 `meta.durationMs`。�
 ## 文档与问题反馈
 
 - [安装与配置](docs/installation.md)：安装包、Python 依赖、共享凭证和手绘图运行环境。
+- [示例工作流](docs/workflows.md)：可按需手动导入的校对翻译、票据识别及文本转语音示例。
 - [兼容范围](docs/compatibility.md)：n8n、Python、平台及服务能力的适用条件。
 - [运行与恢复](docs/operations.md)：并发、日志、错误处理、任务恢复和升级回滚。
+- [版本记录](CHANGELOG.md)：本 npm 包的功能与行为变化。
 - [问题反馈](https://github.com/iflytek/iFly-Skills/issues)：请提供包版本、n8n/Node.js/Python 版本、操作系统、节点/操作、错误码及可获得的 requestId，并附不含敏感信息的最小复现。不要提交密钥、签名 URL 或业务文件原文。
 
 需要修改节点或参与开发时，参阅仓库中的 [贡献指南](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/CONTRIBUTING.md)。

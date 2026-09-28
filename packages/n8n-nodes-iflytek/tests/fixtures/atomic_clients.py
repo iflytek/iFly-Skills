@@ -295,6 +295,7 @@ class AtomicClients(unittest.TestCase):
 
     def test_voice_training_real_endpoints_and_binary_submission_confirmation(self):
         module = self.client('iflytek-voiceclone-tts', 'voiceclone')
+        original_endpoints = (module.AUTH_TOKEN_URL, module.TRAIN_BASE_URL)
         seen = []
         def http(request, **kwargs):
             self.assertEqual(urlsplit(request.full_url).scheme, 'https')
@@ -324,8 +325,7 @@ class AtomicClients(unittest.TestCase):
             request['parameters']['taskId'] = 'abcdef0123456789abcdef01'
             bridge.voice_upload_sample(request)
             self.assertIn(b'name="taskId"\r\n\r\nabcdef0123456789abcdef01\r\n', seen[-1].data)
-        self.assertEqual(module.AUTH_TOKEN_URL, 'http://avatar-hci.xfyousheng.com/aiauth/v1/token')
-        self.assertEqual(module.TRAIN_BASE_URL, 'http://opentrain.xfyousheng.com/voice_train')
+        self.assertEqual((module.AUTH_TOKEN_URL, module.TRAIN_BASE_URL), original_endpoints)
 
     def test_voice_training_rejects_redirects_and_certificate_errors(self):
         import ssl

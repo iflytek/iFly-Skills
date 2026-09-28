@@ -4,3 +4,4 @@ runtime/
 .runtime-*/
 *.tgz
 *.tsbuildinfo
+.release/

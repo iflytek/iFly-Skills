@@ -1,0 +1,117 @@
+{
+  "name": "iFLYTEK - Extract an invoice for review",
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "read-invoice",
+      "name": "Read invoice",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "/files/invoice.jpg",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      }
+    },
+    {
+      "id": "invoice-ocr",
+      "name": "Invoice OCR",
+      "type": "n8n-nodes-iflytek.iflyOcrInvoice",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "binaryPropertyName": "data"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "review-extracted-fields",
+      "name": "Review extracted fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { result: $json.data.result, requiresHumanReview: true } }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "instructions",
+      "name": "Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        180,
+        -300
+      ],
+      "parameters": {
+        "content": "Select your iFlytek API credential on Invoice OCR. Replace /files/invoice.jpg with a file readable by the n8n service and permitted by its file-access policy, or replace Read invoice with a binary-producing node. OCR calls can incur charges. Inspect the returned service fields in Review extracted fields and verify totals, dates and identifiers before using them in downstream nodes.",
+        "width": 650,
+        "height": 230
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Read invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read invoice": {
+      "main": [
+        [
+          {
+            "node": "Invoice OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice OCR": {
+      "main": [
+        [
+          {
+            "node": "Review extracted fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

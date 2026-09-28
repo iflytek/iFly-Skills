@@ -50,7 +50,10 @@
     "dist/shared",
     "runtime",
     "docs",
+    "workflows",
     "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
@@ -59,6 +62,8 @@
     "test": "node --test tests/*.test.mjs",
     "check": "npm run build && npm test",
     "test:acceptance": "node scripts/acceptance.mjs",
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "release:verify": "node scripts/verify-registry.mjs",
     "prepack": "npm run build"
   },
   "n8n": {

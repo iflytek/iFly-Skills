@@ -1,0 +1,96 @@
+{
+  "name": "iFLYTEK - Synthesize text to MP3",
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "text-input",
+      "name": "Text input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"text\":\"欢迎使用 iFLYTEK Skills。\"}",
+        "options": {}
+      }
+    },
+    {
+      "id": "synthesize",
+      "name": "Synthesize",
+      "type": "n8n-nodes-iflytek.iflyHyperTts",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "operation": "synthesize",
+        "text": "={{ $json.text }}",
+        "voice": "x5_lingxiaotang_flow",
+        "speed": 50,
+        "volume": 50,
+        "pitch": 50,
+        "sampleRate": 24000,
+        "outputBinaryPrefix": "audio"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "instructions",
+      "name": "Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        180,
+        -300
+      ],
+      "parameters": {
+        "content": "Select your iFlytek API credential on Synthesize and choose a voice enabled for your application. Edit Text input, execute manually, and download binary.audio from the result. Synthesis calls the remote service and requires authorization and available quota; charges follow your application's service plan.",
+        "width": 650,
+        "height": 230
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Text input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text input": {
+      "main": [
+        [
+          {
+            "node": "Synthesize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

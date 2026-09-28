@@ -60,7 +60,7 @@ PDF/视频/声音样本和回调 URL 仅接受 HTTP(S)、80/443 端口、无用�
 
 这些 URL 由上游服务后续抓取，本包不执行用户内容下载，无法固定上游稍后的 DNS 结果或控制其重定向。生产只使用管理员批准、无重定向到内网的内容域名，并落实上游抓取与部署出口控制；不能将一次 DNS 检查称为完整 SSRF 隔离。
 
-声音训练的 token 请求固定使用 `https://avatar-hci.xfyousheng.com/aiauth/v1/token`，训练和上传请求使用 `https://opentrain.xfyousheng.com/voice_train`。包内适配校验 TLS 证书并拒绝重定向；连接或证书错误直接失败，不回退到原 Skill 的 HTTP 入口。声音克隆合成使用 TLS 校验的 WebSocket。
+声音训练的 token 请求固定使用 `https://avatar-hci.xfyousheng.com/aiauth/v1/token`，训练和上传请求使用 `https://opentrain.xfyousheng.com/voice_train`。请求校验 TLS 证书并拒绝重定向；连接或证书错误直接失败。声音克隆合成使用 TLS 校验的 WebSocket。
 
 渲染仅接受受限 HTML/SVG/CSS，关闭页面脚本和外部请求，保留 Chromium sandbox。容器、系统资源限制和浏览器补丁管理仍需部署方落实；本包不开放任意脚本执行或自然语言生成图表接口。
 
