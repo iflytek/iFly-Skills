@@ -11,5 +11,5 @@ test('real atomic Skill clients and n8n adapters pass transport-level offline re
   const result = spawnSync(python, ['-I', '-B', '-X', 'utf8',
     path.join(pkg, 'tests/fixtures/atomic_clients.py'), path.join(pkg, 'runtime')], { encoding: 'utf8', timeout: 60000 });
   assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.match(result.stderr, /Ran 15 tests/);
+  assert.match(result.stderr, /Ran 17 tests/);
 });

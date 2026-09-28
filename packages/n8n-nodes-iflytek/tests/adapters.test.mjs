@@ -143,6 +143,7 @@ def transcription_client(module, *args): return module.XfeiSpeedTranscription(*a
 def proofread_post(module, *args): return module._http_post(*args)
 def hyper_synthesize(module, client, **kwargs): return client.synthesize(**kwargs)
 def run_understanding(module, *args, **kwargs): return module.run_understanding(*args, **kwargs)
+def voice_training_client(module, *args): return module.TrainClient(*args)
 def voice_synthesize(module, client, text): return client.synthesize(text)
 `);
   for (const [relative, source] of Object.entries(fakeScripts)) {

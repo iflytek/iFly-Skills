@@ -17,8 +17,8 @@ export class IflyVoicecloneTts implements INodeType {
       },
       { displayName: 'Text ID', name: 'textId', type: 'number', default: 5001, displayOptions: { show: { operation: ['getTrainingText', 'uploadSample'] } } },
       {
-        displayName: 'Task ID', name: 'taskId', type: 'number', default: 0,
-        description: 'Training task ID.', displayOptions: { show: { operation: ['uploadSample', 'submitTraining', 'getTraining'] } },
+        displayName: 'Task ID', name: 'taskId', type: 'string', default: '',
+        description: 'Task ID returned by Create Training. Preserve the complete value as text.', displayOptions: { show: { operation: ['uploadSample', 'submitTraining', 'getTraining'] } },
       },
       { displayName: 'Task Name', name: 'name', type: 'string', default: 'voice_clone_task', displayOptions: { show: { operation: ['createTraining'] } } },
       {
@@ -84,14 +84,14 @@ export class IflyVoicecloneTts implements INodeType {
         const binary = getString(this, 'audioBinaryProperty', index, 'data').trim();
         const audioUrl = getString(this, 'audioUrl', index, '').trim();
         return { skill: 'iflytek-voiceclone-tts', operation, input: {}, parameters: {
-          taskId: getNumber(this, 'taskId', index, 0), textId: getNumber(this, 'textId', index, 5001),
+          taskId: this.getNodeParameter('taskId', index, '') as string | number, textId: getNumber(this, 'textId', index, 5001),
           segmentId: getNumber(this, 'segmentId', index, 1), audioUrl,
           audioFormat: getString(this, 'audioFormat', index, 'wav'),
           confirmBinarySubmission: this.getNodeParameter('confirmBinarySubmission', index, false) as boolean,
         }, binaryInputs: !audioUrl && binary ? { audio: binary } : undefined };
       }
       if (operation === 'submitTraining' || operation === 'getTraining') return { skill: 'iflytek-voiceclone-tts', operation, input: {}, parameters: {
-        taskId: getNumber(this, 'taskId', index, 0),
+        taskId: this.getNodeParameter('taskId', index, '') as string | number,
       } };
       const item = textItem(this, index, 'iflytek-voiceclone-tts', 'synthesize', {
         resId: getString(this, 'resId', index, ''), format: getString(this, 'format', index, 'mp3'),

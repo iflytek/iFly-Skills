@@ -43,6 +43,15 @@ jobs:
       - run: python -m pip check
       - name: Select the test interpreter
         run: python -c "import os,sys; open(os.environ['GITHUB_ENV'], 'a').write('IFLY_TEST_PYTHON=' + sys.executable + '\n')"
+      - name: Enable Linux browser and media regression checks
+        if: runner.os == 'Linux'
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ifly-browsers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          node node_modules/playwright-core/cli.js install --with-deps chromium
+          node -e 'const fs = require("node:fs"); fs.appendFileSync(process.env.GITHUB_ENV, "IFLY_TEST_CHROME=" + require("playwright-core").chromium.executablePath() + "\nIFLY_TEST_FFMPEG=/usr/bin/ffmpeg\n")'
       - run: npm run check
       - run: npm run typecheck
       - name: Check the installed runtime inputs without paid API calls

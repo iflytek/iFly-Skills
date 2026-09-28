@@ -12,6 +12,37 @@ from datetime import datetime, timezone
 from email.utils import format_datetime
 from types import FunctionType, SimpleNamespace
 from urllib.parse import urlencode, urlsplit
+import urllib.request
+
+
+class _NoTrainingRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Signed headers and audio must never follow a redirect to another endpoint.
+        raise RuntimeError('Voice training redirects are not allowed')
+
+
+def voice_training_client(module, app_id, api_key):
+    # Keep the Skill's signing, bodies and parsing, but use verified HTTPS only.
+    # A private opener avoids changing urllib's process-wide configuration.
+    opener = urllib.request.build_opener(_NoTrainingRedirect())
+    overrides = {
+        'AUTH_TOKEN_URL': 'https://avatar-hci.xfyousheng.com/aiauth/v1/token',
+        'TRAIN_BASE_URL': 'https://opentrain.xfyousheng.com/voice_train',
+        'urllib': SimpleNamespace(request=SimpleNamespace(
+            Request=urllib.request.Request, urlopen=opener.open)),
+    }
+
+    class Training(module.TrainClient):
+        def _get_token(self):
+            return _call_with_globals(module.TrainClient._get_token, overrides, self)
+
+        def _post(self, path, body):
+            return _call_with_globals(module.TrainClient._post, overrides, self, path, body)
+
+        def upload_audio_file(self, *args, **kwargs):
+            return _call_with_globals(module.TrainClient.upload_audio_file, overrides, self, *args, **kwargs)
+
+    return Training(app_id, api_key)
 
 
 def _call_with_globals(function, overrides, *args, **kwargs):

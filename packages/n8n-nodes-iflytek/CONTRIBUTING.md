@@ -49,6 +49,12 @@ node scripts/n8n-acceptance.mjs \
 node scripts/acceptance.mjs --package /test/community/node_modules/n8n-nodes-iflytek \
   --python /test/venv/bin/python --samples 100 --report /test/load.json
 
+node scripts/n8n-load-acceptance.mjs \
+  --n8n-root /test/host/node_modules/n8n --community-root /test/community \
+  --python /test/venv/bin/python --samples 100 --render-samples 10 \
+  --chrome /absolute/path/chromium --ffmpeg /absolute/path/ffmpeg \
+  --report /test/n8n-load.json
+
 node scripts/n8n-queue-acceptance.mjs \
   --n8n-root /test/host/node_modules/n8n --community-root /test/community \
   --python /test/venv/bin/python --postgres-bin /usr/lib/postgresql/14/bin \
@@ -60,6 +66,6 @@ node scripts/n8n-rollback.mjs --n8n-root /test/host/node_modules/n8n \
   --python /test/venv/bin/python --report /test/rollback.json
 ```
 
-这些工具调用本地 `listVoices` 和受控错误输入，不调用收费 API。跨 worker 的 task ID 与响应丢失为模拟数据；负载结果只代表本地 Runner，不能用作上游服务延迟或完整 n8n worker 的容量承诺。回滚工具只替换节点包，不执行 n8n 数据库版本迁移。
+这些工具调用本地 `listVoices`、可选的 HTML 渲染和受控错误输入，不调用收费 API。跨 worker 的 task ID 与响应丢失为模拟数据。`acceptance.mjs` 测量本地 Runner；`n8n-load-acceptance.mjs` 通过实际生产 Webhook 测量单进程 n8n 在并发 1/2/4 下的端到端耗时、进程内存、Python 数量和临时磁盘占用，并检查执行持久化、GIF 下载/解码及残留。后者仅在同时提供 `--chrome` 和 `--ffmpeg` 时执行渲染负载，每组另有一次不计入负载统计的预热。结果用于建立环境基线，不代表收费服务、queue mode 或生产容量承诺。回滚工具只替换节点包，不执行 n8n 数据库版本迁移。
 
 n8n 工具创建独立临时账号、数据目录和本地端口，结束后清理自己启动的实例；宿主安装、venv、下载缓存和报告由调用方管理。queue 工具还需本机 PostgreSQL、Redis 二进制及其系统库，使用独立业务库加载 `docs/operation-ledger.sql`。

@@ -514,11 +514,15 @@ def video_confirm_transcript(request):
     return {'taskId': task_id, 'forceRerun': force_rerun, 'result': result}, []
 
 
-def _numeric_task_id(request):
+def _training_task_id(request):
     value = _parameters(request).get('taskId')
-    if type(value) is not int or value <= 0 or value > 2 ** 53 - 1:
-        raise BridgeError('INVALID_INPUT')
-    return value
+    # Existing workflows may contain numeric IDs. New service IDs are opaque strings.
+    if type(value) is int and 0 < value <= 2 ** 53 - 1:
+        return value
+    if (isinstance(value, str) and 0 < len(value) <= 256 and value.isascii()
+            and all(character.isalnum() or character in '-_' for character in value)):
+        return value
+    raise BridgeError('INVALID_INPUT')
 
 
 def _positive_int(parameters, name, fallback, maximum=2 ** 31 - 1):
@@ -529,7 +533,7 @@ def _positive_int(parameters, name, fallback, maximum=2 ** 31 - 1):
 
 
 def _voice_client(skill):
-    return skill.TrainClient(os.environ['IFLY_APP_ID'], os.environ['IFLY_API_KEY'])
+    return skill_compat.voice_training_client(skill, os.environ['IFLY_APP_ID'], os.environ['IFLY_API_KEY'])
 
 
 def _training_result(result):
@@ -587,7 +591,7 @@ def _voice_audio_path(relative, audio_format):
 def voice_upload_sample(request):
     skill = load_packaged_module('skills/iflytek-voiceclone-tts/scripts/voiceclone.py')
     parameters = _parameters(request)
-    task_id = _numeric_task_id(request)
+    task_id = _training_task_id(request)
     text_id = _positive_int(parameters, 'textId', 5001)
     segment_id = _positive_int(parameters, 'segmentId', 1)
     audio_url = parameters.get('audioUrl', '')
@@ -621,7 +625,7 @@ def voice_upload_sample(request):
 
 def voice_submit_training(request):
     skill = load_packaged_module('skills/iflytek-voiceclone-tts/scripts/voiceclone.py')
-    task_id = _numeric_task_id(request)
+    task_id = _training_task_id(request)
     try:
         result = _training_result(_voice_client(skill).submit_task(task_id))
     except Exception as error:
@@ -631,7 +635,7 @@ def voice_submit_training(request):
 
 def voice_get_training(request):
     skill = load_packaged_module('skills/iflytek-voiceclone-tts/scripts/voiceclone.py')
-    task_id = _numeric_task_id(request)
+    task_id = _training_task_id(request)
     try:
         result = _training_result(_voice_client(skill).get_task_status(task_id))
     except Exception as error:

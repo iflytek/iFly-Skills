@@ -49,6 +49,7 @@ export class N8nHarness {
     await symlink(this.communityRoot, path.join(this.root, 'user/.n8n/nodes'), 'dir');
     this.env = { ...process.env, PATH: path.dirname(process.execPath) + path.delimiter + (process.env.PATH ?? ''),
       N8N_USER_FOLDER: path.join(this.root, 'user'),
+      NODE_COMPILE_CACHE: path.join(this.root, 'compile-cache'),
       N8N_HOST: '127.0.0.1', N8N_LISTEN_ADDRESS: '127.0.0.1', N8N_PORT: this.port,
       N8N_PROTOCOL: 'http', N8N_SECURE_COOKIE: 'false', N8N_ENCRYPTION_KEY: randomBytes(32).toString('hex'),
       N8N_DIAGNOSTICS_ENABLED: 'false', N8N_VERSION_NOTIFICATIONS_ENABLED: 'false', N8N_TEMPLATES_ENABLED: 'false',

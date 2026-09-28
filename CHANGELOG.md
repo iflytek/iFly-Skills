@@ -1,5 +1,27 @@
 # Changelog
 
+## Voice training compatibility and secure transport
+
+### Changed
+
+- Routed voice-training authentication, JSON requests, and binary uploads through certificate-verified HTTPS in the package adapter, without modifying the original Skill files.
+- Accepted opaque string training task IDs for sample uploads, submission, and status queries, while preserving compatibility with existing safe integer IDs.
+- Rejected training redirects and retained fail-closed behavior for certificate errors without an HTTP fallback.
+- Updated voice-training documentation and regression coverage for task IDs, secure transport, unchanged upstream module state, and business-error handling.
+
+## Linux rendering and n8n load validation
+
+### Added
+
+- Added a real n8n production-webhook load harness for local voice listing and optional GIF rendering at concurrency levels 1, 2, and 4, including execution persistence, CPU/RSS sampling, binary decoding, and cleanup checks.
+- Added a Chromium seccomp profile and container setup guidance for sandboxed rendering with a non-root user and dropped container capabilities.
+
+### Changed
+
+- Enabled actual Linux browser and ffmpeg regression checks in the compatibility workflow.
+- Updated Linux runtime compatibility and contributor instructions for the additional validation tools.
+- Kept the n8n acceptance harness's Node.js compilation cache inside its disposable test directory.
+
 ## Execution controls and operational acceptance
 
 ### Added

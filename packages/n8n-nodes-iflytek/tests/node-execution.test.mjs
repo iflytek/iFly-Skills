@@ -16,7 +16,7 @@ const samples = {
   IflyVideoTranslate: ['iflytek-video-translate', ['createTask', 'listTasks', 'getTask', 'confirmTranscript'],
     { taskId: 'video-task', fileUrl: 'https://example.invalid/video.mp4', forceRerun: true }],
   IflyVoicecloneTts: ['iflytek-voiceclone-tts', ['getTrainingText', 'createTraining', 'uploadSample', 'submitTraining', 'getTraining', 'synthesize'],
-    { taskId: 901, resId: 'voice-resource', confirmBinarySubmission: true }],
+    { taskId: 'abcdef0123456789abcdef01', resId: 'voice-resource', confirmBinarySubmission: true }],
   IflyContractReview: ['iflytek-contract-intelligence-review', ['review']],
   IflyAnimatedSketch: ['animated-sketch-diagram', ['renderHtmlToGif']],
 };
@@ -74,6 +74,9 @@ for (const [name, [skill, operations, parameters]] of Object.entries(samples)) {
         assert.equal(items[index].json.data.operation, operation);
       }
       if (operation === 'uploadSample') assert.equal(f.calls[0].parameters.confirmBinarySubmission, true);
+      if (name === 'IflyVoicecloneTts' && ['uploadSample', 'submitTraining', 'getTraining'].includes(operation)) {
+        assert.equal(f.calls[0].parameters.taskId, parameters.taskId);
+      }
       if (operation === 'confirmTranscript') assert.equal(f.calls[0].parameters.forceRerun, true);
       if (name === 'IflyContractReview') assert.equal(f.calls[0].outputBinaryPrefix, 'report');
       if (name === 'IflyAnimatedSketch') assert.equal(f.calls[0].outputBinaryPrefix, 'image');
@@ -90,6 +93,12 @@ test('direct text takes precedence over an absent binary field in every text nod
       assert.deepEqual(f.reads, []);
     });
   }
+});
+
+test('voice training preserves task IDs from existing numeric workflows', async (t) => {
+  const f = fixture(t, 'IflyVoicecloneTts', { operation: 'getTraining', taskId: 901 });
+  await f.run();
+  assert.equal(f.calls[0].parameters.taskId, 901);
 });
 
 test('UTF-8 binary input and contract document input map to the correct bridge fields', async (t) => {

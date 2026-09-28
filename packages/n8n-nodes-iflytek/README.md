@@ -99,9 +99,11 @@ JSON 输出同时包含 `ok`、`status`、`requestId` 和 `meta.durationMs`。�
 
 训练支持获取训练文本、创建任务、上传样本、提交和查询状态。样本填写公开 URL 后忽略 binary，仅添加音频，需要再执行 `submitTraining`。binary 上传会同时提交训练：必须开启节点中的确认选项，输入不得超过 3 MiB，随后执行 `getTraining`，不要重复提交。`data.trainingSubmitted` 标明本次是否已提交；音频时长、采样率和内容还需满足服务要求。训练业务失败码映射为节点错误。
 
+`createTraining` 返回的任务 ID 位于 `data.result.data`，后续操作的 Task ID 应直接引用该值（例如 `={{ $json.data.result.data }}`），保留完整字符串，不转换为数字。已有工作流中的安全整数 ID 仍兼容。
+
 合成需要已训练的 `resId`，输出支持 MP3、PCM、Speex 和 Opus，只有收到服务结束帧才返回成功。
 
-声音训练操作当前使用 HTTP token/训练入口，涉及凭证和样本传输。生产使用前需由应用管理员与服务方确认可接受的安全接入方式；声音克隆合成使用 TLS WebSocket。详见 [服务与平台限制](docs/compatibility.md)。
+声音训练使用 HTTPS token/训练入口，校验服务端证书并拒绝重定向，不回退到 HTTP。声音克隆合成使用 TLS WebSocket。训练次数、合成额度和音色资源权限需分别开通，详见 [服务与平台限制](docs/compatibility.md)。
 
 ### 合同审核
 

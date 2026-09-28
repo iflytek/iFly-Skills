@@ -97,6 +97,14 @@ Linux 需使用支持 Chromium sandbox 的非 root 环境。本包不关闭浏�
 
 当 full Python 依赖和渲染程序均已配置时，在包目录运行 `node dist/shared/preflight.js --full`。`--full` 同时检查合同依赖和渲染程序，不是仅针对合同的预检。随后用 [随包模板](../runtime/bridge/diagram/workflow.html) 执行一次 **iFlytek Animated Sketch**，确认 `binary.image` 可读取；路径检查不能替代实际渲染。
 
+## Linux 容器中的渲染
+
+在容器镜像中预装相同版本的节点包、Python 依赖、浏览器、ffmpeg 和字体，并使用非 root 用户。镜像内的绝对路径需要与 `IFLYTEK_*_EXECUTABLE` 配置一致；n8n 数据目录和临时目录必须可写，包和依赖可以放在只读文件系统中。
+
+使用 `--cap-drop=ALL` 与 `--security-opt=no-new-privileges` 时，浏览器的用户命名空间沙箱仍需要相应系统调用。将随包 [Chromium seccomp 配置](chromium-seccomp.json) 复制到 Docker 宿主机，在容器启动参数中设置 `--security-opt seccomp=/absolute/path/chromium-seccomp.json`。该配置基于 [Playwright v1.61.1 的 Docker 策略](https://github.com/microsoft/playwright/blob/v1.61.1/utils/docker/seccomp_profile.json)（Apache-2.0），保留默认拒绝规则及用户命名空间调用，补充 `chroot`，让 Chromium 能在自己的命名空间中建立沙箱；内核的 capability 检查仍然有效。
+
+应按实际工作流设置内存、CPU、进程数、共享内存和临时磁盘限制。已验证配置见 [兼容范围](compatibility.md)。所用内核或宿主安全策略必须允许非特权用户命名空间；遇到 sandbox 启动失败时检查部署策略，不要通过 `--no-sandbox`、特权容器或关闭 seccomp 来替代配置。仅本地渲染可禁用容器网络；使用讯飞远端节点的实例仍需要相应服务的出站访问。
+
 ## 配置共享凭证
 
 在 n8n 的凭证管理中创建 **iFlytek API**，填入同一个讯飞应用的 **App ID**、**API Key**、**API Secret**，然后在各节点中选择该凭证。凭证在不同能力间复用，并不意味着应用自动拥有全部服务权限。
