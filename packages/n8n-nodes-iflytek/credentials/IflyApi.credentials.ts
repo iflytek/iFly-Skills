@@ -12,7 +12,7 @@ export class IflyApi implements ICredentialType {
       name: 'appId',
       type: 'string',
       default: '',
-      description: 'Shared iFLYTEK application ID (IFLY_APP_ID)',
+      description: 'App ID from your iFLYTEK application',
     },
     {
       displayName: 'API Key',
@@ -20,7 +20,7 @@ export class IflyApi implements ICredentialType {
       type: 'string',
       typeOptions: { password: true },
       default: '',
-      description: 'Shared iFLYTEK API key (IFLY_API_KEY)',
+      description: 'API key from the same iFLYTEK application',
     },
     {
       displayName: 'API Secret',
@@ -28,7 +28,7 @@ export class IflyApi implements ICredentialType {
       type: 'string',
       typeOptions: { password: true },
       default: '',
-      description: 'Shared iFLYTEK API secret (IFLY_API_SECRET)',
+      description: 'API secret from the same iFLYTEK application',
     },
   ];
 }

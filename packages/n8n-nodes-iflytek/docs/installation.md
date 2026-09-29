@@ -4,24 +4,24 @@
 
 ## 环境要求
 
-- 使用 Node.js 24 运行 n8n，准备 Python 3.10 或更高版本及独立 venv；版本选择见 [兼容范围](compatibility.md)。
+- 本包当前支持 Node.js 24.x（`>=24.0.0 <25`）；n8n 版本及其 Node.js 要求见 [兼容范围](compatibility.md)。另需 Python 3.10 或更高版本及独立 venv。
 - 允许 n8n 执行进程启动本地 Python，并为其提供可写的独占临时目录。
 - 远端能力需要讯飞应用凭证、相应服务权限和可用额度；手绘图渲染不需要 API 凭证。
 - 使用 queue mode 时，在每个实际执行工作流的进程所在环境安装相同的包和依赖。
 
 ## 安装节点包
 
-对于 registry 中已有的发布版本，可由实例管理员在 n8n 的 **Settings → Community Nodes → Install** 中安装 `n8n-nodes-iflytek`。实例须允许安装未验证的社区节点；包的可安装状态以 registry 和实例策略为准。`n8n-community-node-package` 关键词用于 npm 社区包检索，不授予 n8n 官方认证，也不自动进入编辑器的已验证节点目录。
+对于 registry 中已有的发布版本，可由实例管理员在 n8n 的 **Settings → Community Nodes → Install** 中安装 `@iflytekopensource/n8n-nodes-iflytek`。实例须允许安装未验证的社区节点；包的可安装状态以 registry 和实例策略为准。`n8n-community-node-package` 关键词用于 npm 社区包检索，不授予 n8n 官方认证，也不自动进入编辑器的已验证节点目录。
 
 也可以按 n8n 的 [社区节点手动安装说明](https://docs.n8n.io/integrations/community-nodes/installation/manual-install/) 安装。在该实例实际使用的社区节点目录中执行以下命令，将 `VERSION` 替换为已发布的版本号：
 
 ```sh
-npm install --save-exact "n8n-nodes-iflytek@VERSION"
+npm install --save-exact "@iflytekopensource/n8n-nodes-iflytek@VERSION"
 ```
 
 默认社区节点目录是运行 n8n 的用户目录下的 `.n8n/nodes`；使用自定义用户目录或容器挂载时，以实例实际配置为准。若使用维护者提供的 `.tgz` 安装包，在同一目录运行 `npm install --save-exact`，将参数替换为该文件的绝对路径。请勿将全局 npm 安装目录当作社区节点目录。
 
-安装后，以下内容应位于 `node_modules/n8n-nodes-iflytek/`：
+安装后，以下内容应位于 `node_modules/@iflytekopensource/n8n-nodes-iflytek/`：
 
 | 路径 | 用途 |
 | --- | --- |
@@ -35,6 +35,12 @@ npm install --save-exact "n8n-nodes-iflytek@VERSION"
 
 后续示例中的“包目录”均指这个已安装目录。普通使用不需要 checkout 仓库、编译 TypeScript 或执行源码测试。
 
+## 迁移已有测试工作流
+
+使用旧无作用域包 `n8n-nodes-iflytek` 创建的工作流，其节点类型包含旧包名。迁移前导出工作流并备份 n8n 数据；在工作流 JSON 的 `nodes[].type` 中，将前缀 `n8n-nodes-iflytek.` 改为 `@iflytekopensource/n8n-nodes-iflytek.`，保留后面的节点名称及其他字段。
+
+在维护窗口暂停相关工作流，通过 n8n 卸载旧包后安装本包，避免同时加载两个包导致同名节点与共享凭证重复注册。重新导入并检查凭证选择、表达式及 binary 字段，再恢复工作流。本包的凭证类型仍为 `iflyApi`；若实例中保留了原凭证，可重新选择。npm 不会把两个包名视为自动升级关系。
+
 ## 配置 Python
 
 将示例路径替换为本机实际路径。使用 n8n 服务账号创建或授权访问 venv，临时目录也必须由该账号可写。
@@ -42,7 +48,7 @@ npm install --save-exact "n8n-nodes-iflytek@VERSION"
 ### Linux
 
 ```sh
-ifly_package_root="/absolute/path/.n8n/nodes/node_modules/n8n-nodes-iflytek"
+ifly_package_root="/absolute/path/.n8n/nodes/node_modules/@iflytekopensource/n8n-nodes-iflytek"
 ifly_venv="/absolute/path/iflytek-venv"
 ifly_tmp="/absolute/path/iflytek-tmp"
 
@@ -59,7 +65,7 @@ node "$ifly_package_root/dist/shared/preflight.js"
 ### Windows PowerShell
 
 ```powershell
-$iflyPackageRoot = 'C:\path\to\.n8n\nodes\node_modules\n8n-nodes-iflytek'
+$iflyPackageRoot = 'C:\path\to\.n8n\nodes\node_modules\@iflytekopensource\n8n-nodes-iflytek'
 $iflyVenv = 'C:\path\to\iflytek-venv'
 $iflyTmp = 'C:\path\to\iflytek-tmp'
 
@@ -98,7 +104,7 @@ $env:IFLYTEK_FFMPEG_EXECUTABLE = 'C:\path\to\ffmpeg.exe'
 
 Linux 需使用支持 Chromium sandbox 的非 root 环境。本包不关闭浏览器 sandbox；中文渲染还需安装可用的中文字体。
 
-当 full Python 依赖和渲染程序均已配置时，在包目录运行 `node dist/shared/preflight.js --full`。`--full` 同时检查合同依赖和渲染程序，不是仅针对合同的预检。随后用 [随包模板](../runtime/bridge/diagram/workflow.html) 执行一次 **iFlytek Animated Sketch**，确认 `binary.image` 可读取；路径检查不能替代实际渲染。
+当 full Python 依赖和渲染程序均已配置时，在包目录运行 `node dist/shared/preflight.js --full`。`--full` 同时检查合同依赖和渲染程序，不是仅针对合同的预检。随后用安装包内的 `runtime/bridge/diagram/workflow.html`（[查看模板](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/python/diagram/workflow.html)）执行一次 **iFlytek Animated Sketch**，确认 `binary.image` 可读取；路径检查不能替代实际渲染。
 
 ## Linux 容器中的渲染
 

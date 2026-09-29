@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           npm install --prefix "$RUNNER_TEMP/candidate" --no-audit --no-fund "$RUNNER_TEMP/release/"*.tgz
-          installed="$RUNNER_TEMP/candidate/node_modules/n8n-nodes-iflytek"
+          installed="$RUNNER_TEMP/candidate/node_modules/@iflytekopensource/n8n-nodes-iflytek"
           python -m pip install -r "$installed/runtime/requirements/requirements-core.lock"
           IFLYTEK_PYTHON_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')" node "$installed/dist/shared/preflight.js"
       - uses: actions/upload-artifact@v4
@@ -117,7 +117,7 @@ jobs:
           const release = JSON.parse(fs.readFileSync('release.json', 'utf8'));
           assert.ok(release.publishable && !release.sourceTreeDirty);
           assert.equal(release.sourceCommit, process.env.GITHUB_SHA);
-          const response = await fetch(`https://registry.npmjs.org/${release.package}/${release.version}`, { signal: AbortSignal.timeout(30000) });
+          const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(release.package)}/${encodeURIComponent(release.version)}`, { signal: AbortSignal.timeout(30000) });
           if (response.status === 404) {
             execFileSync('npm', ['publish', release.filename, '--access', 'public', '--provenance', '--tag', release.distTag], { stdio: 'inherit' });
           } else {
@@ -135,7 +135,7 @@ jobs:
           cp tests/host/package*.json tests/host/*.mjs "$RUNNER_TEMP/host/"
           npm ci --prefix "$RUNNER_TEMP/host" --omit=dev --no-audit --no-fund
           npm run test:security --prefix "$RUNNER_TEMP/host"
-          npm install --prefix "$RUNNER_TEMP/community" --no-audit --no-fund "n8n-nodes-iflytek@$IFLY_VERSION"
+          npm install --prefix "$RUNNER_TEMP/community" --no-audit --no-fund "@iflytekopensource/n8n-nodes-iflytek@$IFLY_VERSION"
           node scripts/n8n-acceptance.mjs --n8n-root "$RUNNER_TEMP/host/node_modules/n8n" \
             --community-root "$RUNNER_TEMP/community" --python "$(python -c 'import sys; print(sys.executable)')" \
             --report "$PWD/.release/registry-installation.json"
@@ -145,6 +145,6 @@ jobs:
           IFLY_VERSION: ${{ needs.source.outputs.version }}
           IFLY_DIST_TAG: ${{ needs.source.outputs.dist-tag }}
         run: |
-          options=(--verify-tag --title "n8n-nodes-iflytek $IFLY_VERSION" --notes-file CHANGELOG.md)
+          options=(--verify-tag --title "@iflytekopensource/n8n-nodes-iflytek $IFLY_VERSION" --notes-file CHANGELOG.md)
           if [[ "$IFLY_DIST_TAG" == beta ]]; then options+=(--prerelease); fi
           gh release create "$GITHUB_REF_NAME" "${options[@]}" .release/*

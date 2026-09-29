@@ -14,7 +14,7 @@ try {
   await host.start();
   const workflow = await host.create('Retained workflow across package replacement', [
     host.node('Start', 'n8n-nodes-base.manualTrigger'),
-    host.node('Voices', 'n8n-nodes-iflytek.iflyHyperTts', { operation: 'listVoices' }),
+    host.node('Voices', '@iflytekopensource/n8n-nodes-iflytek.iflyHyperTts', { operation: 'listVoices' }),
   ]);
   let baseline;
   for (const [phase, community] of [['baseline', option('--baseline-community')], ['candidate', option('--candidate-community')],
@@ -32,7 +32,7 @@ try {
     const output = result.data.resultData.runData.Voices[0].data.main[0][0].json.data;
     if (phase === 'baseline') baseline = output;
     else assert.deepEqual(output, baseline);
-    const manifest = JSON.parse(await readFile(path.join(community, 'node_modules/n8n-nodes-iflytek/runtime/manifest.json'), 'utf8'));
+    const manifest = JSON.parse(await readFile(path.join(community, 'node_modules/@iflytekopensource/n8n-nodes-iflytek/runtime/manifest.json'), 'utf8'));
     phases.push({ phase, workflowIdUnchanged: result.workflowId === workflow.id, status: result.status,
       voices: output.voices.length, runtimeFiles: Object.keys(manifest.files).length });
     console.log('Package replacement passed: ' + phase);

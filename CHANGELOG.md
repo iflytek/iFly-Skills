@@ -1,5 +1,20 @@
 # Changelog
 
+## Scoped n8n package
+
+### Changed
+
+- Set the npm package name to `@iflytekopensource/n8n-nodes-iflytek`, synchronized lockfile metadata, declared CommonJS output, and condensed capability keywords and the package description.
+- Updated installation paths, workflow node type identifiers, acceptance scripts, and release checks for the scoped package, including npm archive filenames and registry URLs.
+- Reorganized the Chinese README around installation and the 11 nodes, moved detailed operation guidance into the shipped node reference, and updated English usage and package migration instructions.
+- Distinguished the package's Node.js 24.x support policy from n8n version requirements, streamlined both READMEs, and moved detailed input/output and error behavior into the operations guide.
+- Linked license notices and the diagram template to tracked source files while documenting their installed paths, and clarified credential field descriptions for n8n users.
+- Documented organization publishing permissions and added checks for scoped package artifacts and workflow registration.
+
+### Fixed
+
+- Streamed release archives to tar for listing and extraction to avoid GNU tar interpreting Windows drive letters as remote hosts, with regression coverage for absolute output paths containing spaces.
+
 ## n8n package distribution and maintenance
 
 ### Added

@@ -30,7 +30,7 @@
     {
       "id": "synthesize",
       "name": "Synthesize",
-      "type": "n8n-nodes-iflytek.iflyHyperTts",
+      "type": "@iflytekopensource/n8n-nodes-iflytek.iflyHyperTts",
       "typeVersion": 1,
       "position": [
         440,

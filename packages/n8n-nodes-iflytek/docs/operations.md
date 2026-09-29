@@ -1,6 +1,16 @@
 # n8n 节点运行与恢复
 
-本指南用于管理已安装的 iFlytek 节点。先完成 [安装与配置](installation.md)，再为每个实际执行进程设置容量、日志和恢复策略；版本及平台条件见 [兼容范围](compatibility.md)。以下 `node dist/shared/...` 命令均在已安装的 `n8n-nodes-iflytek` 包目录运行。
+本指南用于管理已安装的 iFlytek 节点。先完成 [安装与配置](installation.md)，再为每个实际执行进程设置容量、日志和恢复策略；版本及平台条件见 [兼容范围](compatibility.md)。以下 `node dist/shared/...` 命令均在已安装的 `@iflytekopensource/n8n-nodes-iflytek` 包目录运行。
+
+## 输入、结果与错误处理
+
+文件通过 n8n 的 binary 字段传入。例如上游文件位于 `binary.data` 时，在 **Input Binary Field** 填写 `data`，无需填写本地文件路径。支持文本输入的节点优先使用 **Text**；只有 Text 为空时才读取指定的 UTF-8 binary 字段。
+
+每个输入 item 对应一个输出 item，并保留 n8n 的 item 关联。业务结果位于 `json.data`；音频、图像和报告分别位于 `binary.audio`、`binary.image`、`binary.report` / `binary.report2`（默认字段名），可继续交给上传、保存或发送文件的节点。文件完成 n8n 持久化后，本包会清理调用临时目录，工作流应使用 binary 字段传递文件。
+
+JSON 输出同时包含 `ok`、`status`、`requestId` 和 `meta.durationMs`。外层 `ok: true`、`status: succeeded` 表示本次节点调用成功；创建远端任务后的完成状态仍需根据 `data` 中的服务结果判断。保存创建操作返回的 task ID，再通过 Wait 和查询节点等待任务完成，详见 [长任务与恢复](#长任务重复费用与-worker-恢复)。
+
+默认情况下，错误会停止节点。选择节点设置中的 **On Error → Continue (using regular output)** 后，item 级错误会通过 `json.error` 返回，下游应先判断是否存在此字段；解释器等公共配置错误仍可能直接停止整个节点。错误码的处理方式见 [故障排查](#故障排查)。收费提交不要直接开启 **Retry On Fail**，以免重复提交产生费用。
 
 ## 运行配置与就绪检查
 
@@ -16,7 +26,7 @@
 
 配置通过进程环境传入，工作流不提供这些字段。并发配置在每个进程第一次调用时固定，修改后重启所有执行进程。一个槽位覆盖输入落盘、子进程执行、产物持久化和临时文件回收；n8n 在获取槽位前读取的 binary 也会消耗内存，需同时限制 n8n 工作流并发和输入规模。
 
-在已安装的 `n8n-nodes-iflytek` 目录执行：
+在已安装的 `@iflytekopensource/n8n-nodes-iflytek` 目录执行：
 
 ```sh
 node dist/shared/preflight.js

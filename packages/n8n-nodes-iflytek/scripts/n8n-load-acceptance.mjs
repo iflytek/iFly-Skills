@@ -62,14 +62,14 @@ async function cpuTicks() {
 
 try {
   await host.start();
-  const runtime = path.join(host.communityRoot, 'node_modules/n8n-nodes-iflytek/runtime');
+  const runtime = path.join(host.communityRoot, 'node_modules/@iflytekopensource/n8n-nodes-iflytek/runtime');
   const manifest = JSON.parse(await readFile(path.join(runtime, 'manifest.json'), 'utf8'));
   report.sourceCommit = manifest.sourceCommit;
   report.sourceTreeDirty = manifest.sourceTreeDirty;
   const scenarios = [{ name: 'voices', calls: samples, node: () => host.node('Local operation',
-    'n8n-nodes-iflytek.iflyHyperTts', { operation: 'listVoices' }) }];
+    '@iflytekopensource/n8n-nodes-iflytek.iflyHyperTts', { operation: 'listVoices' }) }];
   if (render) scenarios.push({ name: 'render', calls: renderSamples, node: () => host.node('Local operation',
-    'n8n-nodes-iflytek.iflyAnimatedSketch', { text: '<style>@keyframes move{to{transform:translateX(40px)}}div{animation:move 1s linear infinite}</style><div>Acceptance</div>',
+    '@iflytekopensource/n8n-nodes-iflytek.iflyAnimatedSketch', { text: '<style>@keyframes move{to{transform:translateX(40px)}}div{animation:move 1s linear infinite}</style><div>Acceptance</div>',
       width: 320, height: 180, fps: 4, durationMs: 1000, scale: 1 }) });
   for (const scenario of scenarios) for (const concurrency of [1, 2, 4]) {
     const hook = `ifly-load-${host.port}-${scenario.name}-${concurrency}`;

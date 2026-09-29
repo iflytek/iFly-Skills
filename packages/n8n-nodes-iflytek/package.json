@@ -1,8 +1,9 @@
 {
-  "name": "n8n-nodes-iflytek",
+  "name": "@iflytekopensource/n8n-nodes-iflytek",
   "version": "0.1.0",
-  "description": "iFLYTEK Skills for self-hosted n8n: speech AI, multimodal understanding, document intelligence, and multilingual processing, including ASR, TTS, voice cloning, OCR, translation, proofreading, and more.",
+  "description": "iFLYTEK Skills nodes for self-hosted n8n: transcription, speech synthesis, voice cloning, OCR, text and video translation, proofreading, image understanding, contract review, and diagram rendering.",
   "license": "Apache-2.0",
+  "type": "commonjs",
   "author": {
     "name": "iFLYTEK",
     "url": "https://github.com/iflytek"
@@ -13,24 +14,16 @@
   },
   "keywords": [
     "n8n-community-node-package",
-    "n8n",
     "iflytek",
-    "iflytek-skills",
-    "tts",
-    "stt",
-    "text-to-speech",
     "speech-to-text",
+    "text-to-speech",
     "voice-cloning",
     "ocr",
-    "invoice-ocr",
-    "pdf-ocr",
     "translation",
-    "video-translation",
     "proofreading",
     "image-understanding",
     "contract-review",
-    "diagram-rendering",
-    "html-to-gif"
+    "diagram-rendering"
   ],
   "repository": {
     "type": "git",

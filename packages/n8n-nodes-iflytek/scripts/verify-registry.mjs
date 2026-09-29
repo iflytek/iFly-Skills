@@ -18,7 +18,7 @@ async function main() {
   const [flag, filename] = process.argv.slice(2);
   assert.ok(flag === '--release' && filename && process.argv.length === 4, 'Usage: npm run release:verify -- --release release.json');
   const release = JSON.parse(await readFile(filename, 'utf8'));
-  assert.equal(release.package, 'n8n-nodes-iflytek');
+  assert.equal(release.package, '@iflytekopensource/n8n-nodes-iflytek');
   assert.ok(release.publishable && !release.sourceTreeDirty, 'Use a clean release artifact');
   const get = async url => {
     const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
@@ -26,12 +26,13 @@ async function main() {
     return response;
   };
   const registry = 'https://registry.npmjs.org/';
-  const metadata = await (await get(registry + release.package + '/' + encodeURIComponent(release.version))).json();
+  const packagePath = encodeURIComponent(release.package);
+  const metadata = await (await get(registry + packagePath + '/' + encodeURIComponent(release.version))).json();
   const tarball = new URL(metadata.dist.tarball);
   assert.equal(tarball.origin, 'https://registry.npmjs.org');
   const bytes = Buffer.from(await (await get(tarball)).arrayBuffer());
   validatePublished(metadata, release, bytes);
-  const tags = await (await get(registry + '-/package/' + release.package + '/dist-tags')).json();
+  const tags = await (await get(registry + '-/package/' + packagePath + '/dist-tags')).json();
   assert.equal(tags[release.distTag], release.version, 'Unexpected dist-tag');
   const search = await (await get(registry + '-/v1/search?' + new URLSearchParams({ text: 'keywords:n8n-community-node-package ' + release.package, size: '250' }))).json();
   const indexed = search.objects.some(item => item.package.name === release.package);

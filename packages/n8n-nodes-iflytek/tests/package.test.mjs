@@ -26,7 +26,11 @@ async function fixture(t) {
 
 test('registered compiled credential loads without runtime JS dependencies', async () => {
   const pkg = await json(path.join(packageRoot, 'package.json'));
-  assert.equal(pkg.name, 'n8n-nodes-iflytek');
+  assert.equal(pkg.name, '@iflytekopensource/n8n-nodes-iflytek');
+  const lock = await json(path.join(packageRoot, 'package-lock.json'));
+  assert.equal(lock.name, pkg.name);
+  assert.equal(lock.packages[''].name, pkg.name);
+  assert.equal(pkg.publishConfig.access, 'public');
   assert.notEqual(pkg.private, true);
   assert.ok(pkg.keywords.includes('n8n-community-node-package'));
   assert.deepEqual(pkg.n8n.nodes, [

@@ -55,7 +55,9 @@ async function main() {
   const sourceCommit = git(['rev-parse', 'HEAD']);
   const sourceTreeDirty = git(['status', '--porcelain']) !== '';
   const distTag = releaseTag(pkg.version);
-  assert.equal(pkg.name, 'n8n-nodes-iflytek');
+  assert.equal(pkg.name, '@iflytekopensource/n8n-nodes-iflytek');
+  assert.equal(lock.name, pkg.name);
+  assert.equal(lock.packages[''].name, pkg.name);
   assert.equal(lock.version, pkg.version);
   assert.equal(lock.packages[''].version, pkg.version);
   assert.ok(pkg.keywords.includes('n8n-community-node-package'));
@@ -69,13 +71,16 @@ async function main() {
   const [packed] = JSON.parse(execFileSync(process.execPath, [process.env.npm_execpath, 'pack', '--ignore-scripts', '--json', '--pack-destination', output],
     { cwd: pkgRoot, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 }));
   validateFileList(packed.files, pkg, manifest);
-  assert.equal(packed.filename, `${pkg.name}-${pkg.version}.tgz`);
+  // npm pack flattens @scope/name to scope-name in archive filenames.
+  assert.equal(packed.filename, `${pkg.name.replace(/^@/, '').replace('/', '-')}-${pkg.version}.tgz`);
   const tarball = path.join(output, packed.filename);
-  const archiveNames = execFileSync('tar', ['-tzf', tarball], { encoding: 'utf8' }).trim().split(/\r?\n/).sort();
+  const bytes = await readFile(tarball);
+  // Stream the archive so GNU tar cannot interpret a Windows drive letter as a remote host.
+  const archiveNames = execFileSync('tar', ['-tzf', '-'], { input: bytes, encoding: 'utf8' }).trim().split(/\r?\n/).sort();
   assert.deepEqual(archiveNames, packed.files.map(file => 'package/' + file.path).sort(), 'Tarball contents differ from pack metadata');
   const extracted = await mkdtemp(path.join(os.tmpdir(), 'ifly-release-'));
   try {
-    execFileSync('tar', ['-xzf', tarball, '-C', extracted]);
+    execFileSync('tar', ['-xzf', '-'], { input: bytes, cwd: extracted });
     const installed = path.join(extracted, 'package');
     assert.deepEqual(await json(path.join(installed, 'package.json')), pkg);
     assert.deepEqual(await json(path.join(installed, 'runtime/manifest.json')), manifest);
@@ -83,7 +88,6 @@ async function main() {
   } finally {
     await rm(extracted, { recursive: true, force: true });
   }
-  const bytes = await readFile(tarball);
   const integrity = 'sha512-' + createHash('sha512').update(bytes).digest('base64');
   assert.equal(integrity, packed.integrity);
   const report = { package: pkg.name, version: pkg.version, distTag, filename: packed.filename,

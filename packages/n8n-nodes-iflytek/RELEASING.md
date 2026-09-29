@@ -1,10 +1,10 @@
 # npm 发布与维护
 
-本指南供 `n8n-nodes-iflytek` 维护者准备、发布和验证 npm 制品，并管理版本与依赖更新。安装及运行配置见 [安装指南](docs/installation.md)。
+本指南供 `@iflytekopensource/n8n-nodes-iflytek` 维护者准备、发布和验证 npm 制品，并管理版本与依赖更新。安装及运行配置见 [安装指南](docs/installation.md)。
 
 ## 发布条件
 
-- 发布维护者确认目标包名、版本、registry 和公开访问级别，使用项目认可、具有该包发布权限的 npm 账号，并满足 npm 的双因素认证要求。首次发布时由 registry 校验包名和账号权限。
+- 发布目标为 `@iflytekopensource/n8n-nodes-iflytek`，registry 为 `https://registry.npmjs.org/`，访问级别为 `public`。维护者需拥有 `iflytekopensource` 组织内创建或发布该包的权限，并满足 npm 的双因素认证要求；首次发布时由 registry 校验名称和账号权限。
 - 同步 `package.json`、`package-lock.json`、包级 `CHANGELOG.md` 和用户兼容说明。稳定版使用 `X.Y.Z`，Beta 使用 `X.Y.Z-beta.N`；版本发布后不能覆盖。
 - 保留 `n8n-community-node-package` 关键词，以及完整的 `n8n.nodes`、`n8n.credentials` 和随包 runtime。关键词供 npm 社区包索引使用；不等于 n8n 官方认证、编辑器已验证节点目录收录或 Cloud 支持。
 - 兼容 CI、节点包及测试宿主的生产依赖审计通过。`tests/host/` 提供 CI 和 registry 安装验证所用的宿主锁文件及安全回归。
@@ -43,7 +43,7 @@ gh workflow run n8n-release.yml --ref n8n-vVERSION -f publish=true
 
 ```sh
 npm whoami --registry https://registry.npmjs.org/
-npm publish /absolute/path/release/n8n-nodes-iflytek-VERSION.tgz --access public --tag latest
+npm publish /absolute/path/release/iflytekopensource-n8n-nodes-iflytek-VERSION.tgz --access public --tag latest
 npm run release:verify -- --release /absolute/path/release/release.json
 ```
 
