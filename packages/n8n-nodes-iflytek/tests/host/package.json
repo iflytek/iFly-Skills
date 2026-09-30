@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "dependencies": {
-    "n8n": "2.40.7",
-    "n8n-workflow": "2.40.1"
+    "n8n": "2.41.3",
+    "n8n-workflow": "2.41.0"
   },
   "scripts": {
     "test:security": "node --test host-security.test.mjs"
