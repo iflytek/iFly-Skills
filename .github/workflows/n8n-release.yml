@@ -100,7 +100,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: n8n-package
           path: packages/n8n-nodes-iflytek/.release
