@@ -27,7 +27,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [package, host]
+        include:
+          - target: package
+            audit-level: high
+          - target: host
+            audit-level: critical
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -36,11 +40,12 @@ jobs:
       - name: Audit locked production dependencies
         env:
           IFLY_AUDIT_TARGET: ${{ matrix.target }}
+          IFLY_AUDIT_LEVEL: ${{ matrix.audit-level }}
         shell: bash
         run: |
           cd packages/n8n-nodes-iflytek
           if [[ "$IFLY_AUDIT_TARGET" == host ]]; then cd tests/host; fi
-          npm audit --omit=dev --audit-level=critical --json > "$RUNNER_TEMP/audit-$IFLY_AUDIT_TARGET.json"
+          npm audit --omit=dev --audit-level="$IFLY_AUDIT_LEVEL" --json > "$RUNNER_TEMP/audit-$IFLY_AUDIT_TARGET.json"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

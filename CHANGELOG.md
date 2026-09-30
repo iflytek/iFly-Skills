@@ -1,5 +1,13 @@
 # Changelog
 
+## n8n release controls
+
+### Changed
+
+- Removed the npm token reference from the publish job and documented OIDC trusted publishing, first-publish setup, and required environment reviewers.
+- Raised the node package's production dependency audit threshold to high while retaining the independent test host's critical threshold.
+- Extracted the current package version's changelog section into release notes, rejected missing, duplicate, or empty sections, and used those notes for GitHub releases.
+
 ## Scoped n8n package
 
 ### Changed

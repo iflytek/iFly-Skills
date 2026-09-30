@@ -25,7 +25,7 @@ tar 6.x 没有相应安全修复，当前宿主通过经过调用验证的 7.x �
 
 ## 门禁与运行边界
 
-- PR、main 和发布复用相同审计：节点包及宿主分别执行 `npm audit --omit=dev --audit-level=critical`，任何 critical 或审计服务错误均失败。
+- PR、main 和发布复用相同生产依赖审计：节点包执行 `npm audit --omit=dev --audit-level=high`，阻止 high 和 critical；本测试宿主执行 `npm audit --omit=dev --audit-level=critical`，阻止 critical。审计服务错误均失败。
 - 当前宿主从空目录正常执行 `npm ci --omit=dev` 后运行 `npm run test:security`，并检查真实 n8n、11 个节点及模板。跨主版本 override 必须同时通过这些检查。将本目录文件复制到仓库外的独立目录后安装，不在仓库中安装完整宿主。
 - 审阅完整 audit 报告中的 high/moderate/low，按具体启用节点和上游修复处理。本目录回归覆盖上表列出的依赖行为；使用其他 n8n 集成时还需验证其运行条件。
 - 部署管理员应按环境配置非 root、文件访问权限和 CPU/内存/PID 限制；只允许可信工作流作者，按需限制 Webhook 输入大小、网络出口及存储容量。tar 的解压比例限制不能替代磁盘配额。安装节点包的用户须自行升级并审计其宿主，不能假定获得了本测试宿主的修复。

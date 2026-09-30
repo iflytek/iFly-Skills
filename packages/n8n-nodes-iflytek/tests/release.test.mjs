@@ -5,13 +5,25 @@ import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promis
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { releaseTag, validateFileList, verifyRuntime } from '../scripts/prepare-release.mjs';
+import { releaseNotes, releaseTag, validateFileList, verifyRuntime } from '../scripts/prepare-release.mjs';
 import { validatePublished } from '../scripts/verify-registry.mjs';
 
 test('release channels reject ambiguous versions', () => {
   assert.equal(releaseTag('0.1.0'), 'latest');
   assert.equal(releaseTag('0.2.0-beta.1'), 'beta');
   for (const version of ['0.1', 'v0.1.0', '0.1.0-dev.0', '01.1.0', '0.1.0-beta.01', 'latest', '../package']) assert.throws(() => releaseTag(version));
+});
+
+test('release notes include only the requested stable or beta version', () => {
+  const changelog = '# Changelog\n\n## Unreleased\n\n- Pending.\n\n## 0.2.0\n\n### Added\n\n- Current.\n\n## 0.2.0-beta.1\n\n- Preview.\n\n## 0.1.0\n\n- Previous.\n';
+  const expected = '## 0.2.0\n\n### Added\n\n- Current.\n';
+  assert.equal(releaseNotes(changelog, '0.2.0'), expected);
+  assert.equal(releaseNotes(changelog.replace(/\n/g, '\r\n'), '0.2.0'), expected);
+  assert.equal(releaseNotes(changelog, '0.2.0-beta.1'), '## 0.2.0-beta.1\n\n- Preview.\n');
+  assert.equal(releaseNotes(changelog, '0.1.0'), '## 0.1.0\n\n- Previous.\n');
+  assert.throws(() => releaseNotes(changelog, '0.3.0'), /exactly one changelog section/);
+  assert.throws(() => releaseNotes(changelog + '\n## 0.2.0\n\n- Duplicate.\n', '0.2.0'), /exactly one changelog section/);
+  assert.throws(() => releaseNotes('## 0.2.0\n\n## 0.1.0\n\n- Previous.\n', '0.2.0'), /Empty changelog section/);
 });
 
 test('packed releases require registered code, runtime files, user docs and templates', async () => {
@@ -43,6 +55,9 @@ test('release preparation verifies the scoped archive in an absolute path with s
   assert.equal(report.publishable, !report.sourceTreeDirty);
   const bytes = await readFile(path.join(output, report.filename));
   assert.equal(createHash('sha256').update(bytes).digest('hex'), report.sha256);
+  const changelog = await readFile(new URL('../CHANGELOG.md', import.meta.url), 'utf8');
+  assert.equal(await readFile(path.join(output, 'CHANGELOG.md'), 'utf8'), changelog);
+  assert.equal(await readFile(path.join(output, 'RELEASE_NOTES.md'), 'utf8'), releaseNotes(changelog, pkg.version));
 });
 
 test('artifact checks detect changed runtime bytes and published tarballs', async t => {

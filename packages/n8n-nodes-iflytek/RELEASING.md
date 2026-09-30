@@ -5,7 +5,7 @@
 ## 发布条件
 
 - 发布目标为 `@iflytekopensource/n8n-nodes-iflytek`，registry 为 `https://registry.npmjs.org/`，访问级别为 `public`。维护者需拥有 `iflytekopensource` 组织内创建或发布该包的权限，并满足 npm 的双因素认证要求；首次发布时由 registry 校验名称和账号权限。
-- 同步 `package.json`、`package-lock.json`、包级 `CHANGELOG.md` 和用户兼容说明。稳定版使用 `X.Y.Z`，Beta 使用 `X.Y.Z-beta.N`；版本发布后不能覆盖。
+- 同步 `package.json`、`package-lock.json`、包级 `CHANGELOG.md` 和用户兼容说明。稳定版使用 `X.Y.Z`，Beta 使用 `X.Y.Z-beta.N`；版本发布后不能覆盖。包级变更记录使用 `## VERSION` 标题，每个版本须有唯一且非空的章节。
 - 保留 `n8n-community-node-package` 关键词，以及完整的 `n8n.nodes`、`n8n.credentials` 和随包 runtime。关键词供 npm 社区包索引使用；不等于 n8n 官方认证、编辑器已验证节点目录收录或 Cloud 支持。
 - 兼容 CI、节点包及测试宿主的生产依赖审计通过。`tests/host/` 提供 CI 和 registry 安装验证所用的宿主锁文件及安全回归。
 
@@ -18,7 +18,7 @@ npm run build
 npm run release:prepare -- --output /absolute/path/release
 ```
 
-输出目录须位于仓库外且为空，包含 `.tgz`、`release.json`、`runtime-manifest.json`、`SHA256SUMS` 和包级变更记录。脚本检查版本、关键词、注册路径、示例工作流、许可、允许的文件列表及 runtime 哈希，并解包复核。清单记录源码 commit、工作树状态和校验值，用于核对来源与完整性。
+输出目录须位于仓库外且为空，包含 `.tgz`、`release.json`、`runtime-manifest.json`、`SHA256SUMS`、完整包级 `CHANGELOG.md` 和仅含当前版本的 `RELEASE_NOTES.md`。脚本检查版本、变更记录章节、关键词、注册路径、示例工作流、许可、允许的文件列表及 runtime 哈希，并解包复核。清单记录源码 commit、工作树状态和校验值，用于核对来源与完整性。
 
 本地开发可追加 `--allow-dirty` 核查未提交修改；所得记录标记 `publishable: false`，不能作为正式发布输入。最终安装验证和 npm 发布使用同一 tarball，不在发布时重新打包替换。
 
@@ -27,15 +27,17 @@ npm run release:prepare -- --output /absolute/path/release
 1. 将发布代码合入 `main`，创建并推送与包版本一致的 `n8n-vVERSION` 标签。这个专用前缀不会触发仓库的 `v*` Skill 发布流程。
 2. 标签触发 `n8n release`：校验 main 来源，复用兼容与安全检查，生成候选包，并从该 tarball 独立安装、执行 runtime 预检。此运行只生成 Actions 制品，不发布 npm。
 3. 审核制品后，在同一标签上手动运行 workflow，设置 `publish=true`。流程重新验证，再在 `n8n-release` environment 中发布该运行生成并验证的 tarball。稳定版使用 `latest`，Beta 使用 `beta`。
-4. 发布后复核 registry 版本、关键词、注册元数据、dist-tag、integrity 和 SHA-256，从 registry 精确安装到独立真实 n8n 验证，最后创建包含制品与验证报告的 GitHub release。
+4. 发布后复核 registry 版本、关键词、注册元数据、dist-tag、integrity 和 SHA-256，从 registry 精确安装到独立真实 n8n 验证，最后创建包含制品与验证报告的 GitHub release，正文使用制品中的 `RELEASE_NOTES.md`。
 
 ```sh
 gh workflow run n8n-release.yml --ref n8n-vVERSION -f publish=true
 ```
 
-仓库管理员需配置 `n8n-release` environment，限制发布标签并设置审核者。普通 PR 只有读取权限。实际发布仅在 `iflytek/iFly-Skills` 的显式发布运行中执行。
+首次发布前，仓库管理员须在 GitHub Settings → Environments 中为 `n8n-release` 配置 **Required reviewers**，并将允许部署的标签限制为 `n8n-v*`。工作流中的 `environment` 引用不会自动创建审核规则；须在设置页面确认规则已启用。普通 PR 只有读取权限。实际 CI 发布仅在 `iflytek/iFly-Skills` 的显式发布运行中执行。
 
-已创建 npm 包后，优先配置 [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)：仓库 `iflytek/iFly-Skills`、workflow `n8n-release.yml`、environment `n8n-release`，并允许直接执行 `npm publish`。CI 使用支持 OIDC 的 npm（至少 11.5.1）及 `id-token: write`，同时生成 provenance。首次发布如尚不能配置 trusted publisher，可在该 environment 临时设置具有包发布权限、满足该包 2FA 策略的 granular `NPM_TOKEN`；限制权限及有效期，切换 OIDC 后撤销。不要把 token 写入源码或命令示例。
+CI 使用 [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) 的 OIDC 身份认证，不读取 `NPM_TOKEN`。在 npm 包设置中配置 GitHub Actions trusted publisher：组织 `iflytek`、仓库 `iFly-Skills`、workflow 文件名 `n8n-release.yml`、environment `n8n-release`，并允许直接执行 `npm publish`。工作流使用 GitHub 托管 runner、支持 OIDC 的 npm（至少 11.5.1）及 `id-token: write`，发布时生成 provenance。确认 OIDC 发布成功后，撤销不再使用的 npm 发布 token 并删除对应 GitHub secret。
+
+若包尚未创建、无法配置 trusted publisher，先运行上述标签验证流程，审核生成的 tarball，再按下一节使用维护者账号和 2FA 首次发布同一制品。包创建后配置 trusted publisher；可在同一标签上运行 `publish=true`，流程核对已发布版本的 integrity，并完成 registry 安装验证和 GitHub release。终端首次发布不生成 GitHub Actions provenance；后续新版本通过 OIDC 发布时生成，重复运行不会为已发布版本补加 provenance。
 
 ## 维护者手动发布
 
@@ -61,4 +63,4 @@ Beta 发布将 `latest` 改为 `beta`。需要 CI provenance 时使用上述 Git
 
 每周审阅 Dependabot 和服务接口变化。变更通过兼容与制品验证后发布，并更新包级 changelog；破坏性变化附迁移说明。保留可回退的包版本、模板和业务 task ID。回滚节点包不能撤销远端付费任务，也不能替代 n8n 数据库备份和迁移评估。
 
-PR、main 和发布复用同一 critical 审计门禁；任何 critical 或审计服务错误均阻止发布，其他级别报告仍需审阅。宿主定向升级、影响范围、临时缓解及 override 撤除条件见 [宿主依赖安全维护](tests/host/SECURITY.md)。更新锁文件后正常安装依赖，并通过安全回归及真实 n8n 检查。
+PR、main 和发布复用相同生产依赖审计：节点包使用 `--audit-level=high`，阻止 high 和 critical；独立测试宿主使用 `--audit-level=critical`。审计服务错误同样阻止发布，未达到门槛的告警仍需审阅。宿主定向升级、影响范围、临时缓解及 override 撤除条件见 [宿主依赖安全维护](tests/host/SECURITY.md)。更新锁文件后正常安装依赖，并通过安全回归及真实 n8n 检查。

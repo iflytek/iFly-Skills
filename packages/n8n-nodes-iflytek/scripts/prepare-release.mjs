@@ -11,6 +11,18 @@ export function releaseTag(version) {
   return version.includes('-') ? 'beta' : 'latest';
 }
 
+export function releaseNotes(changelog, version) {
+  releaseTag(version);
+  const lines = changelog.replace(/\r\n/g, '\n').split('\n');
+  const matches = lines.flatMap((line, index) => line.trimEnd() === `## ${version}` ? [index] : []);
+  assert.equal(matches.length, 1, `Expected exactly one changelog section: ## ${version}`);
+  const start = matches[0];
+  const next = lines.findIndex((line, index) => index > start && /^##[ \t]+/.test(line));
+  const end = next === -1 ? lines.length : next;
+  assert.ok(lines.slice(start + 1, end).join('\n').trim(), `Empty changelog section: ## ${version}`);
+  return lines.slice(start, end).join('\n').trim() + '\n';
+}
+
 export function validateFileList(files, pkg, manifest) {
   const names = files.map(file => file.path);
   assert.equal(new Set(names).size, names.length, 'Duplicate packed files');
@@ -55,6 +67,8 @@ async function main() {
   const sourceCommit = git(['rev-parse', 'HEAD']);
   const sourceTreeDirty = git(['status', '--porcelain']) !== '';
   const distTag = releaseTag(pkg.version);
+  const changelog = await readFile(path.join(pkgRoot, 'CHANGELOG.md'), 'utf8');
+  const notes = releaseNotes(changelog, pkg.version);
   assert.equal(pkg.name, '@iflytekopensource/n8n-nodes-iflytek');
   assert.equal(lock.name, pkg.name);
   assert.equal(lock.packages[''].name, pkg.name);
@@ -97,7 +111,8 @@ async function main() {
   await writeFile(path.join(output, 'release.json'), JSON.stringify(report, null, 2) + '\n');
   await writeFile(path.join(output, 'runtime-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   await writeFile(path.join(output, 'SHA256SUMS'), `${report.sha256}  ${packed.filename}\n`);
-  await writeFile(path.join(output, 'CHANGELOG.md'), await readFile(path.join(pkgRoot, 'CHANGELOG.md')));
+  await writeFile(path.join(output, 'CHANGELOG.md'), changelog);
+  await writeFile(path.join(output, 'RELEASE_NOTES.md'), notes);
   console.log(JSON.stringify(report, null, 2));
 }
 

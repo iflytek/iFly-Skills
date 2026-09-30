@@ -105,8 +105,6 @@ jobs:
           name: n8n-package
           path: packages/n8n-nodes-iflytek/.release
       - name: Publish the reviewed tarball or verify a matching existing version
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           cd .release
           sha256sum --check SHA256SUMS
@@ -145,6 +143,6 @@ jobs:
           IFLY_VERSION: ${{ needs.source.outputs.version }}
           IFLY_DIST_TAG: ${{ needs.source.outputs.dist-tag }}
         run: |
-          options=(--verify-tag --title "@iflytekopensource/n8n-nodes-iflytek $IFLY_VERSION" --notes-file CHANGELOG.md)
+          options=(--verify-tag --title "@iflytekopensource/n8n-nodes-iflytek $IFLY_VERSION" --notes-file .release/RELEASE_NOTES.md)
           if [[ "$IFLY_DIST_TAG" == beta ]]; then options+=(--prerelease); fi
           gh release create "$GITHUB_REF_NAME" "${options[@]}" .release/*
