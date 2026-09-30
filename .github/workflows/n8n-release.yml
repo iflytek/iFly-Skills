@@ -73,7 +73,7 @@ jobs:
           installed="$RUNNER_TEMP/candidate/node_modules/@iflytekopensource/n8n-nodes-iflytek"
           python -m pip install -r "$installed/runtime/requirements/requirements-core.lock"
           IFLYTEK_PYTHON_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')" node "$installed/dist/shared/preflight.js"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: n8n-package
           path: ${{ runner.temp }}/release/
