@@ -46,6 +46,14 @@ Currently, the repository provides the following ready-to-use AI skills:
 | **Contract Intelligence Review** | Intelligent contract review covering OCR, clause analysis, risk detection, and compliance. | [`iflytek-contract-intelligence-review`](./skills/iflytek-contract-intelligence-review) |
 | **Animated Sketch Diagram** | Hand-drawn animated architecture diagrams — pure SVG+CSS single-file HTML with seamless-loop GIF export. | [`animated-sketch-diagram`](./skills/animated-sketch-diagram) |
 
+## 🔌 MCP Server
+
+[`mcp-server/`](./mcp-server) exposes eight executable, single-step skills through
+the official MCP Python SDK v2. It supports local stdio use, a non-root Docker image,
+and an MCPB 0.4 bundle with an input-directory boundary plus required sensitive fields
+for the iFLYTEK App ID, API Key, and API Secret. See the [server guide](./mcp-server/README.md) and
+[credential boundary](./mcp-server/CREDENTIALS.md).
+
 ## 🛠️ Usage
 
 Each skill is packaged in its own directory containing specific instructions, scripts, and metadata. To use a specific skill:

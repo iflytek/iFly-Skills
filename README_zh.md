@@ -46,6 +46,13 @@
 | **合同智能审核 (Contract Intelligence Review)** | 合同智能审核，覆盖 OCR 识别、条款分析、风险检测与合规校对。 | [`iflytek-contract-intelligence-review`](./skills/iflytek-contract-intelligence-review) |
 | **手绘动画架构图 (Animated Sketch Diagram)** | 手绘涂鸦风动画架构图/流程图，纯 SVG+CSS 单文件 HTML，可导出无缝循环 GIF。 | [`animated-sketch-diagram`](./skills/animated-sketch-diagram) |
 
+## 🔌 MCP Server
+
+[`mcp-server/`](./mcp-server) 使用官方 MCP Python SDK v2，将八个可执行、单步完成的技能
+暴露为本地 stdio 工具。它支持非 root Docker 镜像和 MCPB 0.4 安装包，通过输入目录
+边界限制本地文件读取，并把讯飞 App ID、API Key、API Secret 声明为必填敏感配置。详见
+[服务端说明](./mcp-server/README.md)与[凭证边界](./mcp-server/CREDENTIALS.md)。
+
 ## 🛠️ 如何使用
 
 每个技能都打包在各自的独立目录中，包含特定的说明、脚本和元数据。要使用某个特定技能：

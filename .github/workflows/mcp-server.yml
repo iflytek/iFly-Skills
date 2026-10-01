@@ -1,0 +1,72 @@
+name: MCP Server
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/mcp-server.yml"
+      - "mcp-server/**"
+      - "skills/**/scripts/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/mcp-server.yml"
+      - "mcp-server/**"
+      - "skills/**/scripts/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    env:
+      IFLY_SKILLS_ROOT: ${{ github.workspace }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: python -m pip install './mcp-server[dev]'
+      - name: Static checks
+        run: |
+          python -m compileall -q mcp-server/iflyskills_mcp mcp-server/scripts mcp-server/tests
+          ruff check mcp-server
+          ruff format --check mcp-server
+          python -m iflyskills_mcp.introspect
+      - name: Tests
+        run: pytest -q mcp-server/tests
+
+  bundle:
+    name: MCPB 0.4 bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Stage bundle source
+        run: |
+          python -m pip install ./mcp-server
+          python mcp-server/scripts/stage_mcpb.py mcp-server/dist/iflytek-skills
+      - name: Validate and pack with the official MCPB tool
+        run: |
+          npx -y @anthropic-ai/mcpb@2.1.2 validate mcp-server/dist/iflytek-skills
+          npx -y @anthropic-ai/mcpb@2.1.2 pack mcp-server/dist/iflytek-skills mcp-server/dist/iflytek-skills.mcpb
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build
+        run: docker build -f mcp-server/Dockerfile -t iflyskills-mcp:test .
