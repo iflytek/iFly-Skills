@@ -201,6 +201,106 @@ class SpeedTranscriptionRegressionTests(unittest.TestCase):
         output_mock.assert_called_once_with(parsed_result, 'text', None)
         fake_client.transcribe.assert_not_called()
 
+    def run_transcribe_cli(self, *options):
+        fake_client = mock.Mock()
+        fake_client.transcribe.return_value = {'task_id': 'task-123'}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            audio_path = Path(temp_dir) / 'meeting.mp3'
+            audio_path.write_bytes(b'audio')
+            with (
+                mock.patch.object(
+                    sys,
+                    'argv',
+                    ['transcribe.py', str(audio_path), '--no-poll', *options],
+                ),
+                mock.patch.object(
+                    transcribe,
+                    'load_config',
+                    return_value=('app', 'key', 'secret'),
+                ),
+                mock.patch.object(
+                    transcribe,
+                    'XfeiSpeedTranscription',
+                    return_value=fake_client,
+                ),
+                redirect_stdout(io.StringIO()),
+            ):
+                transcribe.main()
+
+        fake_client.transcribe.assert_called_once()
+        return fake_client.transcribe.call_args.kwargs
+
+    def test_documented_task_options_reach_create_task(self):
+        kwargs = self.run_transcribe_cli(
+            '--output-type',
+            '1',
+            '--postproc-on',
+            '0',
+            '--enable-subtitle',
+            '1',
+            '--smoothproc',
+            'false',
+            '--colloqproc',
+            'true',
+            '--language-type',
+            '2',
+            '--dhw',
+            '讯飞,星火',
+        )
+
+        self.assertEqual(kwargs['output_type'], 1)
+        self.assertEqual(kwargs['postproc_on'], 0)
+        self.assertEqual(kwargs['enable_subtitle'], 1)
+        self.assertIs(kwargs['smoothproc'], False)
+        self.assertIs(kwargs['colloqproc'], True)
+        self.assertEqual(kwargs['language_type'], 2)
+        self.assertEqual(kwargs['dhw'], '讯飞,星火')
+
+    def test_unset_task_options_are_left_out_of_business_params(self):
+        kwargs = self.run_transcribe_cli()
+
+        response = FakeResponse({'code': 0, 'data': {'task_id': 'task-123'}})
+        with mock.patch.object(
+            transcribe.requests, 'post', return_value=response
+        ) as post_mock:
+            self.client.create_task(
+                'https://example.test/audio.mp3',
+                **{
+                    key: value
+                    for key, value in kwargs.items()
+                    if key not in ('poll', 'poll_interval')
+                },
+            )
+
+        business = json.loads(post_mock.call_args.kwargs['data'])['business']
+        for key in (
+            'output_type',
+            'postproc_on',
+            'enable_subtitle',
+            'smoothproc',
+            'colloqproc',
+            'language_type',
+            'dhw',
+        ):
+            self.assertNotIn(key, business)
+
+    def test_boolean_task_options_reject_other_values(self):
+        with (
+            mock.patch.object(
+                sys,
+                'argv',
+                ['transcribe.py', 'meeting.mp3', '--smoothproc', 'maybe'],
+            ),
+            redirect_stdout(io.StringIO()),
+            mock.patch('sys.stderr', new_callable=io.StringIO) as stderr,
+        ):
+            with self.assertRaises(SystemExit) as raised:
+                transcribe.main()
+
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn('expected true or false', stderr.getvalue())
+
     def test_query_business_error_is_not_reported_as_query_failure(self):
         response = FakeResponse({'code': 10043, 'message': 'audioCoding decode fail'})
 

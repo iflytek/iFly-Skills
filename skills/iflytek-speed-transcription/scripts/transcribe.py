@@ -602,6 +602,17 @@ def write_or_print_result(result: dict, output_format: str, output_path: str = N
         Path(output_path).write_text(output, encoding='utf-8')
         print(f"\nSaved to: {output_path}")
 
+
+def parse_bool(value: str) -> bool:
+    """Parse a true/false command-line value."""
+    normalized = value.strip().lower()
+    if normalized in ("true", "1"):
+        return True
+    if normalized in ("false", "0"):
+        return False
+    raise argparse.ArgumentTypeError("expected true or false")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Transcribe audio files using Xfei Ultra-fast Speech Transcription API"
@@ -619,6 +630,19 @@ def main():
                         help="Enable speaker separation (0=off, 1=on)")
     parser.add_argument("--speaker-num", type=int,
                         help="Number of speakers (0=auto)")
+    parser.add_argument("--output-type", type=int, choices=[0, 1, 2],
+                        help="Output type (0=1best, 1=cnlbest, 2=multi-candidate)")
+    parser.add_argument("--postproc-on", type=int, choices=[0, 1],
+                        help="Post-processing (0=off, 1=on)")
+    parser.add_argument("--enable-subtitle", type=int, choices=[0, 1],
+                        help="Subtitle mode (0=document, 1=subtitle)")
+    parser.add_argument("--smoothproc", type=parse_bool, metavar="{true,false}",
+                        help="Disfluency smoothing")
+    parser.add_argument("--colloqproc", type=parse_bool, metavar="{true,false}",
+                        help="Colloquial processing")
+    parser.add_argument("--language-type", type=int, choices=[1, 2, 3, 4],
+                        help="Language mode (1=auto, 2=Chinese, 3=English, 4=Chinese-only)")
+    parser.add_argument("--dhw", help="Hot words, comma-separated (UTF-8)")
     parser.add_argument("--no-poll", action="store_true",
                         help="Return task ID without polling")
     parser.add_argument("--poll-interval", type=int, default=5,
@@ -662,6 +686,13 @@ def main():
             pd=args.pd,
             vspp_on=args.vspp_on,
             speaker_num=args.speaker_num if hasattr(args, 'speaker_num') else None,
+            output_type=args.output_type,
+            postproc_on=args.postproc_on,
+            enable_subtitle=args.enable_subtitle,
+            smoothproc=args.smoothproc,
+            colloqproc=args.colloqproc,
+            language_type=args.language_type,
+            dhw=args.dhw,
         )
 
         if args.no_poll:
