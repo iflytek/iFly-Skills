@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "ifly-skills",
+  "displayName": "iFLYTEK Skills",
+  "version": "0.1.0",
+  "description": "iFLYTEK skills for speech, OCR, translation, proofreading, and multimodal AI workflows.",
+  "author": {
+    "name": "iFLYTEK",
+    "url": "https://github.com/iflytek"
+  },
+  "homepage": "https://github.com/iflytek/iFly-Skills",
+  "repository": "https://github.com/iflytek/iFly-Skills",
+  "license": "Apache-2.0",
+  "keywords": [
+    "iflytek",
+    "speech",
+    "ocr",
+    "translation",
+    "multimodal",
+    "agent-skills"
+  ],
+  "skills": "./skills/"
+}
