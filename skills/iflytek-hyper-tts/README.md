@@ -35,8 +35,8 @@ python3 scripts/xfei_hyper_tts.py --text "文档内容" --vcn x4_lingfeihong_doc
 # 指定发音人 - Catherine（英文美式新闻）
 python3 scripts/xfei_hyper_tts.py --text "Hello news" --vcn x4_EnUs_Catherine_profnews
 
-# 带情感合成
-python3 scripts/xfei_hyper_tts.py --text "今天真开心！" --emotion happiness
+# 指定采样率
+python3 scripts/xfei_hyper_tts.py --text "欢迎收听" --sample_rate 16000
 
 # 查看可用音色
 python3 scripts/xfei_hyper_tts.py --action list_voices
@@ -57,15 +57,9 @@ python3 scripts/xfei_hyper_tts.py --action list_voices
 | `--pitch` | 音调 (0-100) | 50 |
 | `--encoding` | 音频格式 (lame=MP3) | lame |
 | `--sample_rate` | 采样率 (8000/16000/24000) | 24000 |
+| `--role` | ⚠️ 角色：chat / narration / customer_service（部分发音人支持，不支持时返回 10163） | - |
 
-### Omni 多属性参数
-
-| 参数 | 说明 | 可选值 |
-|------|------|--------|
-| `--language` | 语言/方言 | zh_CN, en_US, en_UK, Sichuanese, Northeast |
-| `--style` | 说话风格 | news, advertisement, story, novel, chat, reading |
-| `--emotion` | 情感 | happiness, sadness, anger, fear, surprise, neutral |
-| `--role` | 角色 | chat, narration, customer_service, assistant |
+> 超拟人合成接口不支持 `--language`、`--style`、`--emotion` 参数。语言和方言通过选择不同发音人（`--vcn`）实现，见下方音色池或 `--action list_voices`。
 
 ## 精选音色池（5大推荐发音人）
 
