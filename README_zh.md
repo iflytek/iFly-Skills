@@ -45,6 +45,7 @@
 | **声音克隆 (Voice Clone TTS)** | 声音克隆技术，用于生成定制化的文本转语音。 | [`iflytek-voiceclone-tts`](./skills/iflytek-voiceclone-tts) |
 | **合同智能审核 (Contract Intelligence Review)** | 合同智能审核，覆盖 OCR 识别、条款分析、风险检测与合规校对。 | [`iflytek-contract-intelligence-review`](./skills/iflytek-contract-intelligence-review) |
 | **手绘动画架构图 (Animated Sketch Diagram)** | 手绘涂鸦风动画架构图/流程图，纯 SVG+CSS 单文件 HTML，可导出无缝循环 GIF。 | [`animated-sketch-diagram`](./skills/animated-sketch-diagram) |
+| **Tailcat 安全传输 (Tailcat Secure Transfer)** | 基于 WireGuard 加密的一次性文本/文件传输，以及对指定本地 TCP 服务的临时访问。 | [`tailcat-secure-transfer`](./skills/tailcat-secure-transfer) |
 
 ## 🛠️ 如何使用
 
