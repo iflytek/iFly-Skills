@@ -26,10 +26,9 @@ import os
 import sys
 import urllib.request
 import urllib.error
-from datetime import datetime
-from time import mktime
+from datetime import datetime, timezone
+from email.utils import format_datetime
 from urllib.parse import urlencode, urlparse
-from wsgiref.handlers import format_date_time
 
 API_URL = "https://api.xf-yun.com/v1/private/sc45f0684"
 
@@ -37,7 +36,7 @@ API_URL = "https://api.xf-yun.com/v1/private/sc45f0684"
 def build_auth_url(request_url: str, api_key: str, api_secret: str, method: str = "POST") -> str:
     """Build HMAC-SHA256 signed authentication URL (讯飞鉴权)."""
     url_result = urlparse(request_url)
-    date = format_date_time(mktime(datetime.now().timetuple()))
+    date = format_datetime(datetime.now(timezone.utc), usegmt=True)
 
     signature_origin = "host: {}\ndate: {}\n{} {} HTTP/1.1".format(
         url_result.hostname, date, method, url_result.path
