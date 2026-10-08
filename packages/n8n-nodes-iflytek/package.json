@@ -1,5 +1,5 @@
 {
-  "name": "@iflytekopensource/n8n-nodes-iflytek",
+  "name": "@iflytekopensource/n8n-nodes-iflytek-skills",
   "version": "0.1.0",
   "description": "iFLYTEK Skills nodes for self-hosted n8n: transcription, speech synthesis, voice cloning, OCR, text and video translation, proofreading, image understanding, contract review, and diagram rendering.",
   "license": "Apache-2.0",

@@ -15,7 +15,7 @@ async function endpoint(t, respond) {
 
 test('n8n metadata readiness tolerates a missing file and a partially written JSON response', async t => {
   let requests = 0;
-  const types = [{ name: '@iflytekopensource/n8n-nodes-iflytek.iflyHyperTts' }];
+  const types = [{ name: '@iflytekopensource/n8n-nodes-iflytek-skills.iflyHyperTts' }];
   const url = await endpoint(t, (request, response) => {
     assert.equal(request.url, '/types/nodes.json');
     assert.equal(request.headers.cookie, 'test-session=local');

@@ -50,8 +50,8 @@ test('release preparation verifies the scoped archive in an absolute path with s
   });
   const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
   const report = JSON.parse(await readFile(path.join(output, 'release.json')));
-  assert.equal(report.package, '@iflytekopensource/n8n-nodes-iflytek');
-  assert.equal(report.filename, `iflytekopensource-n8n-nodes-iflytek-${pkg.version}.tgz`);
+  assert.equal(report.package, '@iflytekopensource/n8n-nodes-iflytek-skills');
+  assert.equal(report.filename, `iflytekopensource-n8n-nodes-iflytek-skills-${pkg.version}.tgz`);
   assert.equal(report.publishable, !report.sourceTreeDirty);
   const bytes = await readFile(path.join(output, report.filename));
   assert.equal(createHash('sha256').update(bytes).digest('hex'), report.sha256);
@@ -70,7 +70,7 @@ test('artifact checks detect changed runtime bytes and published tarballs', asyn
   await verifyRuntime(root, manifest);
   await writeFile(path.join(root, 'runtime/bridge.py'), Buffer.from('changed--source!'));
   await assert.rejects(verifyRuntime(root, manifest), /Runtime hash mismatch/);
-  const release = { package: '@iflytekopensource/n8n-nodes-iflytek', version: '0.1.0', n8n: {}, keywords: ['n8n-community-node-package'],
+  const release = { package: '@iflytekopensource/n8n-nodes-iflytek-skills', version: '0.1.0', n8n: {}, keywords: ['n8n-community-node-package'],
     integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64'), sha256: manifest.files['bridge.py'].sha256 };
   const metadata = { name: release.package, version: release.version, n8n: {}, keywords: release.keywords, dist: { integrity: release.integrity } };
   validatePublished(metadata, release, bytes);

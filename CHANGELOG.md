@@ -1,5 +1,13 @@
 # Changelog
 
+## iFLYTEK Skills npm package identity
+
+### Changed
+
+- Renamed the npm package to `@iflytekopensource/n8n-nodes-iflytek-skills` and synchronized installation paths, workflow node types, release validation, and tests.
+- Changed package release tags to `iflytek-skills-n8n-vVERSION` and updated the documented deployment tag rule.
+- Set the README title to “iFLYTEK Skills for n8n” and documented migration from both previous development package names.
+
 ## n8n test host dependency security
 
 ### Fixed

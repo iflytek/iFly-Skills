@@ -69,7 +69,7 @@ async function main() {
   const distTag = releaseTag(pkg.version);
   const changelog = await readFile(path.join(pkgRoot, 'CHANGELOG.md'), 'utf8');
   const notes = releaseNotes(changelog, pkg.version);
-  assert.equal(pkg.name, '@iflytekopensource/n8n-nodes-iflytek');
+  assert.equal(pkg.name, '@iflytekopensource/n8n-nodes-iflytek-skills');
   assert.equal(lock.name, pkg.name);
   assert.equal(lock.packages[''].name, pkg.name);
   assert.equal(lock.version, pkg.version);

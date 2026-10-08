@@ -11,17 +11,17 @@ This guide is for self-hosted n8n administrators and workflow authors. Setup has
 
 ## Install the node package
 
-For versions available in the registry, an instance administrator can install `@iflytekopensource/n8n-nodes-iflytek` through **Settings → Community Nodes → Install**. The instance must allow unverified community nodes; availability depends on the registry and instance policy. The `n8n-community-node-package` keyword supports npm community package discovery. It does not grant n8n verified status or automatic inclusion in the editor's verified-node catalogue.
+For versions available in the registry, an instance administrator can install `@iflytekopensource/n8n-nodes-iflytek-skills` through **Settings → Community Nodes → Install**. The instance must allow unverified community nodes; availability depends on the registry and instance policy. The `n8n-community-node-package` keyword supports npm community package discovery. It does not grant n8n verified status or automatic inclusion in the editor's verified-node catalogue.
 
 You can also follow n8n's [manual community-node installation guide](https://docs.n8n.io/integrations/community-nodes/installation/manual-install/). Run the following command in the community-node directory used by your instance, replacing `VERSION` with a published version:
 
 ```sh
-npm install --save-exact "@iflytekopensource/n8n-nodes-iflytek@VERSION"
+npm install --save-exact "@iflytekopensource/n8n-nodes-iflytek-skills@VERSION"
 ```
 
 The default directory is `.n8n/nodes` under the n8n service user's home directory. For custom user directories or container mounts, use the instance's actual configuration. To install a maintainer-provided `.tgz`, run `npm install --save-exact` in the same directory with the archive's absolute path. The global npm installation directory is not the community-node directory.
 
-After installation, the following files should be under `node_modules/@iflytekopensource/n8n-nodes-iflytek/`:
+After installation, the following files should be under `node_modules/@iflytekopensource/n8n-nodes-iflytek-skills/`:
 
 | Path | Purpose |
 | --- | --- |
@@ -37,9 +37,14 @@ In the examples below, the "package directory" means this installed directory. N
 
 ## Migrating existing test workflows
 
-Workflows created with the old unscoped `n8n-nodes-iflytek` package contain the old package name in their node types. Export workflows and back up n8n data before migrating. In the workflow JSON's `nodes[].type` fields, replace the prefix `n8n-nodes-iflytek.` with `@iflytekopensource/n8n-nodes-iflytek.`, keeping the node name suffix and other fields unchanged.
+Workflows created with earlier development packages contain the previous package name in their node types. Export workflows and back up n8n data before migrating. In the workflow JSON's `nodes[].type` fields, replace the applicable prefix below, keeping the node name suffix and other fields unchanged.
 
-Pause affected workflows during a maintenance window. Uninstall the old package through n8n before installing this package to avoid duplicate node names and shared credential registration. Reimport workflows and check credential selections, expressions, and binary fields before resuming. The credential type remains `iflyApi`; existing credentials can be selected again if retained by the instance. npm does not treat these two package names as an automatic upgrade path.
+| Previous node type prefix | Current node type prefix |
+| --- | --- |
+| `n8n-nodes-iflytek.` | `@iflytekopensource/n8n-nodes-iflytek-skills.` |
+| `@iflytekopensource/n8n-nodes-iflytek.` | `@iflytekopensource/n8n-nodes-iflytek-skills.` |
+
+Pause affected workflows during a maintenance window. Uninstall the old package through n8n before installing this package to avoid duplicate node names and shared credential registration. Reimport workflows and check credential selections, expressions, and binary fields before resuming. The credential type remains `iflyApi`; existing credentials can be selected again if retained by the instance. npm treats different package names as separate packages, not an automatic upgrade path.
 
 ## Configure Python
 
@@ -48,7 +53,7 @@ Replace the example paths with paths on your host. Create the virtual environmen
 ### Linux
 
 ```sh
-ifly_package_root="/absolute/path/.n8n/nodes/node_modules/@iflytekopensource/n8n-nodes-iflytek"
+ifly_package_root="/absolute/path/.n8n/nodes/node_modules/@iflytekopensource/n8n-nodes-iflytek-skills"
 ifly_venv="/absolute/path/iflytek-venv"
 ifly_tmp="/absolute/path/iflytek-tmp"
 
@@ -65,7 +70,7 @@ node "$ifly_package_root/dist/shared/preflight.js"
 ### Windows PowerShell
 
 ```powershell
-$iflyPackageRoot = 'C:\path\to\.n8n\nodes\node_modules\@iflytekopensource\n8n-nodes-iflytek'
+$iflyPackageRoot = 'C:\path\to\.n8n\nodes\node_modules\@iflytekopensource\n8n-nodes-iflytek-skills'
 $iflyVenv = 'C:\path\to\iflytek-venv'
 $iflyTmp = 'C:\path\to\iflytek-tmp'
 

@@ -1,4 +1,4 @@
-# @iflytekopensource/n8n-nodes-iflytek
+# @iflytekopensource/iFLYTEK Skills
 
 中文 · [English](README.md)
 
@@ -26,13 +26,13 @@
 
 ## 安装
 
-在 n8n 的 **Settings → Community Nodes → Install** 中输入完整包名 `@iflytekopensource/n8n-nodes-iflytek`，或在实例的社区节点目录（默认 `~/.n8n/nodes`）执行：
+在 n8n 的 **Settings → Community Nodes → Install** 中输入完整包名 `@iflytekopensource/n8n-nodes-iflytek-skills`，或在实例的社区节点目录（默认 `~/.n8n/nodes`）执行：
 
 ```sh
-npm install --save-exact @iflytekopensource/n8n-nodes-iflytek@VERSION
+npm install --save-exact @iflytekopensource/n8n-nodes-iflytek-skills@VERSION
 ```
 
-将 `VERSION` 替换为已发布版本号。按 [安装与配置](docs/installation.md) 准备 Python 依赖，设置解释器和临时目录，运行预检并重启 n8n。npm 安装不会自动配置 Python。
+将 `VERSION` 替换为已发布版本号。按 [安装与配置](docs/installation.md) 准备 Python 依赖，设置解释器和临时目录，运行预检并重启 n8n。npm 安装不会自动配置 Python。使用旧开发包名创建的工作流需按 [迁移说明](docs/installation.md#migrating-existing-test-workflows) 更新节点类型。
 
 ## 最小示例
 

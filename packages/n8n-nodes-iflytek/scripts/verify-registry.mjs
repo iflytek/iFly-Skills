@@ -18,7 +18,7 @@ async function main() {
   const [flag, filename] = process.argv.slice(2);
   assert.ok(flag === '--release' && filename && process.argv.length === 4, 'Usage: npm run release:verify -- --release release.json');
   const release = JSON.parse(await readFile(filename, 'utf8'));
-  assert.equal(release.package, '@iflytekopensource/n8n-nodes-iflytek');
+  assert.equal(release.package, '@iflytekopensource/n8n-nodes-iflytek-skills');
   assert.ok(release.publishable && !release.sourceTreeDirty, 'Use a clean release artifact');
   const get = async url => {
     const response = await fetch(url, { signal: AbortSignal.timeout(30000) });

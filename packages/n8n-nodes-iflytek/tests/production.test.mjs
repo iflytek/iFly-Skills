@@ -98,7 +98,7 @@ test('n8n log adapter emits metadata only when explicitly enabled', t => {
   const previous = process.env.IFLYTEK_LOG_EXECUTIONS;
   t.after(() => { if (previous === undefined) delete process.env.IFLYTEK_LOG_EXECUTIONS; else process.env.IFLYTEK_LOG_EXECUTIONS = previous; });
   const logged = [];
-  const context = { getNode: () => ({ type: '@iflytekopensource/n8n-nodes-iflytek.iflyHyperTts', name: 'private-node-name' }),
+  const context = { getNode: () => ({ type: '@iflytekopensource/n8n-nodes-iflytek-skills.iflyHyperTts', name: 'private-node-name' }),
     getExecutionId: () => '123', logger: { info: (...args) => logged.push(args) } };
   process.env.IFLYTEK_LOG_EXECUTIONS = 'false';
   assert.equal(executionObserver(context, 0), undefined);

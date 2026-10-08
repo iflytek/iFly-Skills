@@ -2,11 +2,11 @@ name: n8n release
 
 on:
   push:
-    tags: ['n8n-v*']
+    tags: ['iflytek-skills-n8n-v*']
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Publish the validated npm package (run on an n8n-vVERSION tag)'
+        description: 'Publish the validated npm package (run on an iflytek-skills-n8n-vVERSION tag)'
         type: boolean
         default: false
 
@@ -41,7 +41,7 @@ jobs:
           import fs from 'node:fs';
           import { releaseTag } from './packages/n8n-nodes-iflytek/scripts/prepare-release.mjs';
           const pkg = JSON.parse(fs.readFileSync('packages/n8n-nodes-iflytek/package.json', 'utf8'));
-          assert.equal(process.env.GITHUB_REF_NAME, 'n8n-v' + pkg.version);
+          assert.equal(process.env.GITHUB_REF_NAME, 'iflytek-skills-n8n-v' + pkg.version);
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${pkg.version}\ndist-tag=${releaseTag(pkg.version)}\n`);
           JS
 
@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           npm install --prefix "$RUNNER_TEMP/candidate" --no-audit --no-fund "$RUNNER_TEMP/release/"*.tgz
-          installed="$RUNNER_TEMP/candidate/node_modules/@iflytekopensource/n8n-nodes-iflytek"
+          installed="$RUNNER_TEMP/candidate/node_modules/@iflytekopensource/n8n-nodes-iflytek-skills"
           python -m pip install -r "$installed/runtime/requirements/requirements-core.lock"
           IFLYTEK_PYTHON_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')" node "$installed/dist/shared/preflight.js"
       - uses: actions/upload-artifact@v7
@@ -133,7 +133,7 @@ jobs:
           cp tests/host/package*.json tests/host/*.mjs "$RUNNER_TEMP/host/"
           npm ci --prefix "$RUNNER_TEMP/host" --omit=dev --no-audit --no-fund
           npm run test:security --prefix "$RUNNER_TEMP/host"
-          npm install --prefix "$RUNNER_TEMP/community" --no-audit --no-fund "@iflytekopensource/n8n-nodes-iflytek@$IFLY_VERSION"
+          npm install --prefix "$RUNNER_TEMP/community" --no-audit --no-fund "@iflytekopensource/n8n-nodes-iflytek-skills@$IFLY_VERSION"
           node scripts/n8n-acceptance.mjs --n8n-root "$RUNNER_TEMP/host/node_modules/n8n" \
             --community-root "$RUNNER_TEMP/community" --python "$(python -c 'import sys; print(sys.executable)')" \
             --report "$PWD/.release/registry-installation.json"
@@ -143,6 +143,6 @@ jobs:
           IFLY_VERSION: ${{ needs.source.outputs.version }}
           IFLY_DIST_TAG: ${{ needs.source.outputs.dist-tag }}
         run: |
-          options=(--verify-tag --title "@iflytekopensource/n8n-nodes-iflytek $IFLY_VERSION" --notes-file .release/RELEASE_NOTES.md)
+          options=(--verify-tag --title "@iflytekopensource/n8n-nodes-iflytek-skills $IFLY_VERSION" --notes-file .release/RELEASE_NOTES.md)
           if [[ "$IFLY_DIST_TAG" == beta ]]; then options+=(--prerelease); fi
           gh release create "$GITHUB_REF_NAME" "${options[@]}" .release/*

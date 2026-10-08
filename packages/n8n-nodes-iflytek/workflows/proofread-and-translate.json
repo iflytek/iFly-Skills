@@ -30,7 +30,7 @@
     {
       "id": "proofread",
       "name": "Proofread",
-      "type": "@iflytekopensource/n8n-nodes-iflytek.iflyTextProofread",
+      "type": "@iflytekopensource/n8n-nodes-iflytek-skills.iflyTextProofread",
       "typeVersion": 1,
       "position": [
         440,
@@ -79,7 +79,7 @@
     {
       "id": "translate",
       "name": "Translate",
-      "type": "@iflytekopensource/n8n-nodes-iflytek.iflyTranslate",
+      "type": "@iflytekopensource/n8n-nodes-iflytek-skills.iflyTranslate",
       "typeVersion": 1,
       "position": [
         1100,

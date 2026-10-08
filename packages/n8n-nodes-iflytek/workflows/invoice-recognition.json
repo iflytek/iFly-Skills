@@ -32,7 +32,7 @@
     {
       "id": "invoice-ocr",
       "name": "Invoice OCR",
-      "type": "@iflytekopensource/n8n-nodes-iflytek.iflyOcrInvoice",
+      "type": "@iflytekopensource/n8n-nodes-iflytek-skills.iflyOcrInvoice",
       "typeVersion": 1,
       "position": [
         440,

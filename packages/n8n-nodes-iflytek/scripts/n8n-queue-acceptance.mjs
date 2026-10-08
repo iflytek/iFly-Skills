@@ -65,12 +65,12 @@ try {
   const text = JSON.stringify({ taskId: 'simulated-upstream-task', operationKey: 'fixture-operation', text: 'durable binary' });
   const workflow = await host.create('Cross-worker durable Wait and binary', [
     host.node('Start', 'n8n-nodes-base.manualTrigger'),
-    host.node('Before wait', '@iflytekopensource/n8n-nodes-iflytek.iflyHyperTts', { operation: 'listVoices' }),
+    host.node('Before wait', '@iflytekopensource/n8n-nodes-iflytek-skills.iflyHyperTts', { operation: 'listVoices' }),
     host.node('Input', 'n8n-nodes-base.set', { mode: 'raw', jsonOutput: JSON.stringify({ payload: text }), options: {} }, { typeVersion: 3.4 }),
     host.node('Binary', 'n8n-nodes-base.convertToFile', { operation: 'toText', sourceProperty: 'payload', binaryPropertyName: 'data', options: { fileName: 'fixture.txt' } }),
     host.node('Wait', 'n8n-nodes-base.wait', { resume: 'timeInterval', amount: 70, unit: 'seconds', options: {} }, { typeVersion: 1.1 }),
     host.node('Extract', 'n8n-nodes-base.extractFromFile', { operation: 'text', binaryPropertyName: 'data', destinationKey: 'text', options: {} }),
-    host.node('After wait', '@iflytekopensource/n8n-nodes-iflytek.iflyHyperTts', { operation: 'listVoices' }),
+    host.node('After wait', '@iflytekopensource/n8n-nodes-iflytek-skills.iflyHyperTts', { operation: 'listVoices' }),
   ]);
   const id = await host.run(workflow);
   const waiting = await host.completed(id, 'waiting');

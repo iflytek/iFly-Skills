@@ -1,6 +1,6 @@
 # Node operations and recovery
 
-This guide covers administration of installed iFlytek nodes. Complete [installation and configuration](installation.md), then configure capacity, logs, and recovery for every execution process. See [compatibility](compatibility.md) for version and platform requirements. Run the `node dist/shared/...` commands below from the installed `@iflytekopensource/n8n-nodes-iflytek` package directory.
+This guide covers administration of installed iFlytek nodes. Complete [installation and configuration](installation.md), then configure capacity, logs, and recovery for every execution process. See [compatibility](compatibility.md) for version and platform requirements. Run the `node dist/shared/...` commands below from the installed `@iflytekopensource/n8n-nodes-iflytek-skills` package directory.
 
 ## Inputs, results, and errors
 
@@ -26,7 +26,7 @@ Errors stop the node by default. With **On Error → Continue (using regular out
 
 Settings come from the process environment, not workflow fields. Concurrency settings are fixed at the first call in each process; restart all execution processes after changes. A slot covers writing inputs, child-process execution, persisting artifacts, and temporary-file cleanup. n8n can read binary data before a slot is acquired, which also consumes memory. Limit n8n workflow concurrency and input sizes as well.
 
-Run in the installed `@iflytekopensource/n8n-nodes-iflytek` directory:
+Run in the installed `@iflytekopensource/n8n-nodes-iflytek-skills` directory:
 
 ```sh
 node dist/shared/preflight.js

@@ -1,5 +1,5 @@
 name: n8n node issue
-description: Report installation, execution, or compatibility problems with @iflytekopensource/n8n-nodes-iflytek.
+description: Report installation, execution, or compatibility problems with @iflytekopensource/n8n-nodes-iflytek-skills.
 title: '[n8n] '
 body:
   - type: markdown

@@ -22,7 +22,7 @@ npm run typecheck
 
 `npm run build` 编译 `dist/`，按 `skills.json` 和固定文件清单生成 `runtime/`。原 Skill 资源按字节复制；`runtime/manifest.json` 记录文件完整性和来源。请修改源文件后重建，不直接编辑生成目录。
 
-源码目录为 `packages/n8n-nodes-iflytek/`，npm 包名为 `@iflytekopensource/n8n-nodes-iflytek`。n8n 从 `package.json` 的 `n8n.nodes` 和 `n8n.credentials` 加载编译后的 CommonJS 文件；本包不提供通用 JavaScript 库入口。工作流节点类型使用完整包名，例如 `@iflytekopensource/n8n-nodes-iflytek.iflyTranslate`。
+源码目录为 `packages/n8n-nodes-iflytek/`，npm 包名为 `@iflytekopensource/n8n-nodes-iflytek-skills`。n8n 从 `package.json` 的 `n8n.nodes` 和 `n8n.credentials` 加载编译后的 CommonJS 文件；本包不提供通用 JavaScript 库入口。工作流节点类型使用完整包名，例如 `@iflytekopensource/n8n-nodes-iflytek-skills.iflyTranslate`。
 
 ## 回归与打包
 
@@ -50,7 +50,7 @@ node scripts/n8n-acceptance.mjs \
   --n8n-root /test/host/node_modules/n8n --community-root /test/community \
   --python /test/venv/bin/python --report /test/compatibility.json
 
-node scripts/acceptance.mjs --package /test/community/node_modules/@iflytekopensource/n8n-nodes-iflytek \
+node scripts/acceptance.mjs --package /test/community/node_modules/@iflytekopensource/n8n-nodes-iflytek-skills \
   --python /test/venv/bin/python --samples 100 --report /test/load.json
 
 node scripts/n8n-load-acceptance.mjs \

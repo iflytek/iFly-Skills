@@ -1,4 +1,4 @@
-# @iflytekopensource/n8n-nodes-iflytek
+# @iflytekopensource/iFLYTEK Skills
 
 iFLYTEK Skills for self-hosted n8n workflows, covering speech, images and documents, and multilingual processing. Remote services share an **iFlytek API** credential; Skills execute through local Python processes.
 
@@ -30,17 +30,17 @@ The package provides 11 nodes and 25 operations. See the [node reference](https:
 
 ### 1. Install the community node package
 
-Enter `@iflytekopensource/n8n-nodes-iflytek` in **Settings → Community Nodes → Install**, or run this command in your instance's community-node directory (normally `~/.n8n/nodes`):
+Enter `@iflytekopensource/n8n-nodes-iflytek-skills` in **Settings → Community Nodes → Install**, or run this command in your instance's community-node directory (normally `~/.n8n/nodes`):
 
 ```sh
-npm install --save-exact @iflytekopensource/n8n-nodes-iflytek@VERSION
+npm install --save-exact @iflytekopensource/n8n-nodes-iflytek-skills@VERSION
 ```
 
-Replace `VERSION` with a published version. The instance must allow unverified community nodes. npm installation does not configure Python. Existing workflows using the unscoped package name need the [migration procedure](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/installation.md#migrating-existing-test-workflows).
+Replace `VERSION` with a published version. The instance must allow unverified community nodes. npm installation does not configure Python. Existing workflows using earlier development package names need the [migration procedure](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/installation.md#migrating-existing-test-workflows).
 
 ### 2. Prepare the Python environment
 
-Run the following from the **installed package directory**, normally `~/.n8n/nodes/node_modules/@iflytekopensource/n8n-nodes-iflytek`. Replace the example paths with locations accessible to the n8n service user. Use a dedicated virtual environment; no repository checkout or source build is needed.
+Run the following from the **installed package directory**, normally `~/.n8n/nodes/node_modules/@iflytekopensource/n8n-nodes-iflytek-skills`. Replace the example paths with locations accessible to the n8n service user. Use a dedicated virtual environment; no repository checkout or source build is needed.
 
 **Linux**
 
