@@ -29,10 +29,10 @@ export function validateFileList(files, pkg, manifest) {
   for (const name of names) {
     assert.ok(!name.split('/').some(part => !part || part === '.' || part === '..') && !name.includes('\\'), 'Unsafe archive path');
     assert.ok(/^(?:dist\/(?:nodes|credentials|shared)\/|runtime\/|docs\/|workflows\/)/.test(name)
-      || ['package.json', 'README.md', 'README.en.md', 'CHANGELOG.md', 'LICENSE'].includes(name), `Unexpected packed file: ${name}`);
+      || ['package.json', 'README.md', 'README.zh-CN.md', 'CHANGELOG.md', 'LICENSE'].includes(name), `Unexpected packed file: ${name}`);
     assert.ok(!/(?:^|\/)(?:node_modules|__pycache__|\.env[^/]*)(?:\/|$)|\.(?:pyc|log|tgz|pem|key)$/.test(name), `Unwanted packed file: ${name}`);
   }
-  for (const name of ['package.json', 'README.md', 'README.en.md', 'CHANGELOG.md', 'LICENSE',
+  for (const name of ['package.json', 'README.md', 'README.zh-CN.md', 'CHANGELOG.md', 'LICENSE',
     ...pkg.n8n.nodes, ...pkg.n8n.credentials, 'runtime/manifest.json',
     ...Object.keys(manifest.files).map(name => 'runtime/' + name),
     ...['proofread-and-translate', 'invoice-recognition', 'text-to-speech'].map(name => `workflows/${name}.json`)]) {

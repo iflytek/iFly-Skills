@@ -1,102 +1,101 @@
-# 节点参考
+# Node reference
 
-本包提供 11 个节点、25 个操作。安装与共享凭证配置见 [安装指南](installation.md)，输入输出约定见 [运行指南](operations.md#输入结果与错误处理)。
+The package provides 11 nodes and 25 operations. See [installation](installation.md) for setup and shared credentials, and [operations](operations.md#inputs-results-and-errors) for input/output conventions.
 
-## 操作与输入输出
+## Operations and inputs/outputs
 
-| 节点 | 操作 | 输入 | 结果 |
+| Node | Operation | Input | Result |
 | --- | --- | --- | --- |
-| `iFlytek Translate` | `translate` | 文本或 UTF-8 binary、源语言、目标语言 | `data.sourceText`、`data.translatedText`、语言字段 |
-| `iFlytek Text Proofread` | `check` | 文本或 UTF-8 binary | `data.result` 中的校对服务结果 |
-| `iFlytek Invoice OCR` | `recognize` | 发票、收据等图片或 PDF binary | `data.result` 中的结构化识别结果 |
-| `iFlytek Hyper TTS` | `synthesize` | 文本或 UTF-8 binary、音色和声音参数 | `data` 中的合成信息及 `binary.audio` MP3 |
-| `iFlytek Hyper TTS` | `listVoices` | 无业务输入 | 随包静态音色常量；不访问服务端 |
-| `iFlytek PDF and Image OCR` | `recognizeImage` | 图片 binary、结果格式 | `data.result` 中的通用图片 OCR 结果 |
-| `iFlytek PDF and Image OCR` | `createPdfTask` | PDF binary 或公开 HTTP(S) URL、导出格式 | `data.taskNo`、任务状态及原始响应 |
-| `iFlytek PDF and Image OCR` | `getPdfTask` | PDF OCR `taskNo` | 当前状态及原始响应 |
-| `iFlytek PDF and Image OCR` | `getResult` | PDF OCR `taskNo` | 状态、完成标记和原始响应 |
-| `iFlytek Speed Transcription` | `createTask` | MP3 binary、语言、口音和领域 | `data.taskId`、上传地址 |
-| `iFlytek Speed Transcription` | `getTask` | 转写 `taskId` | 当前状态及原始响应 |
-| `iFlytek Speed Transcription` | `getResult` | 转写 `taskId` | `data.text`、分段、状态和原始响应 |
-| `iFlytek Image Understanding` | `analyze` | 图片 binary、问题和模型参数 | `data.text` |
-| `iFlytek Video Translate` | `createTask` | 公开视频 HTTP(S) URL、源语言、目标语言 | `data.result` 中的任务信息 |
-| `iFlytek Video Translate` | `listTasks` | 无业务输入 | `data.result` 中的任务列表 |
-| `iFlytek Video Translate` | `getTask` | 视频翻译 `taskId` | `data.taskId` 及任务详情 |
-| `iFlytek Video Translate` | `confirmTranscript` | 视频翻译 `taskId`、是否强制重跑 | `data.result` 中的确认结果 |
-| `iFlytek Voice Clone TTS` | `getTrainingText` | 训练文本集 ID | `data.result` 中的文本片段 |
-| `iFlytek Voice Clone TTS` | `createTraining` | 任务名称、性别、引擎和语言 | `data.result` 中的训练任务 |
-| `iFlytek Voice Clone TTS` | `uploadSample` | 训练任务 ID、音频 binary 或 URL、文本片段 | `data.result`、`data.trainingSubmitted`；binary 同时提交训练 |
-| `iFlytek Voice Clone TTS` | `submitTraining` | 训练任务 ID | `data.result` 中的提交结果 |
-| `iFlytek Voice Clone TTS` | `getTraining` | 训练任务 ID | 状态、资源 ID 和原始响应 |
-| `iFlytek Voice Clone TTS` | `synthesize` | 文本、克隆资源 ID 和声音参数 | `binary.audio` 及合成信息 |
-| `iFlytek Contract Review` | `review` | 合同文本或文档 binary、语言、审核模式与重点 | 结构化审核结果、`binary.report` Markdown 和 `binary.report2` JSON |
-| `iFlytek Animated Sketch` | `renderHtmlToGif` | 受限 HTML/SVG/CSS 文本或 UTF-8 binary、尺寸与动画参数 | `binary.image` GIF、尺寸和帧数 |
+| `iFlytek Translate` | `translate` | Text or UTF-8 binary, source and target languages | `data.sourceText`, `data.translatedText`, and language fields |
+| `iFlytek Text Proofread` | `check` | Text or UTF-8 binary | Proofreading service result in `data.result` |
+| `iFlytek Invoice OCR` | `recognize` | Invoice/receipt image or PDF binary | Structured recognition result in `data.result` |
+| `iFlytek Hyper TTS` | `synthesize` | Text or UTF-8 binary, voice, and speech parameters | Synthesis information in `data` and MP3 in `binary.audio` |
+| `iFlytek Hyper TTS` | `listVoices` | No business input | Bundled static voice constants; no service request |
+| `iFlytek PDF and Image OCR` | `recognizeImage` | Image binary and result format | General image OCR result in `data.result` |
+| `iFlytek PDF and Image OCR` | `createPdfTask` | PDF binary or public HTTP(S) URL, export format | `data.taskNo`, task status, and raw response |
+| `iFlytek PDF and Image OCR` | `getPdfTask` | PDF OCR `taskNo` | Current status and raw response |
+| `iFlytek PDF and Image OCR` | `getResult` | PDF OCR `taskNo` | Status, completion flag, and raw response |
+| `iFlytek Speed Transcription` | `createTask` | MP3 binary, language, accent, and domain | `data.taskId` and upload URL |
+| `iFlytek Speed Transcription` | `getTask` | Transcription `taskId` | Current status and raw response |
+| `iFlytek Speed Transcription` | `getResult` | Transcription `taskId` | `data.text`, segments, status, and raw response |
+| `iFlytek Image Understanding` | `analyze` | Image binary, question, and model parameters | `data.text` |
+| `iFlytek Video Translate` | `createTask` | Public video HTTP(S) URL, source and target languages | Task information in `data.result` |
+| `iFlytek Video Translate` | `listTasks` | No business input | Task list in `data.result` |
+| `iFlytek Video Translate` | `getTask` | Video translation `taskId` | `data.taskId` and task details |
+| `iFlytek Video Translate` | `confirmTranscript` | Video translation `taskId` and force-rerun option | Confirmation result in `data.result` |
+| `iFlytek Voice Clone TTS` | `getTrainingText` | Training text set ID | Text segments in `data.result` |
+| `iFlytek Voice Clone TTS` | `createTraining` | Task name, gender, engine, and language | Training task in `data.result` |
+| `iFlytek Voice Clone TTS` | `uploadSample` | Training task ID, audio binary or URL, and text segment | `data.result` and `data.trainingSubmitted`; binary upload also submits training |
+| `iFlytek Voice Clone TTS` | `submitTraining` | Training task ID | Submission result in `data.result` |
+| `iFlytek Voice Clone TTS` | `getTraining` | Training task ID | Status, resource ID, and raw response |
+| `iFlytek Voice Clone TTS` | `synthesize` | Text, cloned resource ID, and speech parameters | `binary.audio` and synthesis information |
+| `iFlytek Contract Review` | `review` | Contract text or document binary, language, review mode, and focus | Structured review, Markdown in `binary.report`, and JSON in `binary.report2` |
+| `iFlytek Animated Sketch` | `renderHtmlToGif` | Restricted HTML/SVG/CSS text or UTF-8 binary, dimensions, and animation parameters | GIF in `binary.image`, dimensions, and frame count |
 
-当前共 11 个节点、25 个操作。合同审核会编排多个客户端；手绘图节点只渲染现成 HTML，不包含自然语言生成图表操作。票据 OCR 与通用 PDF/图片 OCR 是两个独立节点，不能互相替代。
+Contract Review orchestrates multiple clients. Animated Sketch renders existing HTML and has no natural-language diagram generation operation. Invoice OCR and general PDF/image OCR are separate nodes and are not interchangeable.
 
-## 使用说明
+## Usage
 
-远端文件和回调 URL 只接受 HTTP(S)、80/443 端口及解析为公开 IP 的地址，不接受内网地址、URL 用户口令或 fragment。上游服务负责后续抓取；其重定向和 DNS 变化仍需服务方控制，生产应使用管理员批准的内容域名。
+Remote file and callback URLs must use HTTP(S), ports 80/443, and resolve to public IPs. Private addresses, URL usernames/passwords, and fragments are rejected. The upstream service fetches content later and must control redirects and DNS changes. Use administrator-approved content domains in production.
 
-### 文本翻译
+### Text translation
 
-接受文本、源语言和目标语言，返回译文及语言信息；源语言和目标语言分别通过 `fromLanguage`、`toLanguage` 指定。
+Accepts text, source language, and target language, and returns the translation and language information. Set the languages with `fromLanguage` and `toLanguage`.
 
-### 文本校对
+### Text proofreading
 
-接受中文文本，在 `data.result` 中返回校对结果。服务返回业务失败码时映射为节点错误。
+Accepts Chinese text and returns proofreading results in `data.result`. Service business-error codes are mapped to node errors.
 
-### 票据识别
+### Invoice recognition
 
-接受发票、收据等图片或 PDF binary，在 `data.result` 中返回票据识别结果。
+Accepts invoice/receipt images or PDF binary and returns recognition results in `data.result`.
 
-### Hyper TTS 语音合成
+### Hyper TTS speech synthesis
 
-接受文本、音色和声音参数，合成输出默认写入 `binary.audio`，文件名为 `speech.mp3`。只有收到服务结束帧才返回成功，结果不包含随后被清理的临时文件路径。
+Accepts text, a voice, and speech parameters. Output defaults to `binary.audio` with the filename `speech.mp3`. Success requires the service's end frame. Results do not include temporary file paths that are subsequently cleaned up.
 
-`listVoices` 只读取随包的静态音色常量，不调用合成服务；实际语音合成仍需配置凭证并具备对应服务权限。
+`listVoices` reads only the bundled static voice constants and does not call the synthesis service. Actual speech synthesis requires configured credentials and access to the relevant service.
 
-### PDF 与图片 OCR
+### PDF and image OCR
 
-图片识别接受图片 binary；PDF 创建任务接受 PDF binary 或公开 HTTP(S) URL，填写 URL 后忽略 binary 字段。
+Image recognition accepts image binary. PDF task creation accepts PDF binary or a public HTTP(S) URL; when a URL is provided, the binary field is ignored.
 
-`getPdfTask` 与 `getResult` 都查询 PDF 任务状态。完成状态为 `FINISH` 或 `ANY_FAILED` 时返回完成标记；下载地址由服务响应提供，节点不会自动下载结果文件。
+Both `getPdfTask` and `getResult` query PDF task status. A completion flag is returned for `FINISH` or `ANY_FAILED`. Download URLs come from the service response; the node does not automatically download result files.
 
-### 极速转写
+### Speed transcription
 
-创建任务接受 MP3 binary，可指定语言、口音和领域。创建后通过返回的 `taskId` 查询状态或获取转写文本与分段结果。
+Task creation accepts MP3 binary and optional language, accent, and domain settings. Use the returned `taskId` to query status or retrieve transcription text and segments.
 
-### 图片理解
+### Image understanding
 
-接受图片 binary 和问题，支持 `general`/`imagev3`、`temperature` `(0, 1]` 和 `maxTokens` `1..8192`。只有收到服务结束帧才返回文本结果，原始 WebSocket 帧不会暴露给 n8n。
+Accepts image binary and a question. Supports `general`/`imagev3`, `temperature` in `(0, 1]`, and `maxTokens` in `1..8192`. Text is returned only after the service's end frame arrives. Raw WebSocket frames are not exposed to n8n.
 
-### 视频翻译
+### Video translation
 
-使用公开视频 HTTP(S) URL 创建任务，不在节点内上传本地视频；支持列出任务和按 `taskId` 查询详情。`confirmTranscript` 单独执行确认，并通过 `forceRerun` 明确控制后续重跑，不自动重试任务提交。
+Creates tasks from public video HTTP(S) URLs; the node does not upload local video files. It can list tasks and retrieve details by `taskId`. `confirmTranscript` performs confirmation separately, with `forceRerun` explicitly controlling a subsequent rerun. Task submission is not automatically retried.
 
-### 声音克隆
+### Voice cloning
 
-训练支持获取训练文本、创建任务、上传样本、提交和查询状态。样本填写公开 URL 后忽略 binary，仅添加音频，需要再执行 `submitTraining`。binary 上传会同时提交训练：必须开启节点中的确认选项，输入不得超过 3 MiB，随后执行 `getTraining`，不要重复提交。`data.trainingSubmitted` 标明本次是否已提交；音频时长、采样率和内容还需满足服务要求。训练业务失败码映射为节点错误。
+Training supports fetching text, creating tasks, uploading samples, submitting training, and querying status. A public sample URL takes precedence over binary input and only adds the audio; run `submitTraining` afterward. Binary upload also submits training: enable the node's confirmation option and keep input within 3 MiB. Then run `getTraining` rather than submitting again. `data.trainingSubmitted` indicates whether the operation submitted training. Audio duration, sample rate, and content must also satisfy service requirements. Training business-error codes are mapped to node errors.
 
-`createTraining` 返回的任务 ID 位于 `data.result.data`，后续操作的 Task ID 应直接引用该值（例如 `={{ $json.data.result.data }}`），保留完整字符串，不转换为数字。已有工作流中的安全整数 ID 仍兼容。
+The task ID from `createTraining` is at `data.result.data`. Reference it directly in subsequent operations' Task ID field, for example `={{ $json.data.result.data }}`. Preserve the full string instead of converting it to a number. Safe integer IDs in existing workflows remain compatible.
 
-合成需要已训练的 `resId`，输出支持 MP3、PCM、Speex 和 Opus，只有收到服务结束帧才返回成功。
+Synthesis requires a trained `resId` and supports MP3, PCM, Speex, and Opus output. Success requires the service's end frame.
 
-声音训练使用 HTTPS token/训练入口，校验服务端证书并拒绝重定向，不回退到 HTTP。声音克隆合成使用 TLS WebSocket。训练次数、合成额度和音色资源权限需分别开通，详见 [服务与平台限制](compatibility.md)。
+Voice training uses HTTPS token/training endpoints with certificate validation, rejects redirects, and never falls back to HTTP. Cloned speech synthesis uses TLS WebSockets. Training counts, synthesis quota, and voice-resource permissions require separate authorization; see [service and platform limitations](compatibility.md).
 
-### 合同审核
+### Contract review
 
-接受直接文本、UTF-8 binary，或显式选择格式的 PDF、DOCX、PNG、JPEG、BMP binary。文档上限 20 MiB，图片 OCR 上限 4 MiB；PDF 最多 8 页，以最长边不超过 1600 像素逐页栅格化后调用图片 OCR。提取的全文最多 4000 字符，超限会失败，不静默截断；长合同由调用方拆分，片段间关系需另行审查。DOCX 读取正文段落与表格，不提取页眉页脚、批注、文本框或嵌入对象。
+Accepts direct text, UTF-8 binary, or explicitly selected PDF, DOCX, PNG, JPEG, or BMP binary. Documents are limited to 20 MiB; image OCR input is limited to 4 MiB. PDFs can contain up to 8 pages, rasterized page by page with a maximum long edge of 1600 pixels before image OCR. Extracted text is limited to 4000 characters. Exceeding the limit fails instead of silently truncating. Callers must split longer contracts and review relationships between segments separately. DOCX extraction reads body paragraphs and tables, excluding headers, footers, comments, text boxes, and embedded objects.
 
-默认图片提取方法为 OCR；显式选择 Image Understanding 时按模型推断标记，不在 OCR 失败后自动切换服务。文本经过规则检查和星火 `v3.5/chat` 审阅；可选将中文模型摘要翻译为英文。合规与双语检查属于本地规则，模型风险引用会与送审文本核对，全部结果仍需人工复核。不提供未经服务返回的识别置信度。
+OCR is the default image extraction method. Explicitly choosing Image Understanding marks the result as model inference; OCR failures do not automatically switch services. Text goes through rule checks and Spark `v3.5/chat` review, with optional translation of the Chinese model summary into English. Compliance and bilingual checks use local rules. Model risk quotations are checked against the submitted text. All results require human review. Recognition confidence is not supplied unless provided by the service.
 
-任一必需服务失败时返回受控错误，不自动重试；调用沿用公共层总时限（默认 120 秒，管理员可调整），包含逐页 OCR。JSON 结果包含规则与模型输出，Markdown/JSON 报告在 n8n binary 持久化后回收临时文件。
+A required-service failure produces a controlled error without automatic retries. The shared total timeout applies to the whole call, including per-page OCR (120 seconds by default, configurable by an administrator). JSON results include rule and model output. Temporary Markdown/JSON report files are removed after persistence into n8n binary storage.
 
-### 手绘图渲染
+### Diagram rendering
 
-从安装包内的 `runtime/bridge/diagram/workflow.html`（[受限流程图模板](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/python/diagram/workflow.html)）开始修改，将 HTML 文本传给节点。支持常见 HTML 文本容器、SVG 基本形状和 CSS 动画；不接受脚本、事件属性、iframe、表单、外部图片、链接或用户字体资源，也不接受 CSS URL、转义和注释。渲染器禁用页面 JavaScript、阻断外部请求，内嵌随包 Kalam 字体；中文使用主机已安装的字体回退。
+Start with the installed `runtime/bridge/diagram/workflow.html` ([restricted flowchart template](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/python/diagram/workflow.html)) and pass the edited HTML text to the node. Common HTML text containers, basic SVG shapes, and CSS animation are supported. Scripts, event attributes, iframes, forms, external images, links, user-provided font resources, CSS URLs, escapes, and comments are rejected. The renderer disables page JavaScript, blocks external requests, and embeds the bundled Kalam font. Chinese text uses fonts installed on the host as fallbacks.
 
-输入上限 256 KiB、2000 个元素；宽度 64–1600、高度 64–1200、帧率 1–25、时长 100–5000 ms、倍率 1 或 2，总像素预算为 `ceil(时长 × 帧率 / 1000) × 宽 × 高 × 倍率² ≤ 120,000,000`。尺寸和动画时长应与 HTML 对齐；不保证任意动画天然无缝。GIF 产物上限 32 MiB。
+Input limits are 256 KiB and 2000 elements. Width is 64–1600, height 64–1200, frame rate 1–25, duration 100–5000 ms, and scale 1 or 2. The total pixel budget is `ceil(durationMs × fps / 1000) × width × height × scale² ≤ 120,000,000`. Match dimensions and duration to the HTML; arbitrary animations are not guaranteed to loop seamlessly. GIF output is limited to 32 MiB.
 
-受限格式和资源拦截不能替代生产环境的容器/系统隔离；请按部署要求限制浏览器进程的内存、CPU 和文件访问权限。
-
+Format restrictions and resource blocking do not replace container/system isolation in production. Limit browser memory, CPU, and filesystem access according to your deployment requirements.

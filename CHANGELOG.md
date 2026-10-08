@@ -1,5 +1,14 @@
 # Changelog
 
+## n8n package documentation language
+
+### Changed
+
+- Made English the package's default README and retained the Chinese overview as `README.zh-CN.md`.
+- Translated the shipped installation, compatibility, node reference, operations, and workflow guides into English and updated their section links.
+- Updated the npm file list and release validation for the renamed Chinese README.
+- Added Linux and Windows installation quickstarts to the default README, including Python setup, preflight, service configuration, and restart instructions, and linked documentation through absolute repository URLs for npm readers.
+
 ## n8n release controls
 
 ### Changed

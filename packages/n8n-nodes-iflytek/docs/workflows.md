@@ -1,23 +1,23 @@
-# 示例工作流
+# Example workflows
 
-本包提供三个可导入的 n8n 示例，分别演示文本处理串联、binary 文件输入和 binary 音频输出。可按所需的输入输出方式选择示例，再参照 [节点参考](nodes.md) 组合其他能力。
+The package includes three importable n8n examples demonstrating text processing, binary file input, and binary audio output. Choose an example for the input/output pattern you need, then use the [node reference](nodes.md) to combine other capabilities.
 
-示例供用户手动导入和修改，节点的安装与运行不依赖导入这些文件。
+Examples are for manual import and customization. Installing or running the nodes does not depend on importing them.
 
-## 导入与配置
+## Import and configure
 
-安装本包并配置 Python 后，在 n8n 编辑器中选择 **Import from File**，导入安装包 `workflows/` 中的 JSON。也可从仓库下载对应文件。模板均为手动触发、未激活，未包含凭证绑定、固定执行数据或真实业务文件。
+After installing the package and configuring Python, choose **Import from File** in the n8n editor and select a JSON file from the installed package's `workflows/` directory. You can also download the files from the repository. All templates use manual triggers, are inactive, and contain no credential bindings, pinned execution data, or real business files.
 
-| 示例 | 用途 | 使用前配置 |
+| Example | Purpose | Configuration before use |
 | --- | --- | --- |
-| [校对与翻译](../workflows/proofread-and-translate.json) | 查看中文校对结果，在明确确认后翻译选定文本 | 为 Proofread、Translate 选择 iFlytek API 凭证；编辑 Text input |
-| [票据识别](../workflows/invoice-recognition.json) | 读取图片或 PDF，输出服务字段供人工核对 | 替换 Read invoice 的文件路径或 binary 来源，选择 OCR 凭证 |
-| [文本转语音](../workflows/text-to-speech.json) | 将文本合成为可下载的 MP3 | 选择合成凭证和已授权音色，编辑文本 |
+| [Proofread and translate](../workflows/proofread-and-translate.json) | Review Chinese proofreading results, then translate selected text after explicit confirmation | Select iFlytek API credentials for Proofread and Translate; edit Text input |
+| [Invoice recognition](../workflows/invoice-recognition.json) | Read an image or PDF and return service fields for human review | Replace the Read invoice path or binary source; select OCR credentials |
+| [Text to speech](../workflows/text-to-speech.json) | Synthesize text into a downloadable MP3 | Select synthesis credentials and an authorized voice; edit the text |
 
-校对模板首次运行的 `approvedForTranslation` 为 `false`，因此只执行校对并输出建议。审阅后，将选定文本填入 `approvedText`，把 `approvedForTranslation` 改为 `true`，再执行。第二次运行会再次调用校对，并调用翻译；模板不会自动采纳建议，也不会等待外部审批系统。
+In the proofreading template, `approvedForTranslation` starts as `false`, so the first run only proofreads and returns suggestions. After review, put the selected text in `approvedText`, set `approvedForTranslation` to `true`, and run again. The second run calls proofreading again and also calls translation. The template does not automatically accept suggestions or wait for an external approval system.
 
-票据模板中的 `/files/invoice.jpg` 是占位路径。文件必须在实际执行节点的主机或 worker 内可读，并符合 n8n 文件访问策略。容器中可将自己的文件目录只读挂载到 `/files`；也可以替换读取节点，直接提供 `binary.data`。识别结果保留服务原始结构，金额、日期、税号等字段须核对后再存储。
+The invoice template uses `/files/invoice.jpg` as a placeholder. The file must be readable on the host or worker that executes the node and comply with n8n's file-access policy. In a container, you can mount your file directory read-only at `/files`. Alternatively, replace the read node with a source that supplies `binary.data`. Results preserve the service's original structure; review amounts, dates, tax IDs, and other fields before storing them.
 
-语音模板的 `synthesize` 会访问讯飞服务，需要权限和额度；结果在 `binary.audio`，可从执行结果下载。`listVoices` 只是静态列表，与此模板的合成操作不同。
+The speech template's `synthesize` operation calls the iFLYTEK service and requires access and quota. The result is in `binary.audio` and can be downloaded from the execution output. `listVoices` is a static listing operation, distinct from the synthesis operation used here.
 
-三个模板均可能发生服务费用，远端节点没有启用自动重试。先用少量非敏感输入验证。需要存表、通知或公网触发时，由工作流作者明确增加相应节点和权限。
+All three templates can incur service charges. Automatic retries are disabled on remote nodes. Validate with small, non-sensitive inputs first. Workflow authors can explicitly add storage, notification, or public-trigger nodes and the permissions those nodes require.

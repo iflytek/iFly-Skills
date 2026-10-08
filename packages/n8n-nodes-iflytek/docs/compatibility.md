@@ -1,62 +1,62 @@
-# 兼容范围与使用限制
+# Compatibility and limitations
 
-选择部署环境时，请同时核对 n8n、Node.js、Python、系统程序和讯飞服务权限。本页说明本包的适用条件；安装步骤见 [安装与配置](installation.md)。
+When selecting a deployment environment, check n8n, Node.js, Python, system programs, and iFLYTEK service permissions together. This page describes the package's supported conditions; setup instructions are in [installation and configuration](installation.md).
 
-## 运行环境
+## Runtime environment
 
-| 组件 | 要求或已验证版本 | 使用说明 |
+| Component | Requirement or validated version | Notes |
 | --- | --- | --- |
-| n8n | 已验证 2.39.8、2.40.5、2.40.7 | 覆盖节点注册、手动/生产执行、多 item、表达式和错误继续；不代表每个远端服务操作均已获得授权验证 |
-| 本包的 Node.js 支持范围 | 24.x；已验证 24.18.0 | `engines.node` 为 `>=24.0.0 <25`，随包预检也校验主版本为 24 |
-| Python | 最低 3.10；已验证 3.10.12、3.13.14 | 使用独立 venv，依赖版本按随包锁文件安装 |
-| Windows | x64，Python 3.13.14 | 已验证本地执行及 Edge/ffmpeg 渲染 |
-| Linux | Ubuntu 22.04 / WSL2，x64，Python 3.10.12 | 已验证本地执行、队列恢复，以及 Chrome Headless Shell 149.0.7827.55 / ffmpeg 4.4.2 的渲染、取消和 binary 清理 |
-| Linux 容器 | Docker 29.1.3，Ubuntu 22.04，x64；宿主执行验证至 n8n 2.40.7 | 已验证锁定宿主、节点加载和 Webhook 执行；沙箱渲染在 2.40.5 容器验证。使用非 root、只读根目录、移除 capabilities 及 [Chromium seccomp](installation.md#linux-容器中的渲染) |
-| 手绘图 | Chromium、Chrome 或 Edge，以及 ffmpeg | 管理员预装并配置绝对路径；Linux 必须支持浏览器 sandbox |
+| n8n | Validated: 2.39.8, 2.40.5, 2.40.7 | Covers node registration, manual/production execution, multiple items, expressions, and continuing on errors; this does not mean every remote operation has been tested with service authorization |
+| Node.js support for this package | 24.x; validated: 24.18.0 | `engines.node` is `>=24.0.0 <25`; preflight also requires major version 24 |
+| Python | Minimum: 3.10; validated: 3.10.12, 3.13.14 | Use a dedicated virtual environment and the bundled dependency locks |
+| Windows | x64, Python 3.13.14 | Local execution and Edge/ffmpeg rendering validated |
+| Linux | Ubuntu 22.04 / WSL2, x64, Python 3.10.12 | Local execution, queue recovery, and Chrome Headless Shell 149.0.7827.55 / ffmpeg 4.4.2 rendering, cancellation, and binary cleanup validated |
+| Linux containers | Docker 29.1.3, Ubuntu 22.04, x64; host execution validated up to n8n 2.40.7 | Locked host, node loading, and Webhook execution validated; sandboxed rendering validated in a 2.40.5 container. Uses a non-root user, read-only root filesystem, dropped capabilities, and [Chromium seccomp](installation.md#rendering-in-linux-containers) |
+| Diagrams | Chromium, Chrome, or Edge, plus ffmpeg | Administrators install these programs and configure absolute paths; Linux must support the browser sandbox |
 
-n8n 自身的 Node.js 要求随版本变化。[2.39.8](https://registry.npmjs.org/n8n/2.39.8)、[2.40.5](https://registry.npmjs.org/n8n/2.40.5) 和 [2.40.7](https://registry.npmjs.org/n8n/2.40.7) 的 npm 发布元数据均声明 `engines.node: >=24.0.0`，不能据此推断所有 n8n 版本都要求 Node.js 24。
+n8n's own Node.js requirements vary by version. The npm metadata for [2.39.8](https://registry.npmjs.org/n8n/2.39.8), [2.40.5](https://registry.npmjs.org/n8n/2.40.5), and [2.40.7](https://registry.npmjs.org/n8n/2.40.7) declares `engines.node: >=24.0.0`. This does not imply that every n8n version requires Node.js 24.
 
-本包当前将支持范围限定为已验证的 24.x，并在 `package.json` 和预检中执行该限制；这不仅是测试环境说明。Node.js 25 及更高版本尚不在本包支持范围内，安装时需同时满足 n8n 与本包的要求。
+This package limits support to the validated 24.x line and enforces that limit in `package.json` and preflight. It is a support requirement, not just a test-environment description. Node.js 25 and later are not currently supported by this package. Your installation must satisfy both n8n's requirements and this package's requirements.
 
-容器运行验证使用 2 CPU、2 GiB 内存、512 个 PID/线程及 512 MiB 临时文件空间上限，仅用于确认上述本地操作在受限环境中的行为。生产容量仍需根据自己的文件、并发与工作流确定；此结论不等于所有基础镜像、宿主内核或多主机部署均兼容。
+Container validation used 2 CPUs, 2 GiB of memory, 512 PIDs/threads, and a 512 MiB temporary-filesystem limit to check the local operations above under resource constraints. Determine production capacity from your own files, concurrency, and workflows. These results do not establish compatibility with every base image, host kernel, or multi-host deployment.
 
-`n8n-workflow >=2.39.3 <3` 是 npm SDK peer 范围，不是 n8n 产品版本范围。矩阵之外的 n8n/Python 版本、macOS、ARM64 和其他 Linux 发行版暂无同等验证结论；采用前请先在独立实例检查实际工作流。
+`n8n-workflow >=2.39.3 <3` is the npm SDK peer range, not the n8n product version range. Other n8n/Python versions, macOS, ARM64, and other Linux distributions do not have equivalent validation results. Test your workflows in an isolated instance before adopting them.
 
-本包需要启动本地 Python 子进程，适用于管理员能够安装系统依赖的自托管实例。n8n Cloud 和禁止子进程或系统依赖安装的托管环境不在适用范围内。npm 包安装成功不代表当前主机具备完整执行环境，应运行包内预检。
+The package starts local Python child processes and is intended for self-hosted instances where administrators can install system dependencies. n8n Cloud and managed environments that prohibit child processes or system dependency installation are outside its supported scope. A successful npm installation does not confirm a complete execution environment; run the bundled preflight.
 
-## 按能力准备依赖
+## Dependencies by capability
 
-| 使用范围 | Python 依赖 | 其他条件 |
+| Usage | Python dependencies | Other requirements |
 | --- | --- | --- |
-| 语音、OCR、翻译、校对、图片理解等远端操作 | `runtime/requirements/requirements-core.lock` | 应用已开通对应服务，有可用额度 |
-| 合同 PDF、DOCX 或文档图片处理 | `runtime/requirements/requirements-full.lock`（包含 core） | 星火及所选 OCR、翻译、图片理解服务权限 |
-| HTML 手绘图渲染 | 可沿用 core 环境 | 浏览器、ffmpeg、可用字体；npm 自动安装 Playwright Core 依赖 |
+| Remote speech, OCR, translation, proofreading, image understanding, and related operations | `runtime/requirements/requirements-core.lock` | Application access to the service and available quota |
+| Contract PDF, DOCX, or document-image processing | `runtime/requirements/requirements-full.lock` (includes core) | Spark and selected OCR, translation, and image understanding service access |
+| HTML diagram rendering | The core environment can be reused | Browser, ffmpeg, and suitable fonts; npm installs Playwright Core |
 
-包内文件与 Python 依赖检查通过后，仍需用自己的输入和应用权限验证目标能力。预检中的静态音色读取不访问语音合成服务，不能判断音色授权或余额。
+After package integrity and Python dependency checks pass, validate the target capability with your own inputs and application permissions. Preflight's static voice listing does not contact the speech synthesis service and cannot verify voice authorization or balance.
 
-## 队列与文件存储
+## Queues and file storage
 
-queue mode 下，每个执行进程都需要相同版本的节点包、Python 依赖及系统程序。Python 解释器和临时目录路径必须在对应 worker 内可访问。
+In queue mode, every execution process needs the same node package, Python dependencies, and system programs. The Python interpreter and temporary directory must be accessible inside each worker.
 
-n8n 2.40.5 的跨 worker Wait 恢复及 `database` binary 读写已验证，使用 PostgreSQL 14.24 和 Redis 6.0.16。该结论限于本地进程环境；容器、多主机网络、S3 或其他 binary 后端需按目标环境检查。
+Cross-worker Wait recovery and `database` binary reads/writes were validated with n8n 2.40.5, PostgreSQL 14.24, and Redis 6.0.16. This result applies to local processes; containers, multi-host networking, S3, and other binary backends need checks in the target environment.
 
-使用目标 n8n 版本支持且所有 worker 可访问的 binary 存储，不要把 worker 的本地 filesystem binary 或本包临时目录用作跨 worker 存储。对象存储所需的 n8n 许可和配置以 [n8n 队列部署文档](https://docs.n8n.io/hosting/scaling/queue-mode/) 为准。
+Use binary storage supported by your n8n version and accessible to all workers. Do not use a worker's local filesystem binary storage or this package's temporary directories as cross-worker storage. Refer to the [n8n queue-mode documentation](https://docs.n8n.io/hosting/scaling/queue-mode/) for object-storage licensing and configuration.
 
-本包的并发限制按 Node.js 进程分别计算，不是账户级全局限流。CPU、内存和文件存储需求取决于文件大小、音视频长度、合同页数和渲染尺寸；应以实际工作流的小样本和受控负载确定容量。
+Package concurrency limits apply separately to each Node.js process, not globally to an account. CPU, memory, and storage requirements depend on file sizes, audio/video duration, contract page counts, and rendering dimensions. Determine capacity using small samples and controlled loads from your workflows.
 
-## 服务与数据边界
+## Service and data boundaries
 
-- **服务权限**：共享凭证只能复用同一应用的身份；发音人、模型、克隆资源及不同 API 的授权和额度仍独立核对。模型与识别结果的质量需结合业务样本评估。
-- **声音训练**：使用 HTTPS token/训练接口，校验服务端证书、拒绝重定向且不回退到 HTTP；声音克隆合成使用 TLS WebSocket。训练样本须有使用授权，并符合服务要求；训练权限、次数和合成额度分别核对。
-- **视频翻译**：任务创建需要可用的视频时长配额；`listTasks` 成功不代表可以创建任务。服务端返回配额不足时，先核对对应应用的服务额度，不要反复提交。
-- **合同审核**：规则检查与模型分析提供辅助结果，需人工复核。文档格式、长度与页数限制见 [合同审核说明](nodes.md#合同审核)。
-- **手绘图**：仅将受限 HTML/SVG/CSS 渲染为 GIF，不接受任意脚本，不提供自然语言生成图表。需外部图片、远程字体或复杂页面脚本的 HTML 不适用。
-- **远端 URL**：仅接受解析为公开 IP 的 HTTP(S) 地址和 80/443 端口。内容由服务方后续抓取，本包无法控制其后续 DNS 解析和重定向；使用可信内容域名。
-- **企业网络**：Python 子进程不继承主进程的代理环境变量、`PYTHONPATH` 或 `NODE_OPTIONS`。需要代理或专用证书的网络，应先确认目标服务在执行环境中可访问，不能仅依赖 n8n 主进程的代理配置。
-- **长任务与费用**：本地超时或取消不等于远端任务取消。创建任务后保存 task ID，恢复时先查询；无法确认提交结果时人工核对，避免重复收费。
+- **Service access:** shared credentials identify the same application; verify authorization and quotas separately for voices, models, cloned resources, and each API. Evaluate model and recognition quality with business-relevant samples.
+- **Voice training:** token and training endpoints use HTTPS with certificate validation, reject redirects, and never fall back to HTTP. Cloned speech synthesis uses TLS WebSockets. Training samples must be authorized for use and satisfy service requirements. Check training access, training counts, and synthesis quota separately.
+- **Video translation:** task creation requires available video-duration quota. A successful `listTasks` call does not establish that you can create tasks. If the service reports insufficient quota, check the application's relevant quota before submitting again.
+- **Contract review:** rules and model analysis provide assistance and require human review. See [contract review](nodes.md#contract-review) for document formats, length limits, and page limits.
+- **Diagrams:** only restricted HTML/SVG/CSS can be rendered to GIF. Arbitrary scripts and natural-language diagram generation are not supported. HTML that needs external images, remote fonts, or complex page scripts is unsuitable.
+- **Remote URLs:** only HTTP(S) URLs on ports 80/443 that resolve to public IPs are accepted. The provider fetches content later; this package cannot control subsequent DNS resolution or redirects. Use trusted content domains.
+- **Enterprise networks:** Python child processes do not inherit proxy environment variables, `PYTHONPATH`, or `NODE_OPTIONS` from the parent. If your network requires a proxy or custom certificates, verify service access from the execution environment; the n8n parent process's proxy configuration alone is insufficient.
+- **Long-running tasks and charges:** local timeout or cancellation does not cancel a remote task. Save the task ID after creation and query it first during recovery. If submission status is uncertain, reconcile it manually to avoid duplicate charges.
 
-## 升级前检查
+## Before upgrading
 
-先在独立实例安装目标版本及配套依赖，运行预检，再用自己的工作流验证参数、输出、binary 和错误分支；使用 queue mode 时还应验证 Wait 恢复。确认后同步升级所有 worker。
+Install the target version and its dependencies in an isolated instance, run preflight, and validate parameters, outputs, binary data, and error branches with your workflows. In queue mode, also validate Wait recovery. Then upgrade all workers together.
 
-节点包版本回滚和 n8n 数据库迁移是不同操作。升级前保存可用版本与配套依赖，并备份工作流、凭证加密密钥及业务提交记录；具体步骤见 [升级与回滚](operations.md#升级与回滚)。
+Rolling back the node package and rolling back n8n database migrations are separate operations. Keep a working package version and its dependencies, and back up workflows, the credential encryption key, and business submission records before upgrading. See [upgrades and rollback](operations.md#upgrades-and-rollback).

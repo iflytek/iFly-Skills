@@ -29,7 +29,7 @@ test('release notes include only the requested stable or beta version', () => {
 test('packed releases require registered code, runtime files, user docs and templates', async () => {
   const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
   const manifest = JSON.parse(await readFile(new URL('../runtime/manifest.json', import.meta.url)));
-  const names = ['package.json', 'README.md', 'README.en.md', 'CHANGELOG.md', 'LICENSE',
+  const names = ['package.json', 'README.md', 'README.zh-CN.md', 'CHANGELOG.md', 'LICENSE',
     ...pkg.n8n.nodes, ...pkg.n8n.credentials, 'runtime/manifest.json',
     ...Object.keys(manifest.files).map(name => 'runtime/' + name),
     ...['proofread-and-translate', 'invoice-recognition', 'text-to-speech'].map(name => `workflows/${name}.json`)];

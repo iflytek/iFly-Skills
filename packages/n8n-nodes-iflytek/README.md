@@ -1,65 +1,99 @@
 # @iflytekopensource/n8n-nodes-iflytek
 
-中文 · [English](README.en.md)
+iFLYTEK Skills for self-hosted n8n workflows, covering speech, images and documents, and multilingual processing. Remote services share an **iFlytek API** credential; Skills execute through local Python processes.
 
-将 iFLYTEK Skills 接入自托管 n8n，为工作流提供语音、图像与文档处理、多语言理解和翻译能力。远端服务使用共享的 **iFlytek API** 凭证，Skill 通过本机 Python 执行。
+## Supported nodes
 
-## 支持的节点
+The package provides 11 nodes and 25 operations. See the [node reference](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/nodes.md) for operation details.
 
-本包提供 11 个节点、25 个操作。各操作的输入输出、使用方式和限制见 [节点参考](docs/nodes.md)。
-
-| 节点 | 能力 |
+| Node | Capabilities |
 | --- | --- |
-| iFlytek Translate | 文本翻译 |
-| iFlytek Text Proofread | 中文文本校对 |
-| iFlytek Invoice OCR | 发票、收据等票据识别 |
-| iFlytek Hyper TTS | 语音合成；查看随包静态音色列表 |
-| iFlytek PDF and Image OCR | 图片 OCR；创建和查询 PDF OCR 任务 |
-| iFlytek Speed Transcription | 创建和查询 MP3 转写任务 |
-| iFlytek Image Understanding | 图片内容理解与问答 |
-| iFlytek Video Translate | 创建、查询和管理视频翻译任务 |
-| iFlytek Voice Clone TTS | 声音训练与克隆语音合成 |
-| iFlytek Contract Review | 审核文本及文档合同，生成 Markdown 和 JSON 报告 |
-| iFlytek Animated Sketch | 将受限 HTML/SVG/CSS 渲染为 GIF |
+| iFlytek Translate | Translate text |
+| iFlytek Text Proofread | Proofread Chinese text |
+| iFlytek Invoice OCR | Recognize invoice images or PDFs |
+| iFlytek Hyper TTS | Synthesize speech; inspect bundled voice constants |
+| iFlytek PDF and Image OCR | Recognize images; create and query PDF tasks |
+| iFlytek Speed Transcription | Create and query MP3 transcription tasks |
+| iFlytek Image Understanding | Answer questions about an image |
+| iFlytek Video Translate | Create, query, and manage video translation tasks |
+| iFlytek Voice Clone TTS | Train voices and synthesize cloned speech |
+| iFlytek Contract Review | Review text or document contracts and return reports |
+| iFlytek Animated Sketch | Render restricted HTML/SVG/CSS to GIF |
 
-## 安装
+## Requirements
 
-在 n8n 的 **Settings → Community Nodes → Install** 中输入完整包名 `@iflytekopensource/n8n-nodes-iflytek`，或在实例的社区节点目录（默认 `~/.n8n/nodes`）执行：
+- **This package currently supports Node.js 24.x** (`>=24.0.0 <25`). Tested n8n versions and their Node.js requirements are listed in the [compatibility guide](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/compatibility.md).
+- **Python 3.10 or newer**, with the bundled locked dependencies in a dedicated virtual environment. Contract document processing uses the full dependency profile.
+- **Self-hosted n8n** with permission to launch local child processes and write temporary files. Diagram rendering also requires a browser and ffmpeg; see the [installation guide](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/installation.md).
+
+## Installation
+
+### 1. Install the community node package
+
+Enter `@iflytekopensource/n8n-nodes-iflytek` in **Settings → Community Nodes → Install**, or run this command in your instance's community-node directory (normally `~/.n8n/nodes`):
 
 ```sh
 npm install --save-exact @iflytekopensource/n8n-nodes-iflytek@VERSION
 ```
 
-将 `VERSION` 替换为已发布版本号。按 [安装与配置](docs/installation.md) 准备 Python 依赖，设置解释器和临时目录，运行预检并重启 n8n。npm 安装不会自动配置 Python。
+Replace `VERSION` with a published version. The instance must allow unverified community nodes. npm installation does not configure Python. Existing workflows using the unscoped package name need the [migration procedure](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/installation.md#migrating-existing-test-workflows).
 
-## 最小示例
+### 2. Prepare the Python environment
 
-1. 创建 **iFlytek API** 凭证，填写同一讯飞应用的 **App ID**、**API Key** 和 **API Secret**；应用需开通翻译服务并有可用额度。
-2. 在节点选择器中搜索 `iFlytek`，连接 **Manual Trigger → iFlytek Translate**，选择上述凭证。
-3. 将 **Text** 设为“欢迎使用 iFLYTEK Skills”，**Source Language** 设为 `cn`，**Target Language** 设为 `en`，执行节点。
+Run the following from the **installed package directory**, normally `~/.n8n/nodes/node_modules/@iflytekopensource/n8n-nodes-iflytek`. Replace the example paths with locations accessible to the n8n service user. Use a dedicated virtual environment; no repository checkout or source build is needed.
 
-译文位于 `data.translatedText`，下游可使用 `{{ $json.data.translatedText }}`。此示例会调用收费翻译服务。其他节点的业务结果位于 `json.data`，文件通过 n8n binary 字段传递；详细约定见 [输入、结果与错误处理](docs/operations.md#输入结果与错误处理)。
+**Linux**
 
-## 运行要求
+```sh
+python3 -m venv "/absolute/path/iflytek-venv"
+"/absolute/path/iflytek-venv/bin/python" -m pip install -r runtime/requirements/requirements-core.lock
+export IFLYTEK_PYTHON_EXECUTABLE="/absolute/path/iflytek-venv/bin/python"
+export IFLYTEK_TMP_ROOT="/absolute/path/iflytek-tmp"
+mkdir -p "$IFLYTEK_TMP_ROOT"
+node dist/shared/preflight.js
+```
 
-- **本包当前支持 Node.js 24.x**（`>=24.0.0 <25`）。已验证的 n8n 版本与各自的 Node.js 要求见 [兼容范围](docs/compatibility.md)。
-- **Python 3.10 或更高版本**，使用独立 venv 安装随包锁定依赖；合同文档处理使用 full 依赖。
-- **自托管 n8n**，允许启动本地子进程并写入临时目录。手绘图另需浏览器及 ffmpeg；具体配置见 [安装指南](docs/installation.md)。
+**Windows PowerShell**
 
-## 文档与反馈
+```powershell
+python -m venv 'C:\path\to\iflytek-venv'
+& 'C:\path\to\iflytek-venv\Scripts\python.exe' -m pip install -r runtime/requirements/requirements-core.lock
+$env:IFLYTEK_PYTHON_EXECUTABLE = 'C:\path\to\iflytek-venv\Scripts\python.exe'
+$env:IFLYTEK_TMP_ROOT = 'C:\path\to\iflytek-tmp'
+New-Item -ItemType Directory -Path $env:IFLYTEK_TMP_ROOT -Force | Out-Null
+node dist/shared/preflight.js
+```
 
-- [安装与配置](docs/installation.md)、[兼容范围](docs/compatibility.md)。
-- [节点参考](docs/nodes.md)、[可导入的示例工作流](docs/workflows.md)。
-- [运行、错误处理与恢复](docs/operations.md)、[版本记录](CHANGELOG.md)。
-- [问题反馈](https://github.com/iflytek/iFly-Skills/issues/new?template=n8n-node.yml)：附版本、节点操作、错误码及脱敏复现，不公开凭证或业务原文。
-- [贡献指南](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/CONTRIBUTING.md)。
+For contract document processing, install `requirements-full.lock` instead of `requirements-core.lock`. Diagram rendering also needs a browser and ffmpeg; follow the [additional dependency setup](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/installation.md#contract-document-and-diagram-dependencies).
 
-## 使用限制
+### 3. Apply settings and restart n8n
 
-- 本包依赖本地 Python 子进程，不支持 n8n Cloud。`n8n-community-node-package` 关键词供 npm 检索使用，不代表 n8n 官方认证或已验证节点目录收录。
-- 共享凭证仍需分别开通各项远端服务及额度。静态音色列表和本地手绘图不调用 API；语音合成需要服务授权。
-- 合同审核结果需人工复核；手绘图渲染现成 HTML，不从自然语言生成图表。收费任务的重试与恢复方式见 [运行指南](docs/operations.md#长任务重复费用与-worker-恢复)。
+The examples set variables only in the current terminal. Configure the same variables in the service, container, or process manager that starts n8n, then restart the execution processes. In queue mode, configure every worker; paths must be accessible inside that worker or container.
 
-## 许可
+Preflight checks local files and dependencies without calling a paid API. After restarting, search for `iFlytek` in the node selector. **iFlytek Hyper TTS → List Voices** can check local execution without API credentials; actual speech synthesis needs service authorization. Continue with the translation example below to test a remote service. See [troubleshooting](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/operations.md#troubleshooting) if setup fails.
 
-本包使用 [Apache-2.0](LICENSE)。手绘图适配保留 [MIT 许可](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/python/diagram/licenses/animated-sketch-diagram-MIT.txt)，Kalam 字体使用 [SIL OFL 1.1](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/python/diagram/licenses/Kalam-OFL.txt)，两份许可均随包保存在 `runtime/bridge/diagram/licenses/`。浏览器、ffmpeg 及其他依赖遵循各自许可。
+## Minimal example
+
+1. Create an **iFlytek API** credential using the **App ID**, **API Key**, and **API Secret** from one application in the [iFLYTEK console](https://console.xfyun.cn/) with translation access and available quota.
+2. Search for `iFlytek` in the node selector, connect **Manual Trigger → iFlytek Translate**, and select the credential.
+3. Set **Text** to `欢迎使用 iFLYTEK Skills`, **Source Language** to `cn`, and **Target Language** to `en`, then execute the node.
+
+Read the translation from `data.translatedText`, or use `{{ $json.data.translatedText }}` downstream. This example calls a paid translation service. Other node results are in `json.data`; files use n8n binary properties. See [input, result, and error behavior](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/operations.md#inputs-results-and-errors) for details.
+
+## Documentation and support
+
+- [Installation](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/installation.md) and [compatibility](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/compatibility.md).
+- [Node reference](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/nodes.md) and [importable example workflows](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/workflows.md).
+- [Operations, errors, and recovery](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/operations.md), and the [package changelog](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/CHANGELOG.md).
+- [Report an issue](https://github.com/iflytek/iFly-Skills/issues/new?template=n8n-node.yml) with versions, node/operation, error code, and a sanitized reproduction. Never post credentials or private documents.
+- [Contributor guide](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/CONTRIBUTING.md) (Chinese).
+
+## Limitations
+
+- Local Python execution requires a self-hosted instance; n8n Cloud is not supported. The `n8n-community-node-package` keyword enables npm indexing, not n8n verified status or verified-node catalogue inclusion.
+- Shared credentials still need authorization and quota for each remote service. Local diagram rendering and bundled voice listing do not call an API; speech synthesis requires service access.
+- Contract results require human review. Animated Sketch renders existing HTML, not natural-language diagram requests. See the [operations guide](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/docs/operations.md#long-running-tasks-duplicate-charges-and-worker-recovery) before retrying or recovering paid tasks.
+
+## License
+
+The package is [Apache-2.0](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/LICENSE). The diagram adaptation retains its [MIT notice](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/python/diagram/licenses/animated-sketch-diagram-MIT.txt); the bundled Kalam font is covered by [SIL OFL 1.1](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/python/diagram/licenses/Kalam-OFL.txt). Both notices are included in `runtime/bridge/diagram/licenses/`. Browsers, ffmpeg, and other dependencies retain their respective licenses.

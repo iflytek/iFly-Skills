@@ -1,49 +1,49 @@
-# 安装与配置
+# Installation and configuration
 
-本指南供自托管 n8n 的实例管理员和工作流作者使用。安装分为 npm 节点包、Python 运行环境和 n8n 凭证三个部分。仅安装 npm 包不会自动安装 Python、浏览器或 ffmpeg。
+This guide is for self-hosted n8n administrators and workflow authors. Setup has three parts: the npm node package, the Python environment, and n8n credentials. Installing the npm package does not install Python, a browser, or ffmpeg.
 
-## 环境要求
+## Requirements
 
-- 本包当前支持 Node.js 24.x（`>=24.0.0 <25`）；n8n 版本及其 Node.js 要求见 [兼容范围](compatibility.md)。另需 Python 3.10 或更高版本及独立 venv。
-- 允许 n8n 执行进程启动本地 Python，并为其提供可写的独占临时目录。
-- 远端能力需要讯飞应用凭证、相应服务权限和可用额度；手绘图渲染不需要 API 凭证。
-- 使用 queue mode 时，在每个实际执行工作流的进程所在环境安装相同的包和依赖。
+- This package supports Node.js 24.x (`>=24.0.0 <25`). See [compatibility](compatibility.md) for tested n8n versions and their Node.js requirements. Python 3.10 or newer and a dedicated virtual environment are also required.
+- The n8n execution process must be allowed to launch local Python processes and write to a dedicated temporary directory.
+- Remote operations require iFLYTEK application credentials, access to the relevant services, and available quota. Diagram rendering does not require API credentials.
+- In queue mode, install the same package and dependencies in every environment that executes workflows.
 
-## 安装节点包
+## Install the node package
 
-对于 registry 中已有的发布版本，可由实例管理员在 n8n 的 **Settings → Community Nodes → Install** 中安装 `@iflytekopensource/n8n-nodes-iflytek`。实例须允许安装未验证的社区节点；包的可安装状态以 registry 和实例策略为准。`n8n-community-node-package` 关键词用于 npm 社区包检索，不授予 n8n 官方认证，也不自动进入编辑器的已验证节点目录。
+For versions available in the registry, an instance administrator can install `@iflytekopensource/n8n-nodes-iflytek` through **Settings → Community Nodes → Install**. The instance must allow unverified community nodes; availability depends on the registry and instance policy. The `n8n-community-node-package` keyword supports npm community package discovery. It does not grant n8n verified status or automatic inclusion in the editor's verified-node catalogue.
 
-也可以按 n8n 的 [社区节点手动安装说明](https://docs.n8n.io/integrations/community-nodes/installation/manual-install/) 安装。在该实例实际使用的社区节点目录中执行以下命令，将 `VERSION` 替换为已发布的版本号：
+You can also follow n8n's [manual community-node installation guide](https://docs.n8n.io/integrations/community-nodes/installation/manual-install/). Run the following command in the community-node directory used by your instance, replacing `VERSION` with a published version:
 
 ```sh
 npm install --save-exact "@iflytekopensource/n8n-nodes-iflytek@VERSION"
 ```
 
-默认社区节点目录是运行 n8n 的用户目录下的 `.n8n/nodes`；使用自定义用户目录或容器挂载时，以实例实际配置为准。若使用维护者提供的 `.tgz` 安装包，在同一目录运行 `npm install --save-exact`，将参数替换为该文件的绝对路径。请勿将全局 npm 安装目录当作社区节点目录。
+The default directory is `.n8n/nodes` under the n8n service user's home directory. For custom user directories or container mounts, use the instance's actual configuration. To install a maintainer-provided `.tgz`, run `npm install --save-exact` in the same directory with the archive's absolute path. The global npm installation directory is not the community-node directory.
 
-安装后，以下内容应位于 `node_modules/@iflytekopensource/n8n-nodes-iflytek/`：
+After installation, the following files should be under `node_modules/@iflytekopensource/n8n-nodes-iflytek/`:
 
-| 路径 | 用途 |
+| Path | Purpose |
 | --- | --- |
-| `dist/` | n8n 节点、凭证和管理命令 |
-| `runtime/requirements/` | Python 依赖版本锁 |
-| `runtime/bridge/diagram/workflow.html` | 手绘图 HTML 模板 |
-| `docs/` | 安装、兼容和运行说明 |
-| `workflows/` | 可手动导入的示例工作流 JSON |
+| `dist/` | n8n nodes, credentials, and administrator commands |
+| `runtime/requirements/` | Python dependency locks |
+| `runtime/bridge/diagram/workflow.html` | Diagram HTML template |
+| `docs/` | Installation, compatibility, and operations guides |
+| `workflows/` | Example workflow JSON files for manual import |
 
-实例管理员负责安装 n8n 宿主及其依赖，并维护宿主版本与依赖安全。
+Instance administrators install and maintain the n8n host and its dependencies, including security updates.
 
-后续示例中的“包目录”均指这个已安装目录。普通使用不需要 checkout 仓库、编译 TypeScript 或执行源码测试。
+In the examples below, the "package directory" means this installed directory. Normal use does not require a repository checkout, TypeScript compilation, or source tests.
 
-## 迁移已有测试工作流
+## Migrating existing test workflows
 
-使用旧无作用域包 `n8n-nodes-iflytek` 创建的工作流，其节点类型包含旧包名。迁移前导出工作流并备份 n8n 数据；在工作流 JSON 的 `nodes[].type` 中，将前缀 `n8n-nodes-iflytek.` 改为 `@iflytekopensource/n8n-nodes-iflytek.`，保留后面的节点名称及其他字段。
+Workflows created with the old unscoped `n8n-nodes-iflytek` package contain the old package name in their node types. Export workflows and back up n8n data before migrating. In the workflow JSON's `nodes[].type` fields, replace the prefix `n8n-nodes-iflytek.` with `@iflytekopensource/n8n-nodes-iflytek.`, keeping the node name suffix and other fields unchanged.
 
-在维护窗口暂停相关工作流，通过 n8n 卸载旧包后安装本包，避免同时加载两个包导致同名节点与共享凭证重复注册。重新导入并检查凭证选择、表达式及 binary 字段，再恢复工作流。本包的凭证类型仍为 `iflyApi`；若实例中保留了原凭证，可重新选择。npm 不会把两个包名视为自动升级关系。
+Pause affected workflows during a maintenance window. Uninstall the old package through n8n before installing this package to avoid duplicate node names and shared credential registration. Reimport workflows and check credential selections, expressions, and binary fields before resuming. The credential type remains `iflyApi`; existing credentials can be selected again if retained by the instance. npm does not treat these two package names as an automatic upgrade path.
 
-## 配置 Python
+## Configure Python
 
-将示例路径替换为本机实际路径。使用 n8n 服务账号创建或授权访问 venv，临时目录也必须由该账号可写。
+Replace the example paths with paths on your host. Create the virtual environment as the n8n service user or grant that user access. The same user must be able to write to the temporary directory.
 
 ### Linux
 
@@ -80,58 +80,58 @@ $env:IFLYTEK_TMP_ROOT = $iflyTmp
 node (Join-Path $iflyPackageRoot 'dist\shared\preflight.js')
 ```
 
-上述环境变量只对当前终端及其随后启动的进程生效。请在同一环境启动 n8n；如果通过系统服务、容器或进程管理器启动，应把变量写入对应服务配置并重启实际执行进程。不要把主机路径直接填入容器，应使用容器内部可访问的路径。
+These environment variables apply only to the current terminal and processes started from it. Start n8n in that environment. For system services, containers, or process managers, add the variables to the service configuration and restart the processes that execute workflows. Container configurations must use paths accessible inside the container, not host paths.
 
-预检成功表示包文件、core 依赖和本地执行链可用，不验证讯飞服务授权。预检要求依赖版本与随包锁文件一致，建议使用专用 venv，避免其他应用升级共享依赖。
+A successful preflight confirms that package files, core dependencies, and local execution are available. It does not verify iFLYTEK service authorization. Preflight requires exact versions from the bundled dependency locks; a dedicated virtual environment prevents other applications from upgrading shared dependencies.
 
-## 合同文档与手绘图依赖
+## Contract document and diagram dependencies
 
-处理合同 PDF、DOCX 或文档图片时，在同一个 venv 安装 `runtime/requirements/requirements-full.lock`；该文件已经包含 core 依赖。将上面的 pip 命令中的 `requirements-core.lock` 替换为 `requirements-full.lock` 即可。
+For contract PDFs, DOCX files, or document images, install `runtime/requirements/requirements-full.lock` in the same virtual environment. It includes the core dependencies. Replace `requirements-core.lock` with `requirements-full.lock` in the pip command above.
 
-手绘图还需要本机安装 Chromium、Chrome 或 Edge，以及 ffmpeg。`playwright-core` 随 npm 依赖安装，但不会下载浏览器。配置两个程序的绝对路径，例如：
+Diagram rendering also requires Chromium, Chrome, or Edge, plus ffmpeg, installed on the host. The npm dependency `playwright-core` does not download a browser. Configure absolute executable paths, for example:
 
 ```sh
-# Linux 示例：以实际安装路径为准
+# Linux example: use the paths from your installation.
 export IFLYTEK_CHROME_EXECUTABLE="/usr/bin/chromium"
 export IFLYTEK_FFMPEG_EXECUTABLE="/usr/bin/ffmpeg"
 ```
 
 ```powershell
-# Windows 示例：以实际安装路径为准
+# Windows example: use the paths from your installation.
 $env:IFLYTEK_CHROME_EXECUTABLE = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
 $env:IFLYTEK_FFMPEG_EXECUTABLE = 'C:\path\to\ffmpeg.exe'
 ```
 
-Linux 需使用支持 Chromium sandbox 的非 root 环境。本包不关闭浏览器 sandbox；中文渲染还需安装可用的中文字体。
+On Linux, use a non-root environment that supports the Chromium sandbox. This package does not disable the browser sandbox. Install suitable host fonts to render Chinese text.
 
-当 full Python 依赖和渲染程序均已配置时，在包目录运行 `node dist/shared/preflight.js --full`。`--full` 同时检查合同依赖和渲染程序，不是仅针对合同的预检。随后用安装包内的 `runtime/bridge/diagram/workflow.html`（[查看模板](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/python/diagram/workflow.html)）执行一次 **iFlytek Animated Sketch**，确认 `binary.image` 可读取；路径检查不能替代实际渲染。
+Once full Python dependencies and rendering programs are configured, run `node dist/shared/preflight.js --full` in the package directory. `--full` checks both contract dependencies and rendering programs; it is not a contract-only check. Then run **iFlytek Animated Sketch** using the installed `runtime/bridge/diagram/workflow.html` ([view template](https://github.com/iflytek/iFly-Skills/blob/main/packages/n8n-nodes-iflytek/python/diagram/workflow.html)) and confirm that `binary.image` is readable. Path checks do not replace an actual render.
 
-## Linux 容器中的渲染
+## Rendering in Linux containers
 
-在容器镜像中预装相同版本的节点包、Python 依赖、浏览器、ffmpeg 和字体，并使用非 root 用户。镜像内的绝对路径需要与 `IFLYTEK_*_EXECUTABLE` 配置一致；n8n 数据目录和临时目录必须可写，包和依赖可以放在只读文件系统中。
+Preinstall matching versions of the node package, Python dependencies, browser, ffmpeg, and fonts in the image, and run as a non-root user. Paths inside the image must match the `IFLYTEK_*_EXECUTABLE` settings. n8n data and temporary directories must be writable; the package and dependencies can be on a read-only filesystem.
 
-使用 `--cap-drop=ALL` 与 `--security-opt=no-new-privileges` 时，浏览器的用户命名空间沙箱仍需要相应系统调用。将随包 [Chromium seccomp 配置](chromium-seccomp.json) 复制到 Docker 宿主机，在容器启动参数中设置 `--security-opt seccomp=/absolute/path/chromium-seccomp.json`。该配置基于 [Playwright v1.61.1 的 Docker 策略](https://github.com/microsoft/playwright/blob/v1.61.1/utils/docker/seccomp_profile.json)（Apache-2.0），保留默认拒绝规则及用户命名空间调用，补充 `chroot`，让 Chromium 能在自己的命名空间中建立沙箱；内核的 capability 检查仍然有效。
+With `--cap-drop=ALL` and `--security-opt=no-new-privileges`, the browser's user namespace sandbox still needs the relevant system calls. Copy the bundled [Chromium seccomp profile](chromium-seccomp.json) to the Docker host and add `--security-opt seccomp=/absolute/path/chromium-seccomp.json` to the container startup options. The profile is based on [Playwright v1.61.1's Docker policy](https://github.com/microsoft/playwright/blob/v1.61.1/utils/docker/seccomp_profile.json) (Apache-2.0). It retains the default deny policy and user namespace calls, adding `chroot` so Chromium can establish its sandbox inside its own namespace; kernel capability checks still apply.
 
-应按实际工作流设置内存、CPU、进程数、共享内存和临时磁盘限制。已验证配置见 [兼容范围](compatibility.md)。所用内核或宿主安全策略必须允许非特权用户命名空间；遇到 sandbox 启动失败时检查部署策略，不要通过 `--no-sandbox`、特权容器或关闭 seccomp 来替代配置。仅本地渲染可禁用容器网络；使用讯飞远端节点的实例仍需要相应服务的出站访问。
+Set memory, CPU, process, shared-memory, and temporary-disk limits for your workflows. See [compatibility](compatibility.md) for validated configurations. The kernel and host security policy must allow unprivileged user namespaces. If the sandbox fails to start, check deployment policy rather than using `--no-sandbox`, privileged containers, or disabling seccomp. A container used only for local rendering can have networking disabled; instances using remote iFLYTEK nodes still need outbound access to those services.
 
-## 配置共享凭证
+## Configure shared credentials
 
-在 n8n 的凭证管理中创建 **iFlytek API**，填入同一个讯飞应用的 **App ID**、**API Key**、**API Secret**，然后在各节点中选择该凭证。凭证在不同能力间复用，并不意味着应用自动拥有全部服务权限。
+Create an **iFlytek API** credential in n8n using the **App ID**, **API Key**, and **API Secret** from the same iFLYTEK application, then select it in each node. Reusing credentials across capabilities does not automatically grant access to every service.
 
-| 操作范围 | 必需凭证字段 |
+| Operations | Required fields |
 | --- | --- |
-| 翻译、校对、票据 OCR、Hyper TTS 合成、图片 OCR、极速转写、图片理解、声音克隆合成、合同审核 | App ID、API Key、API Secret |
-| PDF OCR 的创建和查询 | App ID、API Secret |
-| 视频翻译 | API Key、API Secret |
-| 声音训练 | App ID、API Key |
-| Hyper TTS `listVoices`、手绘图渲染 | 无 |
+| Translation, proofreading, invoice OCR, Hyper TTS synthesis, image OCR, speed transcription, image understanding, cloned speech synthesis, contract review | App ID, API Key, API Secret |
+| PDF OCR task creation and queries | App ID, API Secret |
+| Video translation | API Key, API Secret |
+| Voice training | App ID, API Key |
+| Hyper TTS `listVoices`, diagram rendering | None |
 
-合同审核还需要星火 `generalv3.5` 及所选 OCR、图片理解、翻译服务权限。音色、模型和克隆资源的授权也需与应用匹配；本地音色列表不表示账户已获授权。
+Contract review also needs Spark `generalv3.5` and access to the selected OCR, image understanding, and translation services. Voice, model, and cloned-resource permissions must match the application. The local voice list does not indicate account authorization.
 
-节点使用 n8n 中选定的凭证，不读取主机上预先设置的 `IFLY_*`、`XFEI_*` 或 `XFYUN_*` 作为替代凭证。保存凭证后，应使用有权限的小样本验证目标服务。
+Nodes use the credential selected in n8n. They do not fall back to host `IFLY_*`, `XFEI_*`, or `XFYUN_*` variables. After saving credentials, validate the target service with a small authorized sample.
 
-## 安装后检查
+## Post-installation checks
 
-重启 n8n 后，在节点选择器中搜索 `iFlytek`。可以先运行 **iFlytek Hyper TTS → List Voices**，确认本地 Python 链路，再执行目标能力的小样本。
+Restart n8n and search for `iFlytek` in the node selector. You can first run **iFlytek Hyper TTS → List Voices** to check local Python execution, then test the target capability with a small sample.
 
-如果节点不可见，检查安装用户、社区节点目录、实例策略和启动日志；如果节点可见但执行失败，按 [故障排查](operations.md#故障排查) 核对错误码。并发、超时、日志和队列部署配置见 [运行与恢复](operations.md)。
+If nodes are missing, check the installation user, community-node directory, instance policy, and startup logs. If nodes appear but fail to execute, look up the error code in [troubleshooting](operations.md#troubleshooting). See [operations and recovery](operations.md) for concurrency, timeouts, logs, and queue deployment settings.

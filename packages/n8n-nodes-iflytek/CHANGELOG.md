@@ -9,3 +9,4 @@ Release notes for `@iflytekopensource/n8n-nodes-iflytek`.
 - Added the shared iFlytek API credential and isolated Python execution with binary input/output, cancellation, timeouts, bounded concurrency, and controlled error reporting.
 - Bundled fixed Skill snapshots, Python dependency locks, runtime integrity metadata, and license notices.
 - Added installation, compatibility, and recovery guidance, plus three importable workflows for proofreading/translation, invoice OCR, and speech synthesis.
+- Provided the default README and user guides in English, with a Chinese overview in `README.zh-CN.md`.

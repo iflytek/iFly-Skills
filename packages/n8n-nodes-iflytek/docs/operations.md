@@ -1,118 +1,118 @@
-# n8n 节点运行与恢复
+# Node operations and recovery
 
-本指南用于管理已安装的 iFlytek 节点。先完成 [安装与配置](installation.md)，再为每个实际执行进程设置容量、日志和恢复策略；版本及平台条件见 [兼容范围](compatibility.md)。以下 `node dist/shared/...` 命令均在已安装的 `@iflytekopensource/n8n-nodes-iflytek` 包目录运行。
+This guide covers administration of installed iFlytek nodes. Complete [installation and configuration](installation.md), then configure capacity, logs, and recovery for every execution process. See [compatibility](compatibility.md) for version and platform requirements. Run the `node dist/shared/...` commands below from the installed `@iflytekopensource/n8n-nodes-iflytek` package directory.
 
-## 输入、结果与错误处理
+## Inputs, results, and errors
 
-文件通过 n8n 的 binary 字段传入。例如上游文件位于 `binary.data` 时，在 **Input Binary Field** 填写 `data`，无需填写本地文件路径。支持文本输入的节点优先使用 **Text**；只有 Text 为空时才读取指定的 UTF-8 binary 字段。
+Pass files through n8n binary fields. For example, if an upstream file is at `binary.data`, set **Input Binary Field** to `data`; no local file path is needed. Nodes that accept text prefer **Text** and read the specified UTF-8 binary field only when Text is empty.
 
-每个输入 item 对应一个输出 item，并保留 n8n 的 item 关联。业务结果位于 `json.data`；音频、图像和报告分别位于 `binary.audio`、`binary.image`、`binary.report` / `binary.report2`（默认字段名），可继续交给上传、保存或发送文件的节点。文件完成 n8n 持久化后，本包会清理调用临时目录，工作流应使用 binary 字段传递文件。
+Each input item produces one output item and preserves n8n item linking. Business results are in `json.data`. Audio, images, and reports use `binary.audio`, `binary.image`, and `binary.report` / `binary.report2` by default. Pass these fields to nodes that upload, save, or send files. After n8n persists files, this package removes the invocation's temporary directory; workflows should pass files through binary fields.
 
-JSON 输出同时包含 `ok`、`status`、`requestId` 和 `meta.durationMs`。外层 `ok: true`、`status: succeeded` 表示本次节点调用成功；创建远端任务后的完成状态仍需根据 `data` 中的服务结果判断。保存创建操作返回的 task ID，再通过 Wait 和查询节点等待任务完成，详见 [长任务与恢复](#长任务重复费用与-worker-恢复)。
+JSON output also includes `ok`, `status`, `requestId`, and `meta.durationMs`. The outer `ok: true` and `status: succeeded` indicate a successful node call. For newly created remote tasks, check the service result in `data` to determine whether processing has completed. Save the returned task ID, then use Wait and query nodes to wait for completion; see [long-running tasks and recovery](#long-running-tasks-duplicate-charges-and-worker-recovery).
 
-默认情况下，错误会停止节点。选择节点设置中的 **On Error → Continue (using regular output)** 后，item 级错误会通过 `json.error` 返回，下游应先判断是否存在此字段；解释器等公共配置错误仍可能直接停止整个节点。错误码的处理方式见 [故障排查](#故障排查)。收费提交不要直接开启 **Retry On Fail**，以免重复提交产生费用。
+Errors stop the node by default. With **On Error → Continue (using regular output)**, item-level errors are returned in `json.error`; downstream nodes should check for this field first. Shared configuration errors, such as interpreter settings, can still stop the whole node. See [troubleshooting](#troubleshooting) for error handling. Do not enable **Retry On Fail** directly on paid submissions, as retries can create duplicate charges.
 
-## 运行配置与就绪检查
+## Runtime settings and readiness checks
 
-| 管理员环境变量 | 默认值 / 范围 | 用途 |
+| Administrator environment variable | Default / range | Purpose |
 | --- | --- | --- |
-| `IFLYTEK_PYTHON_EXECUTABLE` | 必填绝对路径 | 独立 venv 的 Python |
-| `IFLYTEK_TMP_ROOT` | 系统临时目录 | 生产应配置 worker 独占的本地临时目录 |
-| `IFLYTEK_MAX_CONCURRENT_PROCESSES` | 2；1–16 | 同一 Node.js 进程中共享的执行槽位 |
-| `IFLYTEK_MAX_QUEUED_REQUESTS` | 32；0–256 | 槽位之外允许等待的调用数，0 表示不等待 |
-| `IFLYTEK_TIMEOUT_MS` | 120000；1000–600000 | 单次调用的总时限，包含排队、执行和结果持久化 |
-| `IFLYTEK_LOG_EXECUTIONS` | `false`；`true` / `false` | 通过 n8n logger 输出结构化执行元信息 |
-| `IFLYTEK_CHROME_EXECUTABLE` / `IFLYTEK_FFMPEG_EXECUTABLE` | 手绘图渲染及 `--full` 预检必填绝对路径 | 浏览器和 ffmpeg |
+| `IFLYTEK_PYTHON_EXECUTABLE` | Required absolute path | Python in a dedicated virtual environment |
+| `IFLYTEK_TMP_ROOT` | System temporary directory | Use a dedicated local directory for each worker in production |
+| `IFLYTEK_MAX_CONCURRENT_PROCESSES` | 2; 1–16 | Shared execution slots within one Node.js process |
+| `IFLYTEK_MAX_QUEUED_REQUESTS` | 32; 0–256 | Calls allowed to wait for a slot; 0 disables waiting |
+| `IFLYTEK_TIMEOUT_MS` | 120000; 1000–600000 | Total per-call deadline, including queuing, execution, and result persistence |
+| `IFLYTEK_LOG_EXECUTIONS` | `false`; `true` / `false` | Structured execution metadata through the n8n logger |
+| `IFLYTEK_CHROME_EXECUTABLE` / `IFLYTEK_FFMPEG_EXECUTABLE` | Absolute paths required for diagram rendering and `--full` preflight | Browser and ffmpeg |
 
-配置通过进程环境传入，工作流不提供这些字段。并发配置在每个进程第一次调用时固定，修改后重启所有执行进程。一个槽位覆盖输入落盘、子进程执行、产物持久化和临时文件回收；n8n 在获取槽位前读取的 binary 也会消耗内存，需同时限制 n8n 工作流并发和输入规模。
+Settings come from the process environment, not workflow fields. Concurrency settings are fixed at the first call in each process; restart all execution processes after changes. A slot covers writing inputs, child-process execution, persisting artifacts, and temporary-file cleanup. n8n can read binary data before a slot is acquired, which also consumes memory. Limit n8n workflow concurrency and input sizes as well.
 
-在已安装的 `@iflytekopensource/n8n-nodes-iflytek` 目录执行：
+Run in the installed `@iflytekopensource/n8n-nodes-iflytek` directory:
 
 ```sh
 node dist/shared/preflight.js
-# 完整依赖配置增加 --full
+# Add --full when full dependencies are configured.
 node dist/shared/preflight.js --full
 ```
 
-预检核对 Node.js 24、Python >=3.10、依赖与锁文件的精确版本、运行文件完整性、节点注册、环境配置及本地音色读取。`--full` 同时检查 full Python 依赖、浏览器/ffmpeg 路径和 Playwright Core；实际渲染仍需运行一次模板。预检不调用收费 API，不能验证服务授权。
+Preflight checks Node.js 24, Python >=3.10, exact dependency versions against the locks, runtime integrity, node registration, environment settings, and local voice listing. `--full` also checks full Python dependencies, browser/ffmpeg paths, and Playwright Core. Run a template to verify actual rendering. Preflight does not call paid APIs and cannot verify service authorization.
 
-部署时使用非 root 账号，包与 venv 只读，仅开放 n8n 数据目录和独占临时目录写权限。按工作流规模限制 CPU、内存、PID 和临时磁盘；保持时钟同步和 TLS 校验。容器内也需安装 Python 和所需系统程序，并使用容器内部路径配置运行变量。
+Deploy under a non-root account. Keep the package and virtual environment read-only, with write access limited to n8n data and dedicated temporary directories. Set CPU, memory, PID, and temporary-disk limits for the workflow size; keep clocks synchronized and TLS verification enabled. Containers also need Python and required system programs, with runtime variables using paths inside the container.
 
-## 日志与容量
+## Logs and capacity
 
-开启日志后，`iflytek.execution` 的 `started` / `finished` 事件包含 requestId、executionId、nodeType、itemIndex、skill、operation、workerPid、active、queued、queueMs、durationMs；完成事件额外包含状态、受控错误码、可取得的退出码和 binary 字节数。耗时包含清理，排队耗时单独统计。获取输入 binary 或凭证之前的失败仍由 n8n 节点错误记录。日志写入失败不改变业务结果。
+When logging is enabled, `iflytek.execution` events named `started` / `finished` include requestId, executionId, nodeType, itemIndex, skill, operation, workerPid, active, queued, queueMs, and durationMs. Finished events additionally include status, controlled error codes, an exit code when available, and binary byte counts. Duration includes cleanup; queue duration is reported separately. Failures before reading input binary or credentials are still recorded as n8n node errors. Logging failures do not change business results.
 
-日志不包含正文、凭证、签名 URL、原始 stderr、文件路径、用户自定义节点名称或上游原始响应。不要把 requestId/executionId 当作监控指标标签。按 skill/operation/状态汇总成功率和 P95；对 `QUEUE_FULL`、超时、启动失败、清理失败、磁盘压力及持续上游错误报警。当前受控 `UPSTREAM_ERROR` 不细分服务配额与鉴权原因，需在服务控制台核对。
+Logs exclude content bodies, credentials, signed URLs, raw stderr, file paths, user-defined node names, and raw upstream responses. Do not use requestId/executionId as metric labels. Aggregate success rates and P95 latency by skill, operation, and status. Alert on `QUEUE_FULL`, timeouts, startup failures, cleanup failures, disk pressure, and persistent upstream errors. The controlled `UPSTREAM_ERROR` does not distinguish quota from authentication failures; check the service console.
 
-n8n 的执行历史与 binary 存储仍可能持有业务内容，应单独配置访问控制、成功/失败执行保存策略及保留时间。binary 字节数是资源统计，不能替代讯飞实际账单；失败、取消或丢失响应也可能已经产生费用。
+n8n execution history and binary storage may still contain business data. Configure their access controls, success/failure execution persistence, and retention separately. Binary byte counts are resource statistics, not a substitute for iFLYTEK billing. Failed or cancelled calls and lost responses can still incur charges.
 
-总并发上限取决于所有执行进程，4 个 worker × 每进程 2 槽位最多占用 8 个槽位。账户配额须结合 n8n 执行并发和业务入口限流管理，本包不提供跨实例的全局配额服务。
+Total concurrency depends on all execution processes: 4 workers × 2 slots per process can occupy up to 8 slots. Manage account quota together with n8n execution concurrency and rate limits at the business entry point. This package does not provide a global quota service across instances.
 
-## 临时目录与异常退出
+## Temporary directories and abnormal exits
 
-正常成功、失败、取消、超时后会尝试回收该调用的 `ifly-exec-*` 目录；回收失败会报告 `CLEANUP_FAILED`。目录内的 `.ifly-owner.json` 记录所属主机、Node.js PID 和创建时间，供恢复工具判断归属。worker 被操作系统强杀时，需在维护窗口进行离线恢复。
+After success, failure, cancellation, or timeout, the package attempts to remove the call's `ifly-exec-*` directory. Cleanup failures report `CLEANUP_FAILED`. The directory's `.ifly-owner.json` records the host, Node.js PID, and creation time for recovery checks. If the operating system forcibly kills a worker, perform offline recovery during a maintenance window.
 
-1. 停止该临时目录所属 worker，并确认其 Python、Node、浏览器和 ffmpeg 后代均已停止。不能只依据父 PID 消失就判断子进程已停止。
-2. 先预览满 24 小时的残留，再执行删除：
+1. Stop the worker that owns the temporary directory and confirm that its Python, Node, browser, and ffmpeg descendants have stopped. The absence of the parent PID alone does not establish that child processes have exited.
+2. Preview leftovers at least 24 hours old before applying deletion:
 
 ```sh
 node dist/shared/tempRecovery.js --root /var/tmp/ifly-worker-a --min-age-hours 24
 node dist/shared/tempRecovery.js --root /var/tmp/ifly-worker-a --min-age-hours 24 --apply --workers-stopped
 ```
 
-工具拒绝根目录、系统临时目录本身和符号链接根路径；仅处理符合本包命名、同主机、所有者已停止且超过年龄门限的目录。活跃/未知 PID、其他主机、缺失或无效标记、近期目录与不相关内容均保留。PID 被其他进程复用时也保留，等待管理员核对。旧版本没有标记的目录需要单独核对，不做自动推断。
+The tool rejects filesystem roots, the system temporary directory itself, and symlink roots. It only handles directories with this package's naming pattern, a matching host, a stopped owner, and sufficient age. Active or unknown PIDs, other hosts, missing or invalid markers, recent directories, and unrelated content are retained. A PID reused by another process also causes retention for administrator review. Old directories without markers require separate review; ownership is not inferred automatically.
 
-`--workers-stopped` 是管理员确认，工具不会停止进程，也不适合在线定时清扫。共享临时目录不能替代 worker 独占目录；容器内主机名和 PID 命名空间变化时，旧标记可能被保守保留。
+`--workers-stopped` is an administrator confirmation. The tool does not stop processes and is unsuitable for scheduled cleanup while workers are running. Shared temporary directories do not replace dedicated worker directories. Changes to container hostnames or PID namespaces can cause old markers to be conservatively retained.
 
-## URL、训练与渲染边界
+## URLs, training, and rendering boundaries
 
-PDF/视频/声音样本和回调 URL 仅接受 HTTP(S)、80/443 端口、无用户口令及 fragment 的公开地址。适配层拒绝本地/私网/链路本地/保留地址和混合 DNS 结果，解析失败也拒绝；解析耗时受 Runner 总时限约束。
+PDF, video, voice-sample, and callback URLs must be public HTTP(S) addresses on ports 80/443, without usernames/passwords or fragments. The adapter rejects local, private, link-local, and reserved addresses, mixed DNS results, and DNS resolution failures. Resolution time is bounded by the runner's total deadline.
 
-这些 URL 由上游服务后续抓取，本包不执行用户内容下载，无法固定上游稍后的 DNS 结果或控制其重定向。生产只使用管理员批准、无重定向到内网的内容域名，并落实上游抓取与部署出口控制；不能将一次 DNS 检查称为完整 SSRF 隔离。
+The upstream provider fetches these URLs later. This package does not download user content and cannot pin the provider's later DNS results or control redirects. In production, use administrator-approved content domains that do not redirect to internal networks, and enforce provider-side fetching and deployment egress controls. A single DNS check is not complete SSRF isolation.
 
-声音训练的 token 请求固定使用 `https://avatar-hci.xfyousheng.com/aiauth/v1/token`，训练和上传请求使用 `https://opentrain.xfyousheng.com/voice_train`。请求校验 TLS 证书并拒绝重定向；连接或证书错误直接失败。声音克隆合成使用 TLS 校验的 WebSocket。
+Voice-training token requests use `https://avatar-hci.xfyousheng.com/aiauth/v1/token`; training and upload requests use `https://opentrain.xfyousheng.com/voice_train`. Requests verify TLS certificates and reject redirects. Connection or certificate errors fail directly. Cloned speech synthesis uses WebSockets with TLS verification.
 
-渲染仅接受受限 HTML/SVG/CSS，关闭页面脚本和外部请求，保留 Chromium sandbox。容器、系统资源限制和浏览器补丁管理仍需部署方落实；本包不开放任意脚本执行或自然语言生成图表接口。
+Rendering accepts only restricted HTML/SVG/CSS, disables page scripts and external requests, and retains the Chromium sandbox. Deployment administrators remain responsible for container isolation, system resource limits, and browser patches. The package does not expose arbitrary script execution or natural-language diagram generation.
 
-## 长任务、重复费用与 worker 恢复
+## Long-running tasks, duplicate charges, and worker recovery
 
-Create/Submit 成功后，先耐久保存业务关联键、输入摘要和上游 task ID，再进入 n8n Wait。Get 仅查询一次；由工作流设置最大轮询次数与截止时间。恢复时使用保存的 task ID 查询，避免再次调用 Create。结束本地等待或进程不代表上游任务取消。
+After Create/Submit succeeds, durably save the business correlation key, input digest, and upstream task ID before entering n8n Wait. Get queries once; workflows must set their own polling limit and deadline. During recovery, query the saved task ID instead of calling Create again. Ending the local wait or process does not cancel an upstream task.
 
-收费操作不要启用 n8n Retry On Fail 自动重试。n8n 队列的故障重投与应用重新执行同样可能重复提交；本包的 requestId、进程内队列和临时目录不提供业务幂等。
+Do not enable n8n Retry On Fail for paid operations. Queue redelivery after failures and application re-execution can also duplicate submissions. This package's requestId, in-process queue, and temporary directories do not provide business-level idempotency.
 
-需要跨 worker 去重时，可在独立业务 PostgreSQL 中使用 [操作记录示例](operation-ledger.sql)，由自己的工作流通过 Postgres 节点或应用服务执行。此表不会由 iFlytek 节点自动创建、读写；请勿安装到 n8n 内部数据库。
+For cross-worker deduplication, you can use the [operation ledger example](operation-ledger.sql) in a separate business PostgreSQL database, with queries executed by your workflow's Postgres nodes or application service. iFlytek nodes do not automatically create, read, or write this table. Do not install it in n8n's internal database.
 
-提交前以 `scope + skill + operation + operation_key` 为唯一键原子占位；只有插入成功的调用者提交上游。`scope` 区分业务或应用，`operation_key` 使用重试时不变的业务键。`request_sha256` 应从规范化输入计算，包含影响结果的参数和文件内容摘要，不存正文或密钥。重复键必须核对摘要，相同输入读取已有状态，不同输入拒绝。实际收费请求不能放在可自动重试的数据库事务里。
+Before submission, atomically reserve a record with the unique key `scope + skill + operation + operation_key`. Only the caller that successfully inserts the record submits upstream. `scope` distinguishes the business or application; `operation_key` is a business key that stays the same across retries. Compute `request_sha256` from canonical input, including parameters that affect results and file-content digests, without storing bodies or secrets. For duplicate keys, compare digests: read the existing state for identical input and reject different input. Do not place the paid request inside a database transaction that can retry automatically.
 
-建议状态为 `pending_submission → submitted → succeeded/failed`。提交后响应丢失、进程中断或凭证/网络错误无法证明未提交时，进入 `submission_unknown` 并人工核对；不要按 TTL 删除占位或重新收费提交。成功取得 task ID 后再写入 submitted；过期 pending 只能转入待核对。原子占位能防止正常并发双提交，不能保证外部 API 与数据库之间恰好一次。
+Suggested states are `pending_submission → submitted → succeeded/failed`. If a response is lost, a process exits, or a credential/network error cannot prove that submission did not occur, record `submission_unknown` and reconcile manually. Do not expire the reservation by TTL or submit another paid request. Record submitted only after obtaining a task ID; expired pending records require reconciliation. Atomic reservation prevents ordinary concurrent duplicate submissions but cannot guarantee exactly-once behavior between an external API and a database.
 
-queue mode 使用目标 n8n 版本支持、所有 worker 可访问的 binary 存储。不能使用某台 worker 的 filesystem binary 或本包临时目录承载跨 worker 数据；大文件的对象存储能力及许可需单独核实。主进程和 worker 使用同一个凭证加密密钥、数据库和 Redis 配置。
+In queue mode, use binary storage supported by the target n8n version and accessible to all workers. Do not use one worker's filesystem binary storage or this package's temporary directories for cross-worker data. Check object-storage capabilities and licensing separately for large files. The main process and workers must share the credential encryption key, database, and Redis configuration.
 
-## 升级与回滚
+## Upgrades and rollback
 
-1. 记录当前包版本，保留可重新安装的制品、配套 Python 依赖和运行镜像；按组织要求核验来源及完整性。备份 n8n 数据、凭证加密密钥及业务提交记录。
-2. 暂停新的收费提交，等待运行中调用结束并保存远端任务 ID；核对不确定提交记录。
-3. 将目标版本安装到独立实例，运行预检，并检查旧工作流、多 item/表达式、binary、错误分支和 Wait 恢复。确认后将所有 worker 一起切换到同一版本。
-4. 回滚恢复旧 npm 制品和配套 Python/系统依赖，不重提已完成或结果不确定的上游任务。恢复 Wait 前先确认节点版本和输出字段兼容。
-5. npm 包回滚与 n8n 自身数据库迁移回滚分别处理；升级 n8n 前按官方要求验证数据库备份/恢复，不能用替换节点包代替数据库回滚。
+1. Record the current package version and retain an installable artifact, matching Python dependencies, and runtime image. Verify origin and integrity under your organization's requirements. Back up n8n data, the credential encryption key, and business submission records.
+2. Pause new paid submissions, wait for active calls to finish, and save remote task IDs. Reconcile uncertain submissions.
+3. Install the target version in an isolated instance, run preflight, and check existing workflows, multiple items/expressions, binary data, error branches, and Wait recovery. Then switch all workers to the same version together.
+4. To roll back, restore the previous npm artifact and matching Python/system dependencies. Do not resubmit completed or uncertain upstream tasks. Check node-version and output-field compatibility before resuming Wait executions.
+5. Handle node-package rollback separately from n8n database migration rollback. Before upgrading n8n, verify database backup/restore according to n8n's instructions. Replacing the node package is not a database rollback.
 
-升级和回滚都应在停止相关执行进程后进行，避免工作流执行中混用不同版本。只恢复节点包，不会自动恢复或取消上游任务；应使用已保存的 task ID 继续查询。
+Stop affected execution processes before upgrades or rollback so a workflow does not execute against mixed versions. Restoring the node package does not restore or cancel upstream tasks. Continue querying with saved task IDs.
 
-## 故障排查
+## Troubleshooting
 
-先核对包版本、n8n/Node.js/Python 版本和节点操作。包目录下运行 `node dist/shared/preflight.js`，可先排除解释器、依赖、文件完整性和基本配置问题。
+Check the package, n8n, Node.js, and Python versions and the node operation first. Run `node dist/shared/preflight.js` in the package directory to rule out interpreter, dependency, file-integrity, and basic configuration problems.
 
-| 现象或错误码 | 检查与处理 |
+| Symptom or error code | Checks and actions |
 | --- | --- |
-| 搜索不到 iFlytek 节点 | 确认包安装在该实例的社区节点目录、实例允许加载社区节点，并在安装后重启 n8n；检查启动日志 |
-| `INVALID_INPUT` | 检查文本、binary 字段、文件格式/大小、URL 和节点参数；同时检查管理员运行变量是否在规定范围内 |
-| `AUTH_FAILED` | 确认节点已选中 iFlytek API 凭证且必需字段完整；不要用主机环境变量代替 n8n 凭证 |
-| `PYTHON_NOT_FOUND` / `DEPENDENCY_MISSING` | 核对绝对路径、服务账号权限和 venv 锁定依赖；渲染还需浏览器及 ffmpeg |
-| `RUNTIME_MISSING` / `INVALID_PROTOCOL` | 确认安装包完整，按已知版本重新安装；持续出现时提供脱敏的 requestId 和版本信息 |
-| `UPSTREAM_ERROR` | 在讯飞控制台核对服务、模型、音色或资源授权及额度，并检查时钟和网络；该错误不会细分所有服务端鉴权/配额原因 |
-| `QUEUE_FULL` | 检查 n8n 工作流并发、执行积压和账户限额；在资源允许时由管理员调整槽位或等待容量 |
-| `PROCESS_TIMEOUT` / `EXECUTION_CANCELLED` | 已结束本地等待；异步任务可能仍在服务端运行。先用已保存 task ID 查询或人工核对，再决定后续操作 |
-| `BINARY_IO` / `INVALID_ARTIFACT` / `OUTPUT_LIMIT_EXCEEDED` | 核对输入 binary 名称、产物大小、存储权限和磁盘容量；queue mode 检查共享 binary 配置 |
-| `CLEANUP_FAILED` / `PROCESS_TERMINATION_FAILED` | 检查仍在运行的调用及后代进程；在维护窗口处理残留，勿对活动任务直接清扫 |
+| iFlytek nodes are missing | Confirm installation in the instance's community-node directory, permission to load community nodes, and a restart after installation; check startup logs |
+| `INVALID_INPUT` | Check text, binary field names, file formats/sizes, URLs, and node parameters; also verify administrator settings are within their allowed ranges |
+| `AUTH_FAILED` | Select an iFlytek API credential with all required fields; do not substitute host environment variables for n8n credentials |
+| `PYTHON_NOT_FOUND` / `DEPENDENCY_MISSING` | Check absolute paths, service-account permissions, and locked virtual-environment dependencies; rendering also needs a browser and ffmpeg |
+| `RUNTIME_MISSING` / `INVALID_PROTOCOL` | Check package integrity and reinstall a known version; if persistent, provide a sanitized requestId and version details |
+| `UPSTREAM_ERROR` | Check service, model, voice, resource access, and quota in the iFLYTEK console, plus clocks and networking; the error does not distinguish every upstream authentication/quota cause |
+| `QUEUE_FULL` | Check workflow concurrency, execution backlog, and account limits; administrators can adjust slots or queue capacity if resources permit |
+| `PROCESS_TIMEOUT` / `EXECUTION_CANCELLED` | Local waiting has ended, but asynchronous tasks may still run remotely. Query a saved task ID or reconcile manually before deciding what to do next |
+| `BINARY_IO` / `INVALID_ARTIFACT` / `OUTPUT_LIMIT_EXCEEDED` | Check binary field names, artifact sizes, storage permissions, and disk capacity; in queue mode, check shared binary storage |
+| `CLEANUP_FAILED` / `PROCESS_TERMINATION_FAILED` | Check active calls and descendant processes; handle leftovers during a maintenance window, without cleaning active tasks |
 
-排查日志只提供受控错误信息。向 [项目 issue](https://github.com/iflytek/iFly-Skills/issues) 反馈时附上最小复现及可获得的 requestId，不公开凭证、签名 URL 或业务内容。
+Diagnostic logs provide controlled error information only. When reporting a [project issue](https://github.com/iflytek/iFly-Skills/issues), include a minimal reproduction and requestId when available. Do not disclose credentials, signed URLs, or business content.
