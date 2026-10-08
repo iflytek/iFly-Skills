@@ -17,7 +17,7 @@ Please include:
 
 ## What to Expect
 
-- We acknowledge new reports within 48 hours and send an initial assessment within 14 days.
+- The community security policy provides for acknowledgment within 48 hours, followed by assessment of the vulnerability and its severity.
 - We keep you informed while we work on a fix and coordinate the disclosure date with you.
 - Fixes are published in a new skill or package version, with a [GitHub Security Advisory](https://github.com/iflytek/iFly-Skills/security/advisories) when appropriate. We credit reporters unless they prefer to stay anonymous.
 
