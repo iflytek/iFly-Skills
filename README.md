@@ -56,7 +56,7 @@ Each skill is packaged in its own directory containing specific instructions, sc
 
 ## 🤝 Contributing
 
-We welcome contributions to expand the iFLYTEK skills ecosystem!
+We welcome contributions to expand the iFLYTEK skills ecosystem! See the [Contributing Guide](CONTRIBUTING.md) for the testing policy and local checks, and [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 
 1. Fork the repository.
 2. Create your feature branch (`git checkout -b feature/new-skill`).
