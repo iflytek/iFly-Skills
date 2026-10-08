@@ -79,7 +79,7 @@
     ]
   },
   "dependencies": {
-    "playwright-core": "1.61.1"
+    "playwright-core": "1.63.0"
   },
   "peerDependencies": {
     "n8n-workflow": ">=2.39.3 <3"
