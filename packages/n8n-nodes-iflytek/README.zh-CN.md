@@ -1,5 +1,7 @@
 # @iflytekopensource/iFLYTEK Skills
 
+**npm 包名：** `@iflytekopensource/n8n-nodes-iflytek-skills`
+
 中文 · [English](README.md)
 
 本文为中文概述；完整安装步骤及英文用户文档见 [默认 README](README.md)。
@@ -47,6 +49,7 @@ npm install --save-exact @iflytekopensource/n8n-nodes-iflytek-skills@VERSION
 - **本包当前支持 Node.js 24.x**（`>=24.0.0 <25`）。已验证的 n8n 版本与各自的 Node.js 要求见 [兼容范围](docs/compatibility.md)。
 - **Python 3.10 或更高版本**，使用独立 venv 安装随包锁定依赖；合同文档处理使用 full 依赖。
 - **自托管 n8n**，允许启动本地子进程并写入临时目录。手绘图另需浏览器及 ffmpeg；具体配置见 [安装指南](docs/installation.md)。
+- **讯飞服务授权**：远端操作需要应用的 App ID、API Key、API Secret，以及各项服务的授权和可用额度。
 
 ## 文档与反馈
 
@@ -60,6 +63,7 @@ npm install --save-exact @iflytekopensource/n8n-nodes-iflytek-skills@VERSION
 
 - 本包依赖本地 Python 子进程，不支持 n8n Cloud。`n8n-community-node-package` 关键词供 npm 检索使用，不代表 n8n 官方认证或已验证节点目录收录。
 - 共享凭证仍需分别开通各项远端服务及额度。静态音色列表和本地手绘图不调用 API；语音合成需要服务授权。
+- 远端操作会将输入的文本、文件或 URL 发送至讯飞服务；Python 在本地执行不代表这些操作可离线完成。
 - 合同审核结果需人工复核；手绘图渲染现成 HTML，不从自然语言生成图表。收费任务的重试与恢复方式见 [运行指南](docs/operations.md#long-running-tasks-duplicate-charges-and-worker-recovery)。
 
 ## 许可
