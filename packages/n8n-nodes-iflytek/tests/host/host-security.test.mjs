@@ -28,6 +28,8 @@ test('installed host and all affected transitive dependency paths use reviewed v
   for (const [name, range] of Object.entries({
     tar: '>=7.5.21 <8', 'fast-xml-parser': '>=4.5.7 <5 || >=5.5.9 <6',
     'form-data': '>=2.5.6 <3 || >=3.0.5 <4 || >=4.0.6 <5',
+    'simple-git': '>=4.0.2 <5', '@simple-git/argv-parser': '>=2.0.1 <3',
+    'shell-quote': '>=1.12.0 <2', vm2: '>=3.12.2 <4',
   })) {
     assert.ok(entries(name).length, `Missing dependency: ${name}`);
     for (const [location, pkg] of entries(name)) {
@@ -37,6 +39,75 @@ test('installed host and all affected transitive dependency paths use reviewed v
   }
   for (const [location, pkg] of Object.entries(lock.packages)) assert.ok(!pkg.extraneous, location);
   assert.equal(entries('expr-eval').length, 0, 'Do not reintroduce the unused vulnerable evaluator');
+});
+
+test('Git library APIs work through n8n dependency paths and retain security guards', async t => {
+  const scratch = temporary(t);
+  // Keep Git configuration and all writes inside disposable repositories.
+  const env = { PATH: process.env.PATH, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(scratch, 'empty.gitconfig') };
+  fs.writeFileSync(env.GIT_CONFIG_GLOBAL, '');
+  for (const consumer of ['n8n', 'n8n-nodes-base']) {
+    const current = createRequire(require.resolve(`${consumer}/package.json`));
+    const { simpleGit, GitPluginError } = current('simple-git');
+    const directory = path.join(scratch, consumer);
+    fs.mkdirSync(directory);
+    const git = simpleGit({
+      baseDir: directory, timeout: { block: 10000 },
+      allowEnvironment: ['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM'],
+      unsafe: { allowUnsafeConfigPaths: true }, // Only the empty test configuration path above.
+    }).env(env);
+    await git.init();
+    await git.addConfig('user.name', 'Host Security Test');
+    await git.addConfig('user.email', 'host-security@example.invalid');
+    fs.writeFileSync(path.join(directory, 'sample.txt'), 'sample');
+    await git.add('sample.txt');
+    await git.commit('local compatibility check', { '--no-gpg-sign': null });
+    assert.equal((await git.status()).isClean(), true, consumer);
+    assert.equal((await git.log()).latest.message, 'local compatibility check', consumer);
+    assert.equal((await git.show(['HEAD:sample.txt'])), 'sample', consumer);
+    for (const key of ['trailer.audit.cmd', 'trailer.audit.command']) {
+      await assert.rejects(async () => git.addConfig(key, 'echo blocked'), error =>
+        error instanceof GitPluginError && /allowUnsafeCommandBinaries/.test(error.message));
+      assert.equal((await git.getConfig(key)).value, null);
+    }
+    // Check editor detection without invoking any editor or changing process.env.
+    const { vulnerabilityCheck } = createRequire(current.resolve('simple-git'))('@simple-git/argv-parser');
+    const findings = [...vulnerabilityCheck(['config', '--edit'], { VISUAL: 'echo blocked' })];
+    assert.ok(findings.some(finding => finding.category === 'allowUnsafeEditor'), consumer);
+    // n8n 2.40.7's built-in Git node does not yet opt into v4's environment guard.
+    // Keep this restriction explicit; the isolated host validates the iFLYTEK nodes.
+    await assert.rejects(async () => simpleGit({ baseDir: directory }).env({
+      GIT_TERMINAL_PROMPT: '0', GIT_ALLOW_PROTOCOL: 'file:git:http:https:ssh',
+    }).status(), /environment guard/);
+  }
+});
+
+test('Daytona shell quoting preserves arguments and rejects line breaks after comments', () => {
+  const current = createRequire(require.resolve('@daytona/sdk/package.json'));
+  const { quote, parse } = current('shell-quote');
+  const args = ['git', 'commit', '-m', 'two words', "a'b", '$HOME', ''];
+  assert.deepEqual(parse(quote(args)), args);
+  for (const newline of ['\n', '\r', '\u2028', '\u2029']) {
+    assert.throws(() => quote(['echo', { comment: 'note' }, `${newline}echo blocked`]), /line terminators/);
+  }
+});
+
+test('vm2 consumers retain async execution and restricted module resolution', async () => {
+  for (const consumer of ['n8n-nodes-base', '@n8n/n8n-nodes-langchain']) {
+    const current = createRequire(require.resolve(`${consumer}/package.json`));
+    const { VM, NodeVM, makeResolverFromLegacyOptions } = current('vm2');
+    const resolver = makeResolverFromLegacyOptions({ external: false, builtin: [] });
+    const vm = new NodeVM({ sandbox: { input: 21 }, require: resolver, eval: false, wasm: false });
+    assert.equal(await vm.run('module.exports = Promise.resolve(input * 2)'), 42, consumer);
+    assert.throws(() => vm.run('module.exports = require("node:fs")'), /Cannot find module|Access denied/);
+    assert.throws(() => new VM({ eval: false }).run('eval("1 + 1")'), /Code generation|EvalError/);
+  }
+  // Exercise the actual n8n Code sandbox wrapper, including its legacy resolver API.
+  const base = path.dirname(require.resolve('n8n-nodes-base/package.json'));
+  const { JavaScriptSandbox } = require(path.join(base, 'dist/nodes/Code/JavaScriptSandbox.js'));
+  const sandbox = new JavaScriptSandbox({ input: 21 }, 'return [{ json: { value: await Promise.resolve(input * 2) } }];', {});
+  const result = await sandbox.runCode();
+  assert.equal(result[0].json.value, 42);
 });
 
 test('current LangChain Calculator works without the removed legacy evaluator', async () => {

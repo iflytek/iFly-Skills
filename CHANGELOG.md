@@ -1,5 +1,12 @@
 # Changelog
 
+## n8n test host dependency security
+
+### Fixed
+
+- Upgraded the isolated test host's vulnerable Git, shell-quoting, and JavaScript sandbox dependencies with version-specific overrides while retaining n8n 2.40.7 and the critical audit threshold.
+- Added installed-version and consumer-path regression checks, and documented the built-in Git integration restriction introduced by the secure Git library's environment guard.
+
 ## n8n package documentation language
 
 ### Changed

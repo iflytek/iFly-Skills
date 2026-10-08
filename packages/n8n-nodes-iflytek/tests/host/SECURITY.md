@@ -12,6 +12,9 @@
 | `form-data`：Zep SDK 的 multipart 边界可预测；[GHSA-fjxv-7rqg-78g4](https://github.com/advisories/GHSA-fjxv-7rqg-78g4) | `4.0.0 → 4.0.6`，同时包含 header 参数转义修复 | 验证边界不使用 `Math.random`，字段名/文件名不能注入 CRLF header |
 | `tar`：SQLite 构建助手、node-gyp、cacache 引入旧版本，解压可能耗尽资源；[GHSA-23hp-3jrh-7fpw](https://github.com/advisories/GHSA-23hp-3jrh-7fpw) | `6.2.1 → 7.5.22`；6.x 无对应修复版，需跨主版本升级 | 宿主 Node 24 满足 tar 7 的 Node ≥18 要求；验证同步提取、流式提取、filter/strip、路径越界防护、解压比例限制、实际 SQLite 助手/驱动及 cache 读写 |
 | `expr-eval`：`langchain → @langchain/community 0.0.57 → expr-eval 2.0.2` 存在表达式执行漏洞；[GHSA-q9v2-7m5w-4693](https://github.com/advisories/GHSA-q9v2-7m5w-4693) | 当前宿主依赖树不包含该链，锁文件不包含 `extraneous` 条目 | 验证锁文件、Calculator 的正常运算及其依赖解析路径；Calculator 不能解析到 `expr-eval` |
+| `simple-git` / `@simple-git/argv-parser`：n8n 和内置 Git 节点的命令配置、编辑器环境变量防护存在绕过；[GHSA-x6jw-m9v5-85vh](https://github.com/advisories/GHSA-x6jw-m9v5-85vh)、[GHSA-v5rq-49vh-5v5c](https://github.com/advisories/GHSA-v5rq-49vh-5v5c) | `simple-git 3.36.0 → 4.0.2`，其依赖固定为 `argv-parser 2.0.1` | 从两个消费者路径验证初始化、配置、提交、状态、日志、文件读取，以及 trailer 命令配置和 VISUAL 检测；内置 Git 功能限制见下文 |
+| `shell-quote`：Daytona SDK 的 shell 参数引用允许注释后的换行恢复命令执行；[GHSA-pqg4-j6r4-53mv](https://github.com/advisories/GHSA-pqg4-j6r4-53mv) | `1.10.0 → 1.12.0` | 从 SDK 依赖路径验证普通参数往返和四种行终止符的拒绝行为 |
+| `vm2`：内置 JavaScript 沙箱和 LangChain 节点依赖存在沙箱逃逸、模块解析边界绕过；[GHSA-pq68-rvw4-xp4r](https://github.com/advisories/GHSA-pq68-rvw4-xp4r)、[GHSA-5h3f-q97h-ccvc](https://github.com/advisories/GHSA-5h3f-q97h-ccvc) | `3.11.6 → 3.12.2` | 验证两个消费者的异步执行、受限模块解析、禁止 eval，以及实际 n8n JavaScriptSandbox 包装器；不将有限回归视为对所有沙箱攻击的证明 |
 
 依赖漏洞可传播到 `@getzep/zep-cloud`、`@getzep/zep-js`、`@langchain/community` 和 `@n8n/n8n-nodes-langchain` 等父包。审计中的父包告警应沿具体依赖路径核对，同一底层漏洞可能对应多个受影响包条目。
 
@@ -22,6 +25,12 @@
 旧宿主或自定义集成若仍实际依赖它，应升级/移除对应集成；在完成替换前隔离该实例，禁止不可信表达式和工作流输入，不暴露相关 Webhook。只更换本节点包无法清理已有宿主中的这类依赖。以后测试宿主更新若重新引入它，安全回归和 critical 门禁必须失败，重新核对上游修复后才能发布。
 
 tar 6.x 没有相应安全修复，当前宿主通过经过调用验证的 7.x 覆盖解决。每周复核 n8n 及这几条依赖链；上游直接采用修复版后，重新生成并审计锁文件、验证实际调用，再撤除不再需要的 override。
+
+## Git 跨主版本覆盖的限制
+
+`simple-git` 3.x 没有上述漏洞的修复版。n8n `2.40.7` 的内置 Git 节点通过 `.env()` 设置 `GIT_TERMINAL_PROMPT`、`GIT_ALLOW_PROTOCOL`，但没有声明 4.x 新增的 `allowEnvironment`，因此会被环境变量防护拒绝。回归明确检查这一拒绝行为；正常 Git 库操作使用临时仓库及显式允许的空配置文件完成验证，不代表内置 Git 节点或源代码管理集成已通过验收。
+
+该宿主仅用于本包 11 个 iFLYTEK 节点的隔离验收，不用于 Git 节点或源代码管理流程，也不作为生产 n8n 安装模板。保留新版本的环境变量防护，不通过关闭防护恢复这些功能。生产实例若需要这些功能，应等待或采用已适配安全依赖的 n8n 版本并单独验证；在此之前限制不可信工作流、Git 参数与配置输入，隔离相关实例。n8n `2.42.4` 仍声明 `simple-git 3.36.0`，仅升级至该版本不足以消除此依赖风险。
 
 ## 门禁与运行边界
 
