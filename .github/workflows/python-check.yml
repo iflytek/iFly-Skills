@@ -5,12 +5,16 @@ on:
     paths:
       - 'tests/iflytek_voiceclone_tts/**'
       - 'tests/iflytek_speed_transcription/**'
+      - 'tests/test_*.py'
+      - '.github/workflows/python-check.yml'
       - "skills/**/*.py"
   push:
     branches: [main]
     paths:
       - 'tests/iflytek_voiceclone_tts/**'
       - 'tests/iflytek_speed_transcription/**'
+      - 'tests/test_*.py'
+      - '.github/workflows/python-check.yml'
       - "skills/**/*.py"
   workflow_dispatch:
 
@@ -29,7 +33,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install Python check dependencies
-        run: pip install ruff==0.16.2 -r tests/iflytek_speed_transcription/requirements.txt
+        run: pip install ruff==0.16.2 websocket-client -r tests/iflytek_speed_transcription/requirements.txt
 
       - name: Check Python
         run: |
@@ -41,3 +45,9 @@ jobs:
 
       - name: Run Voice Clone TTS offline regression tests
         run: python -m unittest discover -s tests/iflytek_voiceclone_tts -p 'test_*.py' -v
+
+      - name: Run skill credential regression tests
+        run: python -m unittest discover -s tests -p 'test_skill_credentials.py' -v
+
+      - name: Run Hyper TTS offline regression tests
+        run: python -m unittest discover -s skills/iflytek-hyper-tts/tests -p 'test_*.py' -v
