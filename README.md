@@ -45,6 +45,7 @@ Currently, the repository provides the following ready-to-use AI skills:
 | **Voice Clone TTS** | Voice cloning technology for customized text-to-speech generation. | [`iflytek-voiceclone-tts`](./skills/iflytek-voiceclone-tts) |
 | **Contract Intelligence Review** | Intelligent contract review covering OCR, clause analysis, risk detection, and compliance. | [`iflytek-contract-intelligence-review`](./skills/iflytek-contract-intelligence-review) |
 | **Animated Sketch Diagram** | Hand-drawn animated architecture diagrams — pure SVG+CSS single-file HTML with seamless-loop GIF export. | [`animated-sketch-diagram`](./skills/animated-sketch-diagram) |
+| **Tailcat Secure Transfer** | WireGuard-encrypted one-off text/file transfers and temporary access to an explicitly selected local TCP service. | [`tailcat-secure-transfer`](./skills/tailcat-secure-transfer) |
 
 ## 🛠️ Usage
 
