@@ -1,0 +1,269 @@
+# MCP tool manifest for the executable, single-step skills on current main.
+# Multi-step/stateful skills stay out until their task lifecycle can be modeled
+# without exposing server-local state or ambiguous conditional arguments.
+
+skills:
+  - id: iflytek-translate
+    tool_name: translate
+    summary: Translate text between languages with iFLYTEK Machine Translation.
+    entry:
+      script: skills/iflytek-translate/scripts/translate.py
+    cred_profile: xfyun
+    output: stdout_text
+    args:
+      - name: text
+        type: string
+        required: true
+        description: Text to translate.
+      - name: from_lang
+        flag: --from
+        type: string
+        default: cn
+        description: Source language code, for example cn or en.
+      - name: to_lang
+        flag: --to
+        type: string
+        default: en
+        description: Target language code, for example en, cn, or ja.
+      - name: raw
+        flag: --raw
+        type: boolean
+        default: false
+        description: Return the raw API response.
+
+  - id: iflytek-text-proofread
+    tool_name: proofread
+    summary: Proofread and correct Chinese official-document text.
+    entry:
+      script: skills/iflytek-text-proofread/scripts/text_proofread.py
+    cred_profile: ifly
+    output: stdout_text
+    args:
+      - name: text
+        type: string
+        required: true
+        description: Text to proofread.
+      - name: raw
+        flag: --raw
+        type: boolean
+        default: false
+        description: Return the raw decoded API response.
+
+  - id: iflytek-hyper-tts
+    tool_name: hyper_tts
+    summary: Synthesize speech with an iFLYTEK ultra-realistic voice.
+    entry:
+      script: skills/iflytek-hyper-tts/scripts/xfei_hyper_tts.py
+    cred_profile: xfei
+    output: file
+    args:
+      - name: text
+        flag: --text
+        type: string
+        required: true
+        description: Text to synthesize.
+      - name: output
+        flag: --output
+        type: string
+        default: output.mp3
+        is_output_path: true
+        description: Server-managed output audio path.
+      - name: vcn
+        flag: --vcn
+        type: string
+        default: x5_lingxiaotang_flow
+        description: Voice code.
+      - name: speed
+        flag: --speed
+        type: integer
+        default: 50
+        description: Speech speed from 0 to 100.
+      - name: volume
+        flag: --volume
+        type: integer
+        default: 50
+        description: Volume from 0 to 100.
+      - name: pitch
+        flag: --pitch
+        type: integer
+        default: 50
+        description: Pitch from 0 to 100.
+      - name: sample_rate
+        flag: --sample_rate
+        type: enum
+        enum: [8000, 16000, 24000]
+        default: 24000
+        description: Output sample rate in Hz.
+
+  - id: iflytek-image-understanding
+    tool_name: image_understanding
+    summary: Describe or answer a question about a local image with iFLYTEK.
+    entry:
+      script: skills/iflytek-image-understanding/scripts/image_understanding.py
+    cred_profile: ifly
+    output: stdout_text
+    args:
+      - name: image
+        type: string
+        required: true
+        is_input_path: true
+        description: Local JPEG or PNG image path visible to the MCP server.
+      - name: question
+        flag: --question
+        type: string
+        default: 请详细描述这张图片的内容
+        description: Question to ask about the image.
+      - name: domain
+        flag: --domain
+        type: enum
+        enum: [general, imagev3]
+        default: imagev3
+        description: Model domain.
+      - name: temperature
+        flag: --temperature
+        type: number
+        default: 0.5
+        description: Sampling temperature in the interval (0, 1].
+      - name: max_tokens
+        flag: --max-tokens
+        type: integer
+        default: 2048
+        description: Maximum response tokens from 1 to 8192.
+      - name: raw
+        flag: --raw
+        type: boolean
+        default: false
+        description: Return raw WebSocket response frames.
+
+  - id: iflytek-ocr-invoice
+    tool_name: ocr_invoice
+    summary: Extract structured fields from a local invoice or receipt image.
+    entry:
+      script: skills/iflytek-ocr-invoice/scripts/invoice.py
+    cred_profile: xfyun
+    output: json
+    args:
+      - name: image
+        type: string
+        required: true
+        is_input_path: true
+        description: Local invoice or receipt image path visible to the MCP server.
+      - name: raw
+        flag: --raw
+        type: boolean
+        default: false
+        description: Return the raw API response.
+
+  - id: iflytek-pdf-image-ocr
+    tool_name: image_ocr
+    summary: Recognize text in a local image and return JSON or Markdown.
+    entry:
+      script: skills/iflytek-pdf-image-ocr/scripts/image_ocr.py
+    cred_profile: ifly
+    output: stdout_text
+    args:
+      - name: image_path
+        type: string
+        required: true
+        is_input_path: true
+        description: Local image path visible to the MCP server.
+      - name: format
+        flag: --format
+        type: enum
+        enum: [json, markdown, "json,markdown"]
+        default: markdown
+        description: Response format.
+
+  - id: iflytek-pdf-image-ocr
+    tool_name: pdf_ocr
+    summary: Submit and poll OCR for a local PDF document.
+    entry:
+      script: skills/iflytek-pdf-image-ocr/scripts/pdf_ocr.py
+    cred_profile: ifly
+    output: async_task
+    args:
+      - name: pdf_path
+        type: string
+        required: true
+        is_input_path: true
+        description: Local PDF path visible to the MCP server.
+      - name: format
+        flag: --format
+        type: enum
+        enum: [word, markdown, json]
+        default: word
+        description: OCR export format.
+      - name: no_poll
+        flag: --no-poll
+        type: boolean
+        default: false
+        description: Return the task identifier without polling.
+      - name: poll_interval
+        flag: --poll-interval
+        type: integer
+        default: 5
+        description: Polling interval in seconds, minimum 5.
+      - name: max_wait
+        flag: --max-wait
+        type: integer
+        default: 300
+        description: Maximum polling time in seconds.
+
+  - id: iflytek-speed-transcription
+    tool_name: transcribe
+    summary: Transcribe a local audio file with iFLYTEK ultra-fast transcription.
+    entry:
+      script: skills/iflytek-speed-transcription/scripts/transcribe.py
+    cred_profile: xfei
+    output: file
+    args:
+      - name: file_path
+        type: string
+        required: true
+        is_input_path: true
+        description: Local audio path visible to the MCP server.
+      - name: language
+        flag: --language
+        type: string
+        default: zh_cn
+        description: Recognition language code.
+      - name: accent
+        flag: --accent
+        type: string
+        default: mandarin
+        description: Recognition accent.
+      - name: pd
+        flag: --pd
+        type: string
+        description: Optional domain such as court, finance, medical, or tech.
+      - name: vspp_on
+        flag: --vspp-on
+        type: enum
+        enum: [0, 1]
+        description: Enable speaker separation.
+      - name: speaker_num
+        flag: --speaker-num
+        type: integer
+        description: Number of speakers; zero enables automatic detection.
+      - name: no_poll
+        flag: --no-poll
+        type: boolean
+        default: false
+        description: Return the task identifier without polling.
+      - name: poll_interval
+        flag: --poll-interval
+        type: integer
+        default: 5
+        description: Polling interval in seconds.
+      - name: output
+        flag: --output
+        type: string
+        default: output.txt
+        is_output_path: true
+        description: Server-managed transcript path.
+      - name: output_format
+        flag: --output-format
+        type: enum
+        enum: [text, json]
+        default: text
+        description: Transcript format.
