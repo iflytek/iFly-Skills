@@ -1,0 +1,78 @@
+"""Tests for durable task ownership, idempotency and restart handling."""
+
+import pytest
+
+from app.config import Principal
+from app.tasks import TaskConflict, TaskStateError, TaskStore, request_fingerprint
+
+
+SKILL = "iflytek-translate"
+CN = Principal("cn", "cn-space", frozenset({SKILL}))
+GLOBAL = Principal("global", "global-space", frozenset({SKILL}))
+
+
+def test_idempotency_reuses_identical_requests_and_conflicts_on_changed_input(tmp_path):
+    store = TaskStore(tmp_path / "tasks.sqlite3")
+    first = store.create_or_reuse(CN, SKILL, "translate", request_id="req-1", payload={"text": "hello"})
+    second = store.create_or_reuse(CN, SKILL, "translate", request_id="req-1", payload={"text": "hello"})
+    assert first.reused is False
+    assert second.reused is True
+    assert second.record.task_id == first.record.task_id
+    with pytest.raises(TaskConflict):
+        store.create_or_reuse(CN, SKILL, "translate", request_id="req-1", payload={"text": "different"})
+
+
+def test_task_records_survive_reopening_and_are_scoped_to_site_and_workspace(tmp_path):
+    database = tmp_path / "nested" / "tasks.sqlite3"
+    first_store = TaskStore(database)
+    created = first_store.create_or_reuse(CN, SKILL, "translate", request_id="req-2", payload={"text": "hello"})
+    reopened = TaskStore(database)
+    assert reopened.get_for_principal(created.record.task_id, CN).task_id == created.record.task_id
+    assert reopened.get_for_principal(created.record.task_id, GLOBAL) is None
+    assert "cn-space" not in repr(created.record)
+
+
+def test_claim_complete_and_worker_ownership_are_enforced(tmp_path):
+    store = TaskStore(tmp_path / "tasks.sqlite3")
+    created = store.create_or_reuse(CN, SKILL, "translate", request_id="req-3", payload={"text": "hello"})
+    claimed = store.claim_next("worker-a", now=100, lease_seconds=10)
+    assert claimed.task_id == created.record.task_id
+    with pytest.raises(TaskStateError):
+        store.complete(claimed.task_id, "worker-b", result={"text": "wrong"})
+    completed = store.complete(claimed.task_id, "worker-a", result={"text": "hello"})
+    assert completed.status == "succeeded"
+    assert completed.result_json == '{"text": "hello"}'
+    assert store.claim_next("worker-a", now=101) is None
+
+
+def test_expired_and_abandoned_work_is_not_automatically_resubmitted(tmp_path):
+    store = TaskStore(tmp_path / "tasks.sqlite3")
+    expired = store.create_or_reuse(CN, SKILL, "translate", request_id="req-4", payload={}, deadline_at=90)
+    assert store.claim_next("worker-a", now=100) is None
+    assert store.get_for_principal(expired.record.task_id, CN).status == "failed"
+
+    uncertain = store.create_or_reuse(CN, SKILL, "translate", request_id="req-5", payload={}, deadline_at=200)
+    claimed = store.claim_next("worker-a", now=100, lease_seconds=5)
+    assert claimed.task_id == uncertain.record.task_id
+    assert store.recover_after_restart(now=106) == 1
+    record = store.get_for_principal(uncertain.record.task_id, CN)
+    assert record.status == "submission_unknown"
+    assert record.error_code == "SUBMISSION_UNKNOWN"
+    assert store.claim_next("worker-a", now=107) is None
+
+
+def test_expire_marks_running_work_uncertain_and_queued_work_timed_out(tmp_path):
+    store = TaskStore(tmp_path / "tasks.sqlite3")
+    running = store.create_or_reuse(CN, SKILL, "translate", request_id="req-7", payload={}, deadline_at=90)
+    queued = store.create_or_reuse(CN, SKILL, "translate", request_id="req-6", payload={}, deadline_at=90)
+    claimed = store.claim_next("worker-a", now=80, lease_seconds=100)
+    assert claimed.task_id == running.record.task_id
+    assert store.expire(now=100) == 2
+    assert store.get_for_principal(queued.record.task_id, CN).status == "failed"
+    assert store.get_for_principal(running.record.task_id, CN).status == "submission_unknown"
+
+
+def test_fingerprints_are_stable_and_reject_non_json_values():
+    assert request_fingerprint({"b": 2, "a": 1}) == request_fingerprint({"a": 1, "b": 2})
+    with pytest.raises(ValueError):
+        request_fingerprint({"value": float("nan")})
