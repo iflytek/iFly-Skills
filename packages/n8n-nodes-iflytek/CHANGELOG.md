@@ -2,6 +2,10 @@
 
 Release notes for `@iflytekopensource/n8n-nodes-iflytek-skills`.
 
+## Unreleased
+
+- Moved the Chinese overview to `docs/README.zh-CN.md` so npm selects the English `README.md` for the package page.
+
 ## 0.1.0
 
 - Packaged as the public scoped package `@iflytekopensource/n8n-nodes-iflytek-skills`, with installation instructions and workflow examples using the full package name.

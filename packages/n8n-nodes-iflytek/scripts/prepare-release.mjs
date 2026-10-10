@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,10 +30,10 @@ export function validateFileList(files, pkg, manifest) {
   for (const name of names) {
     assert.ok(!name.split('/').some(part => !part || part === '.' || part === '..') && !name.includes('\\'), 'Unsafe archive path');
     assert.ok(/^(?:dist\/(?:nodes|credentials|shared)\/|runtime\/|docs\/|workflows\/)/.test(name)
-      || ['package.json', 'README.md', 'README.zh-CN.md', 'CHANGELOG.md', 'LICENSE'].includes(name), `Unexpected packed file: ${name}`);
+      || ['package.json', 'README.md', 'CHANGELOG.md', 'LICENSE'].includes(name), `Unexpected packed file: ${name}`);
     assert.ok(!/(?:^|\/)(?:node_modules|__pycache__|\.env[^/]*)(?:\/|$)|\.(?:pyc|log|tgz|pem|key)$/.test(name), `Unwanted packed file: ${name}`);
   }
-  for (const name of ['package.json', 'README.md', 'README.zh-CN.md', 'CHANGELOG.md', 'LICENSE',
+  for (const name of ['package.json', 'README.md', 'docs/README.zh-CN.md', 'CHANGELOG.md', 'LICENSE',
     ...pkg.n8n.nodes, ...pkg.n8n.credentials, 'runtime/manifest.json',
     ...Object.keys(manifest.files).map(name => 'runtime/' + name),
     ...['proofread-and-translate', 'invoice-recognition', 'text-to-speech'].map(name => `workflows/${name}.json`)]) {
@@ -47,6 +48,28 @@ export async function verifyRuntime(root, manifest) {
     assert.equal(bytes.length, expected.bytes, `Runtime size mismatch: ${name}`);
     assert.equal(createHash('sha256').update(bytes).digest('hex'), expected.sha256, `Runtime hash mismatch: ${name}`);
   }
+}
+
+export async function verifyReadmes(sourceRoot, packedRoot) {
+  for (const name of ['README.md', 'docs/README.zh-CN.md']) {
+    const source = await readFile(path.join(sourceRoot, name));
+    const packed = await readFile(path.join(packedRoot, name));
+    assert.ok(source.toString('utf8').trim(), `Empty source README: ${name}`);
+    assert.ok(source.equals(packed), `Packed README differs from source: ${name}`);
+  }
+}
+
+export async function verifyPublishReadme(packedRoot) {
+  assert.ok(process.env.npm_execpath, 'Invoke through npm to check publication metadata');
+  // npm/pacote prepares the extracted manifest with this same npm-bundled parser.
+  // Keep the check aligned with the publishing CLI without adding a runtime dependency.
+  const PackageJson = createRequire(process.env.npm_execpath)('@npmcli/package-json');
+  const { content } = await PackageJson.prepare(packedRoot);
+  const expected = await readFile(path.join(packedRoot, 'README.md'), 'utf8');
+  assert.ok(expected.trim(), 'Empty packed README.md');
+  assert.equal(content.readmeFilename, 'README.md', 'npm must select the default README.md for publication');
+  assert.equal(content.readme, expected, 'npm publication README differs from the packed default');
+  return { filename: content.readmeFilename, contentMatchesPackedDefault: true };
 }
 
 async function main() {
@@ -93,12 +116,15 @@ async function main() {
   const archiveNames = execFileSync('tar', ['-tzf', '-'], { input: bytes, encoding: 'utf8' }).trim().split(/\r?\n/).sort();
   assert.deepEqual(archiveNames, packed.files.map(file => 'package/' + file.path).sort(), 'Tarball contents differ from pack metadata');
   const extracted = await mkdtemp(path.join(os.tmpdir(), 'ifly-release-'));
+  let publishReadme;
   try {
     execFileSync('tar', ['-xzf', '-'], { input: bytes, cwd: extracted });
     const installed = path.join(extracted, 'package');
     assert.deepEqual(await json(path.join(installed, 'package.json')), pkg);
     assert.deepEqual(await json(path.join(installed, 'runtime/manifest.json')), manifest);
     await verifyRuntime(installed, manifest);
+    await verifyReadmes(pkgRoot, installed);
+    publishReadme = await verifyPublishReadme(installed);
   } finally {
     await rm(extracted, { recursive: true, force: true });
   }
@@ -107,7 +133,7 @@ async function main() {
   const report = { package: pkg.name, version: pkg.version, distTag, filename: packed.filename,
     sourceCommit, sourceTreeDirty, publishable: !sourceTreeDirty, integrity,
     sha256: createHash('sha256').update(bytes).digest('hex'), files: packed.files.length,
-    keywords: pkg.keywords, n8n: pkg.n8n, runtimeFiles: Object.keys(manifest.files).length };
+    keywords: pkg.keywords, n8n: pkg.n8n, runtimeFiles: Object.keys(manifest.files).length, publishReadme };
   await writeFile(path.join(output, 'release.json'), JSON.stringify(report, null, 2) + '\n');
   await writeFile(path.join(output, 'runtime-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   await writeFile(path.join(output, 'SHA256SUMS'), `${report.sha256}  ${packed.filename}\n`);

@@ -29,7 +29,7 @@ test('installed host and all affected transitive dependency paths use reviewed v
     tar: '>=7.5.21 <8', 'fast-xml-parser': '>=4.5.7 <5 || >=5.5.9 <6',
     'form-data': '>=2.5.6 <3 || >=3.0.5 <4 || >=4.0.6 <5',
     'simple-git': '>=4.0.2 <5', '@simple-git/argv-parser': '>=2.0.1 <3',
-    'shell-quote': '>=1.12.0 <2', vm2: '>=3.12.2 <4',
+    'shell-quote': '>=1.12.0 <2', vm2: '>=3.12.2 <4', handlebars: '>=4.7.10 <5',
   })) {
     assert.ok(entries(name).length, `Missing dependency: ${name}`);
     for (const [location, pkg] of entries(name)) {
@@ -39,6 +39,34 @@ test('installed host and all affected transitive dependency paths use reviewed v
   }
   for (const [location, pkg] of Object.entries(lock.packages)) assert.ok(!pkg.extraneous, location);
   assert.equal(entries('expr-eval').length, 0, 'Do not reintroduce the unused vulnerable evaluator');
+});
+
+test('Handlebars consumers render templates and reject AST and constructor lookup bypasses', async t => {
+  for (const consumer of ['n8n', 'express-handlebars', '@langchain/classic']) {
+    const current = createRequire(require.resolve(`${consumer}/package.json`));
+    const handlebars = current('handlebars').create();
+    const template = '{{title}}: {{#each items}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}';
+    assert.equal(handlebars.compile(template)({ title: '<Report>', items: ['one', 'two'] }), '&lt;Report&gt;: one, two', consumer);
+    assert.equal(handlebars.compile(handlebars.parse('{{echo 21}}'))({}, { helpers: { echo: value => value * 2 } }), '42', consumer);
+    // A harmless expression in a numeric AST value must never become executable source.
+    const ast = handlebars.parse('{{echo 1}}');
+    ast.body[0].params[0].value = '1 + 1';
+    // Non-enumerable params bypassed the old parser's Object.keys traversal.
+    Object.defineProperty(ast.body[0], 'params', { enumerable: false });
+    assert.throws(() => handlebars.compile(ast)({}, { helpers: { echo: value => value } }), /Invalid AST/, consumer);
+    assert.throws(() => handlebars.precompile(ast), /Invalid AST/, consumer);
+    // Function.prototype owns its constructor; own-property lookup must still deny it.
+    handlebars.registerHelper('valueType', value => typeof value);
+    const lookup = handlebars.compile('{{valueType (lookup value "constructor")}}');
+    assert.equal(lookup({ value: Function.prototype }), 'undefined', consumer);
+    assert.equal(lookup({ value: { constructor: 'ordinary data' } }), 'string', consumer);
+  }
+  const scratch = temporary(t);
+  const templateFile = path.join(scratch, 'report.handlebars');
+  fs.writeFileSync(templateFile, 'Hello {{name}}');
+  const current = createRequire(require.resolve('n8n/package.json'));
+  const engine = current('express-handlebars').create({ defaultLayout: false });
+  assert.equal(await engine.renderView(templateFile, { name: '<User>' }), 'Hello &lt;User&gt;');
 });
 
 test('Git library APIs work through n8n dependency paths and retain security guards', async t => {

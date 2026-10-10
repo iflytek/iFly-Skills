@@ -15,6 +15,7 @@
 | `simple-git` / `@simple-git/argv-parser`：n8n 和内置 Git 节点的命令配置、编辑器环境变量防护存在绕过；[GHSA-x6jw-m9v5-85vh](https://github.com/advisories/GHSA-x6jw-m9v5-85vh)、[GHSA-v5rq-49vh-5v5c](https://github.com/advisories/GHSA-v5rq-49vh-5v5c) | `simple-git 3.36.0 → 4.0.2`，其依赖固定为 `argv-parser 2.0.1` | 从两个消费者路径验证初始化、配置、提交、状态、日志、文件读取，以及 trailer 命令配置和 VISUAL 检测；内置 Git 功能限制见下文 |
 | `shell-quote`：Daytona SDK 的 shell 参数引用允许注释后的换行恢复命令执行；[GHSA-pqg4-j6r4-53mv](https://github.com/advisories/GHSA-pqg4-j6r4-53mv) | `1.10.0 → 1.12.0` | 从 SDK 依赖路径验证普通参数往返和四种行终止符的拒绝行为 |
 | `vm2`：内置 JavaScript 沙箱和 LangChain 节点依赖存在沙箱逃逸、模块解析边界绕过；[GHSA-pq68-rvw4-xp4r](https://github.com/advisories/GHSA-pq68-rvw4-xp4r)、[GHSA-5h3f-q97h-ccvc](https://github.com/advisories/GHSA-5h3f-q97h-ccvc) | `3.11.6 → 3.12.2` | 验证两个消费者的异步执行、受限模块解析、禁止 eval，以及实际 n8n JavaScriptSandbox 包装器；不将有限回归视为对所有沙箱攻击的证明 |
+| `handlebars`：n8n、Express 模板引擎和 LangChain 模板依赖存在 AST 类型混淆及自有属性检查绕过，可导致 JavaScript 注入；[GHSA-8r5x-fm3f-whwj](https://github.com/advisories/GHSA-8r5x-fm3f-whwj)、[GHSA-p8wg-vrv2-v86f](https://github.com/advisories/GHSA-p8wg-vrv2-v86f) | `4.7.9 → 4.7.10`；n8n 固定依赖旧版本，因此使用版本限定的覆盖升级 | 从三个消费者路径验证正常模板、HTML 转义、合法 AST、非法 AST 拒绝及构造器访问限制，并验证 n8n 使用的 Express 模板引擎渲染 |
 
 依赖漏洞可传播到 `@getzep/zep-cloud`、`@getzep/zep-js`、`@langchain/community` 和 `@n8n/n8n-nodes-langchain` 等父包。审计中的父包告警应沿具体依赖路径核对，同一底层漏洞可能对应多个受影响包条目。
 
