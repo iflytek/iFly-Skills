@@ -2,7 +2,7 @@
 
 本目录提供一个面向 Coze 国内站和国际站的共享 HTTPS 服务，用于承载 iFly-Skills 能力。服务按站点分别配置工作空间和访问密钥；同一个后端实例可以同时服务两个站点。
 
-服务提供 11 个 Skill、24 个工具，地址为 `/v1/skills/<skill-id>/<action>`。使用前需配置相应业务凭证及运行环境；缺少依赖的工具返回 `DEPENDENCY_UNAVAILABLE`。OpenAPI 3.0.3 文件导出与插件创建／发布工具尚未提供。
+服务提供 11 个 Skill、24 个工具，地址为 `/v1/skills/<skill-id>/<action>`，并提供每 Skill 一份 OpenAPI 3.0.3 规范。使用前需配置相应业务凭证及运行环境；缺少依赖的工具返回 `DEPENDENCY_UNAVAILABLE`。插件创建／发布管理工具尚未提供。
 
 ## 使用条件
 
@@ -82,11 +82,40 @@ X-API-Key: <对应站点的 COZE_<SITE>_BACKEND_API_KEY>
 ## Coze 接入
 
 1. 为目标站点准备可访问的 HTTPS 服务地址，并在配置中填写对应的 `BACKEND_BASE_URL`。
-2. 在对应版本提供 OpenAPI 文件后，在 Coze 中创建基于已有服务的 API 插件并导入文档。
+2. 按下节生成目标站点的 OpenAPI 文件，在 Coze 中创建基于已有服务的 API 插件，每个 Skill 导入对应文件。
 3. 为插件工具配置 `X-API-Key` 请求头，使用目标站点的服务密钥。
 4. 逐项调试工具，确认请求参数、响应字段和文件地址符合文档后再发布插件。
 
 国内站和国际站分别使用各自的工作空间、插件记录和服务密钥。一个站点的令牌、插件 ID 或权限不能替代另一个站点的配置。
+
+### 生成 OpenAPI 文件
+
+[schemas/](./schemas/) 包含 11 份可复现的 JSON 规范，来自服务使用的同一路由和请求／响应模型。仓库版本使用 `https://backend.example.com` 示例域名；导入前须生成实际部署地址对应的文件。安装时保留默认的开发依赖组，导出工具会在写文件前执行 OpenAPI 3.0 校验，不启动服务或调用讯飞／Coze API。
+
+在仓库根目录执行，分别读取 `.env` 中的 `COZE_CN_BACKEND_BASE_URL` 与 `COZE_GLOBAL_BACKEND_BASE_URL`：
+
+```sh
+uv run --locked --project integrations/coze --python 3.13 python -B integrations/coze/scripts/export_openapi.py --site cn
+uv run --locked --project integrations/coze --python 3.13 python -B integrations/coze/scripts/export_openapi.py --site global
+```
+
+文件分别生成到 `integrations/coze/output/schemas/cn/` 和 `global/`，文件名为 `<skill-id>.json`。这些部署产物由 Git 忽略；导出仅使用所选站点的后端地址，不将令牌、服务密钥或工作空间值写入规范，也不会在该站地址为空时回退到另一个站点。配置另存时可添加 `--env-file <配置文件路径>`，必须同时指定 `--site`；缺失地址会提示需要填写的配置项。
+
+也可以显式指定后端地址而不读取配置文件：
+
+```sh
+uv run --locked --project integrations/coze --python 3.13 python -B integrations/coze/scripts/export_openapi.py --base-url https://your-backend.example.com/coze
+```
+
+此时默认输出到 `integrations/coze/output/schemas/custom/`，可用 `--output-dir` 指定专用目录。地址只能是 HTTPS 域名及可选的反向代理前缀，不能填写平台 API 域名、IP、密钥或具体工具路径。例如 `servers.url=https://your-backend.example.com/coze` 与路径 `/v1/skills/iflytek-translate/translate` 拼接成外部请求地址；代理需将 `/coze` 前缀移除后转发到后端。
+
+不传地址参数时重新生成仓库示例规范；添加 `--check` 只检查文件与当前接口的一致性，不写文件：
+
+```sh
+uv run --locked --project integrations/coze --python 3.13 python -B integrations/coze/scripts/export_openapi.py --check
+```
+
+规范声明 Header API key 认证、GET 查询参数、POST JSON 请求及统一错误响应，不导出健康检查或产物下载为插件工具。异步操作返回 HTTP 200 表示任务快照，须继续检查 `status`。3.0.3 校验通过不等于 Coze 导入或发布成功；两站导入后仍须核对参数、可空结果、认证及真实调用。视频翻译的完整流程也须验收后再发布。
 
 ## 工具与调用
 
@@ -164,4 +193,4 @@ uv run --locked --project integrations/coze --python 3.13 python -B integrations
 
 ## 当前服务边界
 
-平台令牌只用于平台管理检查，普通插件调用不需要将平台令牌传给本服务。接口模型已提供业务工具契约；OpenAPI 3.0.3 导出、部署后的 Coze 导入验证与插件管理操作应以对应版本实际提供的功能为准。
+平台令牌只用于平台管理检查，普通插件调用不需要将平台令牌传给本服务。OpenAPI 3.0.3 导出和规范校验已提供；部署后的两站导入兼容性、真实调用及插件创建／发布管理操作仍需分别完成验证。

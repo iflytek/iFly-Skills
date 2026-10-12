@@ -12,7 +12,8 @@ from .security import require_skill
 
 
 def register_tool(app: FastAPI, skill_id: str, action: str, endpoint: Callable, *,
-                  response_model: type[BaseModel], status_code: int = 200) -> None:
+                  response_model: type[BaseModel], status_code: int = 200,
+                  summary: str | None = None, description: str | None = None) -> None:
     tool = Tool(skill_id, action)
     if not isinstance(response_model, type) or not issubclass(response_model, BaseModel):
         raise ValueError("A concrete response model is required")
@@ -25,6 +26,7 @@ def register_tool(app: FastAPI, skill_id: str, action: str, endpoint: Callable, 
         path=tool.path, endpoint=endpoint, methods=[tool.method], name=tool.operation_id,
         operation_id=tool.operation_id, tags=[skill_id], response_model=response_model,
         status_code=status_code, dependencies=[Depends(require_skill(skill_id))],
+        summary=summary, description=description,
         responses={spec.status: {"model": ErrorEnvelope} for spec in ERRORS.values()},
     )
     # Validate before attaching so a rejected GET body cannot leave a live route.

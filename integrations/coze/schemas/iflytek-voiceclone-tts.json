@@ -1,0 +1,1402 @@
+{
+  "components": {
+    "schemas": {
+      "Artifact": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "description": "Opaque backend artifact identifier.",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "Expiration time in UTC, ISO 8601.",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "mime_type": {
+            "description": "Artifact media type.",
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "size_bytes": {
+            "description": "Artifact size in bytes.",
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Expiring HTTPS download URL; anyone holding it can download until expiration.",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "url",
+          "mime_type",
+          "size_bytes",
+          "expires_at"
+        ],
+        "title": "Artifact",
+        "type": "object"
+      },
+      "Audio": {
+        "additionalProperties": false,
+        "properties": {
+          "audio": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Artifact"
+              }
+            ],
+            "description": "Complete synthesized audio and download information."
+          },
+          "format": {
+            "default": "mp3",
+            "description": "Audio encoding.",
+            "enum": [
+              "mp3"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "sample_rate": {
+            "description": "Output audio sample rate in Hz.",
+            "title": "Sample Rate",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "audio",
+          "sample_rate"
+        ],
+        "title": "Audio",
+        "type": "object"
+      },
+      "CloneSpeech": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "mp3",
+            "description": "Output encoding; this tool returns MP3 only.",
+            "enum": [
+              "mp3"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "pitch": {
+            "default": 50,
+            "description": "Speech pitch, 0 to 100.",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Pitch",
+            "type": "integer"
+          },
+          "res_id": {
+            "description": "Voice resource ID from successful training in this workspace.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Res Id",
+            "type": "string"
+          },
+          "sample_rate": {
+            "default": 16000,
+            "description": "Output audio sample rate in Hz.",
+            "enum": [
+              8000,
+              16000,
+              24000
+            ],
+            "title": "Sample Rate",
+            "type": "integer"
+          },
+          "speed": {
+            "default": 50,
+            "description": "Speaking speed, 0 to 100; 50 is the default.",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Speed",
+            "type": "integer"
+          },
+          "text": {
+            "description": "Nonblank text to speak, at most 65536 UTF-8 bytes; provider limits also apply.",
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "volume": {
+            "default": 50,
+            "description": "Speech volume, 0 to 100.",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text",
+          "res_id"
+        ],
+        "title": "CloneSpeech",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "INVALID_REQUEST",
+          "AUTHENTICATION_FAILED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "RATE_LIMITED",
+          "UPSTREAM_PERMISSION_DENIED",
+          "UPSTREAM_QUOTA_EXCEEDED",
+          "UPSTREAM_ERROR",
+          "UPSTREAM_PROTOCOL_ERROR",
+          "DEPENDENCY_UNAVAILABLE",
+          "TIMEOUT",
+          "INTERNAL_ERROR"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "trace_id": {
+            "title": "Trace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "trace_id"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "Job_TrainingResult_": {
+        "additionalProperties": false,
+        "properties": {
+          "error_code": {
+            "description": "Safe error category for failed or uncertain tasks, otherwise null.",
+            "nullable": true,
+            "title": "Error Code",
+            "type": "string"
+          },
+          "job_id": {
+            "description": "Backend job ID returned by this workspace's creation operation.",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "poll_after_seconds": {
+            "default": 5,
+            "description": "Minimum suggested interval before the next query; use bounded polling.",
+            "title": "Poll After Seconds",
+            "type": "integer"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrainingResult"
+              },
+              {
+                "enum": [
+                  null
+                ],
+                "nullable": true,
+                "type": "object"
+              }
+            ],
+            "description": "Current stage details or final result; null before a result is available."
+          },
+          "status": {
+            "description": "Task state; HTTP 200 alone does not mean completion. waiting_input needs an explicit stage action; do not blindly resubmit submission_unknown.",
+            "enum": [
+              "queued",
+              "running",
+              "waiting_input",
+              "succeeded",
+              "partially_succeeded",
+              "failed",
+              "submission_unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status"
+        ],
+        "title": "Job[TrainingResult]",
+        "type": "object"
+      },
+      "TaskAction": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "description": "Backend job ID returned by this workspace's creation operation.",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "Stable idempotency key; reuse when retrying the same request.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "job_id"
+        ],
+        "title": "TaskAction",
+        "type": "object"
+      },
+      "TrainingResult": {
+        "additionalProperties": false,
+        "properties": {
+          "failure_reason": {
+            "description": "Known safe failure reason; null if unavailable.",
+            "enum": [
+              "audio_text_mismatch",
+              null
+            ],
+            "nullable": true,
+            "title": "Failure Reason",
+            "type": "string"
+          },
+          "res_id": {
+            "description": "Voice resource ID from successful training in this workspace.",
+            "nullable": true,
+            "title": "Res Id",
+            "type": "string"
+          },
+          "stage": {
+            "description": "Current training workflow stage.",
+            "enum": [
+              "created",
+              "sample_uploaded",
+              "submitted",
+              "trained",
+              "failed"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "upstream_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "enum": [
+                  null
+                ],
+                "nullable": true,
+                "type": "object"
+              }
+            ],
+            "description": "Provider task status for the current stage, when available.",
+            "title": "Upstream Status"
+          }
+        },
+        "required": [
+          "stage"
+        ],
+        "title": "TrainingResult",
+        "type": "object"
+      },
+      "TrainingSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "engine": {
+            "default": "omni_v1",
+            "description": "Supported multi-style training engine.",
+            "enum": [
+              "omni_v1"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
+          "language": {
+            "default": "cn",
+            "description": "Training recording language.",
+            "enum": [
+              "cn",
+              "en",
+              "jp",
+              "ko",
+              "ru"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
+          "name": {
+            "description": "Training task name.",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "Stable idempotency key; reuse when retrying the same request.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "resource_name": {
+            "description": "Optional voice resource name; task name is used when omitted.",
+            "maxLength": 256,
+            "nullable": true,
+            "title": "Resource Name",
+            "type": "string"
+          },
+          "sex": {
+            "description": "Speaker voice setting: 1 for male, 2 for female.",
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Sex",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "name",
+          "sex"
+        ],
+        "title": "TrainingSubmission",
+        "type": "object"
+      },
+      "TrainingText": {
+        "additionalProperties": false,
+        "properties": {
+          "segments": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "description": "Provider text set with segment IDs, exact recording texts and languages.",
+            "title": "Segments"
+          },
+          "text_id": {
+            "description": "Provider training text set ID; 5001 is the common set.",
+            "title": "Text Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text_id",
+          "segments"
+        ],
+        "title": "TrainingText",
+        "type": "object"
+      },
+      "UploadSample": {
+        "additionalProperties": false,
+        "properties": {
+          "audio_url": {
+            "description": "HTTPS WAV (16 bit) or MP3: mono, at least 24 kHz, at most 40 seconds and 3 MiB; record the exact selected text with speaker authorization.",
+            "title": "Audio Url",
+            "type": "string"
+          },
+          "job_id": {
+            "description": "Backend job ID returned by this workspace's creation operation.",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "Stable idempotency key; reuse when retrying the same request.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "seg_id": {
+            "default": 1,
+            "description": "Returned segment ID whose text exactly matches the recording.",
+            "exclusiveMinimum": true,
+            "minimum": 0.0,
+            "title": "Seg Id",
+            "type": "integer"
+          },
+          "text_id": {
+            "default": 5001,
+            "description": "Provider training text set ID; 5001 is the common set.",
+            "exclusiveMinimum": true,
+            "minimum": 0.0,
+            "title": "Text Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "job_id",
+          "audio_url"
+        ],
+        "title": "UploadSample",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ServiceApiKey": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "iFly-Skills API plugin. Configure the deployment's X-API-Key separately; credentials are never tool arguments.",
+    "title": "iflytek-voiceclone-tts",
+    "version": "0.1.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/v1/skills/iflytek-voiceclone-tts/create_training": {
+      "post": {
+        "description": "Create a task for an authorized speaker. Next upload_sample, then explicitly submit_training. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
+        "operationId": "iflytek_voiceclone_tts__create_training",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingSubmission"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job_TrainingResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Create a voice training task",
+        "tags": [
+          "iflytek-voiceclone-tts"
+        ]
+      }
+    },
+    "/v1/skills/iflytek-voiceclone-tts/get_training": {
+      "get": {
+        "description": "Return the training stage, a safe failure reason when known, and res_id after successful training. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown.",
+        "operationId": "iflytek_voiceclone_tts__get_training",
+        "parameters": [
+          {
+            "description": "Backend job ID returned by this workspace's creation operation.",
+            "in": "query",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "description": "Backend job ID returned by this workspace's creation operation.",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job_TrainingResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Query voice training",
+        "tags": [
+          "iflytek-voiceclone-tts"
+        ]
+      }
+    },
+    "/v1/skills/iflytek-voiceclone-tts/get_training_text": {
+      "get": {
+        "description": "Choose a returned text segment and record its exact contents. Arbitrary transcripts cannot replace the provider text.",
+        "operationId": "iflytek_voiceclone_tts__get_training_text",
+        "parameters": [
+          {
+            "description": "Provider training text set ID; 5001 is the common set.",
+            "in": "query",
+            "name": "text_id",
+            "required": false,
+            "schema": {
+              "default": 5001,
+              "description": "Provider training text set ID; 5001 is the common set.",
+              "exclusiveMinimum": true,
+              "minimum": 0,
+              "title": "Text Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingText"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Get voice training text",
+        "tags": [
+          "iflytek-voiceclone-tts"
+        ]
+      }
+    },
+    "/v1/skills/iflytek-voiceclone-tts/submit_training": {
+      "post": {
+        "description": "Submit only after sample_uploaded; query get_training until trained or failed. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
+        "operationId": "iflytek_voiceclone_tts__submit_training",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskAction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job_TrainingResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Submit voice training",
+        "tags": [
+          "iflytek-voiceclone-tts"
+        ]
+      }
+    },
+    "/v1/skills/iflytek-voiceclone-tts/synthesize": {
+      "post": {
+        "description": "Use a successfully trained res_id owned by this workspace; return a complete MP3 with an expiring HTTPS URL.",
+        "operationId": "iflytek_voiceclone_tts__synthesize",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloneSpeech"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Audio"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Synthesize with a cloned voice",
+        "tags": [
+          "iflytek-voiceclone-tts"
+        ]
+      }
+    },
+    "/v1/skills/iflytek-voiceclone-tts/upload_sample": {
+      "post": {
+        "description": "Register, without submitting, a public HTTPS mono WAV (16 bit) or MP3: at least 24 kHz, at most 40 seconds and 3 MiB. Recording content must match text_id and seg_id. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
+        "operationId": "iflytek_voiceclone_tts__upload_sample",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadSample"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job_TrainingResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Upload a voice training sample",
+        "tags": [
+          "iflytek-voiceclone-tts"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://backend.example.com"
+    }
+  ]
+}

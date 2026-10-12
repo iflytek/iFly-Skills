@@ -12,13 +12,16 @@ from .errors import ERRORS, ErrorCode, ServiceError, error_response
 from .security import RequestMiddleware
 
 
+API_VERSION = "0.1.0"
+
+
 class Health(BaseModel):
     status: str
 
 
 def create_base_app(settings: Settings | None = None) -> FastAPI:
     configured = settings if settings is not None else load_settings()
-    app = FastAPI(title="iFly-Skills Coze backend", version="0.1.0", debug=False,
+    app = FastAPI(title="iFly-Skills Coze backend", version=API_VERSION, debug=False,
                   openapi_url=None, docs_url=None, redoc_url=None, redirect_slashes=False)
     app.add_middleware(RequestMiddleware, settings=configured)
 

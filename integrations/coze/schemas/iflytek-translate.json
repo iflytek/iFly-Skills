@@ -1,0 +1,297 @@
+{
+  "components": {
+    "schemas": {
+      "ErrorCode": {
+        "enum": [
+          "INVALID_REQUEST",
+          "AUTHENTICATION_FAILED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "RATE_LIMITED",
+          "UPSTREAM_PERMISSION_DENIED",
+          "UPSTREAM_QUOTA_EXCEEDED",
+          "UPSTREAM_ERROR",
+          "UPSTREAM_PROTOCOL_ERROR",
+          "DEPENDENCY_UNAVAILABLE",
+          "TIMEOUT",
+          "INTERNAL_ERROR"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "trace_id": {
+            "title": "Trace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "trace_id"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "Translate": {
+        "additionalProperties": false,
+        "properties": {
+          "from_lang": {
+            "default": "cn",
+            "description": "Provider source language code, for example cn or en.",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "From Lang",
+            "type": "string"
+          },
+          "text": {
+            "description": "Nonblank source text, at most 4096 UTF-8 bytes.",
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "to_lang": {
+            "default": "en",
+            "description": "Provider target language code, for example en or cn.",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "To Lang",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Translate",
+        "type": "object"
+      },
+      "Translation": {
+        "additionalProperties": false,
+        "properties": {
+          "dst": {
+            "description": "Translated text.",
+            "title": "Dst",
+            "type": "string"
+          },
+          "from_lang": {
+            "description": "Provider source language code, for example cn or en.",
+            "title": "From Lang",
+            "type": "string"
+          },
+          "src": {
+            "description": "Source text returned by the provider.",
+            "title": "Src",
+            "type": "string"
+          },
+          "to_lang": {
+            "description": "Provider target language code, for example en or cn.",
+            "title": "To Lang",
+            "type": "string"
+          }
+        },
+        "required": [
+          "src",
+          "dst",
+          "from_lang",
+          "to_lang"
+        ],
+        "title": "Translation",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ServiceApiKey": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "iFly-Skills API plugin. Configure the deployment's X-API-Key separately; credentials are never tool arguments.",
+    "title": "iflytek-translate",
+    "version": "0.1.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/v1/skills/iflytek-translate/translate": {
+      "post": {
+        "description": "Translate up to 4096 UTF-8 bytes between the selected languages.",
+        "operationId": "iflytek_translate__translate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Translate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Translation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Translate text",
+        "tags": [
+          "iflytek-translate"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://backend.example.com"
+    }
+  ]
+}

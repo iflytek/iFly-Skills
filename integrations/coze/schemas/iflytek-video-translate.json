@@ -1,0 +1,729 @@
+{
+  "components": {
+    "schemas": {
+      "Artifact": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "description": "Opaque backend artifact identifier.",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "Expiration time in UTC, ISO 8601.",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "mime_type": {
+            "description": "Artifact media type.",
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "size_bytes": {
+            "description": "Artifact size in bytes.",
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Expiring HTTPS download URL; anyone holding it can download until expiration.",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "url",
+          "mime_type",
+          "size_bytes",
+          "expires_at"
+        ],
+        "title": "Artifact",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "INVALID_REQUEST",
+          "AUTHENTICATION_FAILED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "RATE_LIMITED",
+          "UPSTREAM_PERMISSION_DENIED",
+          "UPSTREAM_QUOTA_EXCEEDED",
+          "UPSTREAM_ERROR",
+          "UPSTREAM_PROTOCOL_ERROR",
+          "DEPENDENCY_UNAVAILABLE",
+          "TIMEOUT",
+          "INTERNAL_ERROR"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "trace_id": {
+            "title": "Trace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "trace_id"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "Job_VideoResult_": {
+        "additionalProperties": false,
+        "properties": {
+          "error_code": {
+            "description": "Safe error category for failed or uncertain tasks, otherwise null.",
+            "nullable": true,
+            "title": "Error Code",
+            "type": "string"
+          },
+          "job_id": {
+            "description": "Backend job ID returned by this workspace's creation operation.",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "poll_after_seconds": {
+            "default": 5,
+            "description": "Minimum suggested interval before the next query; use bounded polling.",
+            "title": "Poll After Seconds",
+            "type": "integer"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VideoResult"
+              },
+              {
+                "enum": [
+                  null
+                ],
+                "nullable": true,
+                "type": "object"
+              }
+            ],
+            "description": "Current stage details or final result; null before a result is available."
+          },
+          "status": {
+            "description": "Task state; HTTP 200 alone does not mean completion. waiting_input needs an explicit stage action; do not blindly resubmit submission_unknown.",
+            "enum": [
+              "queued",
+              "running",
+              "waiting_input",
+              "succeeded",
+              "partially_succeeded",
+              "failed",
+              "submission_unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status"
+        ],
+        "title": "Job[VideoResult]",
+        "type": "object"
+      },
+      "TaskAction": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "description": "Backend job ID returned by this workspace's creation operation.",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "Stable idempotency key; reuse when retrying the same request.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "job_id"
+        ],
+        "title": "TaskAction",
+        "type": "object"
+      },
+      "VideoResult": {
+        "additionalProperties": false,
+        "properties": {
+          "artifacts": {
+            "description": "Available output files with expiring HTTPS URLs.",
+            "items": {
+              "$ref": "#/components/schemas/Artifact"
+            },
+            "title": "Artifacts",
+            "type": "array"
+          },
+          "details": {
+            "additionalProperties": true,
+            "description": "Available output or transcript segments for the current stage.",
+            "title": "Details",
+            "type": "object"
+          },
+          "upstream_status": {
+            "description": "Provider task status for the current stage, when available.",
+            "title": "Upstream Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "upstream_status"
+        ],
+        "title": "VideoResult",
+        "type": "object"
+      },
+      "VideoSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "dest_lang": {
+            "default": "zh",
+            "description": "Provider destination language code.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Dest Lang",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "description": "Optional video task name.",
+            "maxLength": 256,
+            "title": "Name",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "Stable idempotency key; reuse when retrying the same request.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "src_lang": {
+            "default": "en",
+            "description": "Provider source language code.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Src Lang",
+            "type": "string"
+          },
+          "video_url": {
+            "description": "Public HTTPS MP4 URL, up to 128 MiB.",
+            "title": "Video Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "video_url"
+        ],
+        "title": "VideoSubmission",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ServiceApiKey": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "iFly-Skills API plugin. Configure the deployment's X-API-Key separately; credentials are never tool arguments.",
+    "title": "iflytek-video-translate",
+    "version": "0.1.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/v1/skills/iflytek-video-translate/confirm_transcript": {
+      "post": {
+        "description": "Confirm the existing transcript only after reviewing a waiting_input task; this operation does not edit subtitles. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
+        "operationId": "iflytek_video_translate__confirm_transcript",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskAction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job_VideoResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Confirm video transcript",
+        "tags": [
+          "iflytek-video-translate"
+        ]
+      }
+    },
+    "/v1/skills/iflytek-video-translate/create_task": {
+      "post": {
+        "description": "Accept a public HTTPS MP4 up to 128 MiB. Query get_task and inspect any waiting_input stage before confirming. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
+        "operationId": "iflytek_video_translate__create_task",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoSubmission"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job_VideoResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Submit a video for translation",
+        "tags": [
+          "iflytek-video-translate"
+        ]
+      }
+    },
+    "/v1/skills/iflytek-video-translate/get_task": {
+      "get": {
+        "description": "Return the current stage, available segments and output artifacts for this workspace's task. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown.",
+        "operationId": "iflytek_video_translate__get_task",
+        "parameters": [
+          {
+            "description": "Backend job ID returned by this workspace's creation operation.",
+            "in": "query",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "description": "Backend job ID returned by this workspace's creation operation.",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job_VideoResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Query video translation",
+        "tags": [
+          "iflytek-video-translate"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://backend.example.com"
+    }
+  ]
+}

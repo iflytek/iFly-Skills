@@ -1,0 +1,584 @@
+{
+  "components": {
+    "schemas": {
+      "Artifact": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "description": "Opaque backend artifact identifier.",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "Expiration time in UTC, ISO 8601.",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "mime_type": {
+            "description": "Artifact media type.",
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "size_bytes": {
+            "description": "Artifact size in bytes.",
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Expiring HTTPS download URL; anyone holding it can download until expiration.",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "url",
+          "mime_type",
+          "size_bytes",
+          "expires_at"
+        ],
+        "title": "Artifact",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "INVALID_REQUEST",
+          "AUTHENTICATION_FAILED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "RATE_LIMITED",
+          "UPSTREAM_PERMISSION_DENIED",
+          "UPSTREAM_QUOTA_EXCEEDED",
+          "UPSTREAM_ERROR",
+          "UPSTREAM_PROTOCOL_ERROR",
+          "DEPENDENCY_UNAVAILABLE",
+          "TIMEOUT",
+          "INTERNAL_ERROR"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "trace_id": {
+            "title": "Trace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "trace_id"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "Job_ReviewResult_": {
+        "additionalProperties": false,
+        "properties": {
+          "error_code": {
+            "description": "Safe error category for failed or uncertain tasks, otherwise null.",
+            "nullable": true,
+            "title": "Error Code",
+            "type": "string"
+          },
+          "job_id": {
+            "description": "Backend job ID returned by this workspace's creation operation.",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "poll_after_seconds": {
+            "default": 5,
+            "description": "Minimum suggested interval before the next query; use bounded polling.",
+            "title": "Poll After Seconds",
+            "type": "integer"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewResult"
+              },
+              {
+                "enum": [
+                  null
+                ],
+                "nullable": true,
+                "type": "object"
+              }
+            ],
+            "description": "Current stage details or final result; null before a result is available."
+          },
+          "status": {
+            "description": "Task state; HTTP 200 alone does not mean completion. waiting_input needs an explicit stage action; do not blindly resubmit submission_unknown.",
+            "enum": [
+              "queued",
+              "running",
+              "waiting_input",
+              "succeeded",
+              "partially_succeeded",
+              "failed",
+              "submission_unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status"
+        ],
+        "title": "Job[ReviewResult]",
+        "type": "object"
+      },
+      "Review": {
+        "additionalProperties": false,
+        "properties": {
+          "file_url": {
+            "description": "Public HTTPS TXT, Markdown, DOCX, PDF, PNG or JPEG; at most 20 MiB, 8 PDF pages and 4000 extracted characters.",
+            "title": "File Url",
+            "type": "string"
+          },
+          "focus": {
+            "description": "Optional review focus categories.",
+            "items": {
+              "enum": [
+                "payment",
+                "liability",
+                "renewal",
+                "ip",
+                "confidentiality",
+                "dispute"
+              ],
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Focus",
+            "type": "array"
+          },
+          "lang": {
+            "default": "zh",
+            "description": "Contract language; en also requests an English summary; bilingual enables bilingual clause checks.",
+            "enum": [
+              "zh",
+              "en",
+              "bilingual"
+            ],
+            "title": "Lang",
+            "type": "string"
+          },
+          "need_translation": {
+            "default": false,
+            "description": "Request an English translated summary; required translation failure fails the review.",
+            "title": "Need Translation",
+            "type": "boolean"
+          },
+          "output_format": {
+            "default": "both",
+            "description": "Report formats to generate.",
+            "enum": [
+              "markdown",
+              "json",
+              "both"
+            ],
+            "title": "Output Format",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "Stable idempotency key; reuse when retrying the same request.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "review_mode": {
+            "default": "standard",
+            "description": "Review depth; deep also requests an English summary.",
+            "enum": [
+              "quick",
+              "standard",
+              "deep"
+            ],
+            "title": "Review Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "file_url"
+        ],
+        "title": "Review",
+        "type": "object"
+      },
+      "ReviewResult": {
+        "additionalProperties": false,
+        "properties": {
+          "reports": {
+            "description": "Selected report formats with expiring HTTPS URLs.",
+            "items": {
+              "$ref": "#/components/schemas/Artifact"
+            },
+            "title": "Reports",
+            "type": "array"
+          },
+          "review": {
+            "additionalProperties": true,
+            "description": "Structured rule findings, model review and available translated summary; requires human judgment.",
+            "title": "Review",
+            "type": "object"
+          }
+        },
+        "required": [
+          "review",
+          "reports"
+        ],
+        "title": "ReviewResult",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ServiceApiKey": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "iFly-Skills API plugin. Configure the deployment's X-API-Key separately; credentials are never tool arguments.",
+    "title": "iflytek-contract-intelligence-review",
+    "version": "0.1.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/v1/skills/iflytek-contract-intelligence-review/get_review": {
+      "get": {
+        "description": "Return review status and completed findings with expiring Markdown or JSON report URLs. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown.",
+        "operationId": "iflytek_contract_intelligence_review__get_review",
+        "parameters": [
+          {
+            "description": "Backend job ID returned by this workspace's creation operation.",
+            "in": "query",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "description": "Backend job ID returned by this workspace's creation operation.",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job_ReviewResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Query contract review",
+        "tags": [
+          "iflytek-contract-intelligence-review"
+        ]
+      }
+    },
+    "/v1/skills/iflytek-contract-intelligence-review/review": {
+      "post": {
+        "description": "Accept HTTPS TXT, Markdown, DOCX, PDF, PNG or JPEG up to 20 MiB; at most 8 PDF pages and 4000 extracted characters. Generate selected reports using OCR, rules and model review as needed; human review remains necessary. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
+        "operationId": "iflytek_contract_intelligence_review__review",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Review"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job_ReviewResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Submit a contract for review",
+        "tags": [
+          "iflytek-contract-intelligence-review"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://backend.example.com"
+    }
+  ]
+}

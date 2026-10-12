@@ -1,0 +1,537 @@
+{
+  "components": {
+    "schemas": {
+      "Artifact": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "description": "Opaque backend artifact identifier.",
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "Expiration time in UTC, ISO 8601.",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "mime_type": {
+            "description": "Artifact media type.",
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "size_bytes": {
+            "description": "Artifact size in bytes.",
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Expiring HTTPS download URL; anyone holding it can download until expiration.",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "url",
+          "mime_type",
+          "size_bytes",
+          "expires_at"
+        ],
+        "title": "Artifact",
+        "type": "object"
+      },
+      "Audio": {
+        "additionalProperties": false,
+        "properties": {
+          "audio": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Artifact"
+              }
+            ],
+            "description": "Complete synthesized audio and download information."
+          },
+          "format": {
+            "default": "mp3",
+            "description": "Audio encoding.",
+            "enum": [
+              "mp3"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "sample_rate": {
+            "description": "Output audio sample rate in Hz.",
+            "title": "Sample Rate",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "audio",
+          "sample_rate"
+        ],
+        "title": "Audio",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "INVALID_REQUEST",
+          "AUTHENTICATION_FAILED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "RATE_LIMITED",
+          "UPSTREAM_PERMISSION_DENIED",
+          "UPSTREAM_QUOTA_EXCEEDED",
+          "UPSTREAM_ERROR",
+          "UPSTREAM_PROTOCOL_ERROR",
+          "DEPENDENCY_UNAVAILABLE",
+          "TIMEOUT",
+          "INTERNAL_ERROR"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "trace_id": {
+            "title": "Trace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "trace_id"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "HyperSpeech": {
+        "additionalProperties": false,
+        "properties": {
+          "pitch": {
+            "default": 50,
+            "description": "Speech pitch, 0 to 100.",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Pitch",
+            "type": "integer"
+          },
+          "role": {
+            "description": "Optional provider speaking role supported by the selected voice.",
+            "maxLength": 64,
+            "nullable": true,
+            "title": "Role",
+            "type": "string"
+          },
+          "sample_rate": {
+            "default": 24000,
+            "description": "Output audio sample rate in Hz.",
+            "enum": [
+              8000,
+              16000,
+              24000
+            ],
+            "title": "Sample Rate",
+            "type": "integer"
+          },
+          "speed": {
+            "default": 50,
+            "description": "Speaking speed, 0 to 100; 50 is the default.",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Speed",
+            "type": "integer"
+          },
+          "text": {
+            "description": "Nonblank text to speak, at most 65536 UTF-8 bytes; provider limits also apply.",
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "vcn": {
+            "default": "x5_lingxiaotang_flow",
+            "description": "Voice identifier from list_voices; account permission is required.",
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Vcn",
+            "type": "string"
+          },
+          "volume": {
+            "default": 50,
+            "description": "Speech volume, 0 to 100.",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "HyperSpeech",
+        "type": "object"
+      },
+      "Voices": {
+        "additionalProperties": false,
+        "properties": {
+          "all_voices": {
+            "description": "All built-in voice entries, including identifiers and attributes.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "All Voices",
+            "type": "array"
+          },
+          "free_voices": {
+            "description": "Built-in entries marked free; verify account availability.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Free Voices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "free_voices",
+          "all_voices"
+        ],
+        "title": "Voices",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ServiceApiKey": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "iFly-Skills API plugin. Configure the deployment's X-API-Key separately; credentials are never tool arguments.",
+    "title": "iflytek-hyper-tts",
+    "version": "0.1.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/v1/skills/iflytek-hyper-tts/list_voices": {
+      "get": {
+        "description": "Return the built-in voice catalog. Listing a voice does not establish the account's synthesis permission.",
+        "operationId": "iflytek_hyper_tts__list_voices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Voices"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "List speech voices",
+        "tags": [
+          "iflytek-hyper-tts"
+        ]
+      }
+    },
+    "/v1/skills/iflytek-hyper-tts/synthesize": {
+      "post": {
+        "description": "Return a complete MP3 and its expiring HTTPS URL. The deployment account must have permission for the selected voice.",
+        "operationId": "iflytek_hyper_tts__synthesize",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HyperSpeech"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Audio"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Method Not Allowed"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "ServiceApiKey": []
+          }
+        ],
+        "summary": "Synthesize speech",
+        "tags": [
+          "iflytek-hyper-tts"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://backend.example.com"
+    }
+  ]
+}
