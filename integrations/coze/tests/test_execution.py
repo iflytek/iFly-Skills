@@ -1,11 +1,18 @@
 """Tests for bounded async execution."""
 
 import asyncio
+import time
 
 import pytest
 
 from app.errors import ErrorCode, ServiceError
 from app.execution import TimeoutPolicy, remaining_seconds, run_with_timeout
+
+
+def test_remaining_seconds_uses_default_monotonic_clock(monkeypatch):
+    monkeypatch.setattr(time, "monotonic", lambda: 100.0)
+    assert remaining_seconds(110) == 10
+    assert remaining_seconds(90) == 0
 
 
 def test_timeout_policy_and_remaining_budget():
