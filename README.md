@@ -1,7 +1,7 @@
 # iFly-Skills 🚀
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![CLA Assistant](https://img.shields.io/badge/CLA-Assistant-green.svg)](CLA.md)
+[![CLA Assistant](https://img.shields.io/badge/CLA-Assistant-green.svg)](https://cla-assistant.io/iflytek/iFly-Skills)
 
 [English](README.md) | [中文](README_zh.md)
 
@@ -74,7 +74,7 @@ We welcome contributions to expand the iFLYTEK skills ecosystem!
 4. Push to the branch (`git push origin feature/new-skill`).
 5. Open a Pull Request.
 
-**Note:** When you submit a Pull Request, our CLA Assistant bot will automatically ask you to sign the [Contributor License Agreement (CLA)](CLA.md). Please follow the bot's instructions to complete the PR process.
+**Note:** When you submit a Pull Request, our CLA Assistant bot will automatically ask you to sign the [Contributor License Agreement (CLA)](https://cla-assistant.io/iflytek/iFly-Skills). Please follow the bot's instructions to complete the PR process.
 
 To avoid unrelated `signatures/version1/cla.json` diffs and merge conflicts in fork-based Pull Requests, CLA signatures are stored in a dedicated remote signature repository instead of this codebase.
 
