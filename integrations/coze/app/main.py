@@ -1,9 +1,11 @@
 """Uvicorn factory: uvicorn app.main:create_app --factory --no-access-log."""
 
 from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
+from starlette.responses import FileResponse
 
 from .config import Settings, load_settings
 from .errors import ERRORS, ErrorCode, ServiceError, error_response
@@ -14,7 +16,7 @@ class Health(BaseModel):
     status: str
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_base_app(settings: Settings | None = None) -> FastAPI:
     configured = settings if settings is not None else load_settings()
     app = FastAPI(title="iFly-Skills Coze backend", version="0.1.0", debug=False,
                   openapi_url=None, docs_url=None, redoc_url=None, redirect_slashes=False)
@@ -50,5 +52,43 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if methods and methods <= {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}:
                 response.headers["Allow"] = ", ".join(sorted(methods))
         return response
+
+    return app
+
+
+def create_app(settings: Settings | None = None, *, runtime=None) -> FastAPI:
+    from .runtime import Runtime, RuntimeConfig
+    from .tools import attach_tools
+
+    app = create_base_app(settings)
+
+    @asynccontextmanager
+    async def lifespan(app):
+        app.state.runtime = runtime or Runtime(RuntimeConfig.load())
+        await app.state.runtime.start()
+        try:
+            yield
+        finally:
+            await app.state.runtime.close()
+
+    app.router.lifespan_context = lifespan
+    attach_tools(app)
+
+    @app.get("/v1/artifacts/{artifact_id}", include_in_schema=False)
+    @app.get("/v1/artifacts/{artifact_id}/{filename}", include_in_schema=False)
+    async def artifact(request: Request, artifact_id: str, filename: str = "artifact"):
+        store = request.app.state.runtime.artifacts
+        found = store.resolve(artifact_id) if store else None
+        if found is None:
+            raise ServiceError(ErrorCode.NOT_FOUND)
+        path, metadata = found
+        if filename != "artifact" and (filename, metadata.mime_type) not in {
+            ("input.wav", "audio/wav"), ("input.mp3", "audio/mpeg"), ("input.mp4", "video/mp4")
+        }:
+            raise ServiceError(ErrorCode.NOT_FOUND)
+        # The random, expiring URL is a bearer capability usable by Coze/media fetchers.
+        return FileResponse(path, media_type=metadata.mime_type, filename=filename,
+                            headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+                                     "Content-Security-Policy": "sandbox; default-src 'none'"})
 
     return app

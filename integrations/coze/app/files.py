@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import ipaddress
+import http.client
 import os
 from pathlib import Path
 import re
@@ -17,7 +19,7 @@ import time
 from typing import Callable
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
-from urllib.request import HTTPRedirectHandler, Request, build_opener
+from urllib.request import HTTPRedirectHandler, HTTPSHandler, ProxyHandler, Request, build_opener
 
 
 class FileAccessError(ValueError):
@@ -83,6 +85,32 @@ class _NoRedirect(HTTPRedirectHandler):
         return None
 
 
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """Connect to the checked address while retaining hostname/SNI verification."""
+
+    def connect(self):
+        addresses = socket.getaddrinfo(self.host, self.port, type=socket.SOCK_STREAM)
+        if not addresses or any(_is_blocked_address(item[4][0]) for item in addresses):
+            raise FileAccessError("The file host is not publicly reachable.")
+        last_error = None
+        for family, socktype, proto, _, address in addresses:
+            sock = socket.socket(family, socktype, proto)
+            sock.settimeout(self.timeout)
+            try:
+                sock.connect(address)
+                self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+                return
+            except OSError as exc:
+                last_error = exc
+                sock.close()
+        raise OSError("The file host could not be reached.") from last_error
+
+
+class _PinnedHTTPSHandler(HTTPSHandler):
+    def https_open(self, req):
+        return self.do_open(_PinnedHTTPSConnection, req, context=self._context)
+
+
 def _close_quietly(stream: object) -> None:
     close = getattr(stream, "close", None)
     if close is not None:
@@ -120,16 +148,20 @@ class FileDownloader:
                  opener=None, resolver: Callable[..., list] | None = None):
         self.policy = policy or FilePolicy()
         self.temp_root = temp_root
-        self.opener = opener or build_opener(_NoRedirect())
+        self.opener = opener or build_opener(ProxyHandler({}), _NoRedirect(), _PinnedHTTPSHandler())
         self.resolver = resolver
 
     def download(self, url: str) -> DownloadedFile:
+        started = time.monotonic()
         current = _validate_remote_url(url, self.resolver)
         response = None
         for _ in range(self.policy.max_redirects + 1):
             request = Request(current, headers={"Accept": "*/*", "User-Agent": "ifly-skills-coze/1"})
             try:
-                response = self.opener.open(request, timeout=self.policy.timeout_seconds)
+                remaining = self.policy.timeout_seconds - (time.monotonic() - started)
+                if remaining <= 0:
+                    raise FileAccessError("The file download timed out.")
+                response = self.opener.open(request, timeout=remaining)
             except HTTPError as exc:
                 if 300 <= exc.code < 400:
                     location = exc.headers.get("Location") if exc.headers else None
@@ -138,6 +170,7 @@ class FileDownloader:
                         raise FileAccessError("The file redirect has no destination.") from None
                     current = _validate_remote_url(urljoin(current, location), self.resolver)
                     continue
+                _close_quietly(exc)
                 raise FileAccessError("The file server returned an error.") from None
             except (OSError, URLError, TimeoutError):
                 raise FileAccessError("The file could not be downloaded.") from None
@@ -158,21 +191,23 @@ class FileDownloader:
                 content_length = headers.get("Content-Length")
                 if content_length is not None:
                     try:
-                        if int(content_length) > self.policy.max_bytes:
-                            raise FileAccessError("The file exceeds the configured size limit.")
+                        length = int(content_length)
                     except ValueError:
                         raise FileAccessError("The file size header is invalid.") from None
+                    if length < 0 or length > self.policy.max_bytes:
+                        raise FileAccessError("The file exceeds the configured size limit.")
             if self.policy.allowed_mime_types and mime_type not in self.policy.allowed_mime_types:
                 raise FileAccessError("The file media type is not allowed.")
             directory = Path(tempfile.mkdtemp(prefix="coze-input-", dir=str(self.temp_root) if self.temp_root else None))
             target = directory / "input"
             total = 0
-            started = time.monotonic()
             with target.open("wb") as output:
                 while True:
                     if time.monotonic() - started > self.policy.timeout_seconds:
                         raise FileAccessError("The file download timed out.")
                     chunk = response.read(min(self.policy.chunk_size, self.policy.max_bytes - total + 1))
+                    if time.monotonic() - started > self.policy.timeout_seconds:
+                        raise FileAccessError("The file download timed out.")
                     if not chunk:
                         break
                     total += len(chunk)
@@ -209,12 +244,16 @@ _ARTIFACT_ID = re.compile(r"^[A-Za-z0-9_-]{20,64}$")
 class ArtifactStore:
     """Persistent local artifact metadata with expiring opaque URLs."""
 
-    def __init__(self, root: Path, base_url: str, *, default_ttl_seconds: int = 3600):
+    def __init__(self, root: Path, base_url: str, *, default_ttl_seconds: int = 3600,
+                 max_storage_bytes: int = 2 * 1024 * 1024 * 1024):
         self.root = root.resolve()
         self.base_url = self._validate_base_url(base_url)
         if default_ttl_seconds <= 0:
             raise ValueError("Artifact TTL must be positive")
         self.default_ttl_seconds = default_ttl_seconds
+        if max_storage_bytes <= 0:
+            raise ValueError("Artifact storage limit must be positive")
+        self.max_storage_bytes = max_storage_bytes
         self.data_root = self.root / "artifacts"
         self.data_root.mkdir(parents=True, exist_ok=True)
         self.db_path = self.root / "artifacts.sqlite3"
@@ -227,11 +266,16 @@ class ArtifactStore:
             raise ValueError("Artifact base URL must be an HTTPS origin without credentials, query, or fragment")
         return base_url.rstrip("/")
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self):
         connection = sqlite3.connect(self.db_path, timeout=10)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA busy_timeout=10000")
-        return connection
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -268,7 +312,7 @@ class ArtifactStore:
             temporary.unlink(missing_ok=True)
 
     def _put(self, source: Path, mime_type: str, size: int, ttl_seconds: int | None) -> Artifact:
-        if not mime_type or "/" not in mime_type or size <= 0:
+        if not re.fullmatch(r"[a-zA-Z0-9!#$&^_.+-]+/[a-zA-Z0-9!#$&^_.+-]+", mime_type) or not 0 < size <= 128 * 1024 * 1024:
             raise FileAccessError("The artifact metadata is invalid.")
         ttl = self.default_ttl_seconds if ttl_seconds is None else ttl_seconds
         if ttl <= 0:
@@ -276,15 +320,21 @@ class ArtifactStore:
         artifact_id = secrets.token_urlsafe(24)
         destination = self.data_root / artifact_id
         temporary = self.data_root / ("." + artifact_id + ".tmp")
-        shutil.copyfile(source, temporary)
-        os.replace(temporary, destination)
-        now = time.time()
-        expires = now + ttl
         try:
+            # Stage large files without holding SQLite's writer lock.
+            shutil.copyfile(source, temporary)
             with self._connect() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                stored = connection.execute("SELECT COALESCE(SUM(size_bytes), 0) FROM artifacts").fetchone()[0]
+                if stored + size > self.max_storage_bytes:
+                    raise FileAccessError("The artifact storage limit has been reached.")
+                now = time.time()
+                expires = now + ttl
+                os.replace(temporary, destination)
                 connection.execute("INSERT INTO artifacts VALUES (?, ?, ?, ?, ?, ?)",
                                    (artifact_id, destination.name, mime_type, size, expires, now))
         except Exception:
+            temporary.unlink(missing_ok=True)
             destination.unlink(missing_ok=True)
             raise
         return Artifact(artifact_id, f"{self.base_url}/v1/artifacts/{artifact_id}", mime_type, size,
@@ -307,7 +357,18 @@ class ArtifactStore:
         timestamp = time.time() if now is None else now
         with self._connect() as connection:
             rows = connection.execute("SELECT artifact_id, relative_path FROM artifacts WHERE expires_at <= ?", (timestamp,)).fetchall()
-            connection.execute("DELETE FROM artifacts WHERE expires_at <= ?", (timestamp,))
+        removed = 0
         for row in rows:
-            (self.data_root / row["relative_path"]).unlink(missing_ok=True)
-        return len(rows)
+            path = (self.data_root / row["relative_path"]).resolve()
+            if self.data_root in path.parents:
+                try:
+                    path.unlink(missing_ok=True)
+                except OSError:
+                    # Windows may still have a response stream open. Keep the expired
+                    # metadata so the next cleanup can retry without exposing the URL.
+                    continue
+            with self._connect() as connection:
+                connection.execute("DELETE FROM artifacts WHERE artifact_id = ? AND expires_at <= ?",
+                                   (row["artifact_id"], timestamp))
+            removed += 1
+        return removed

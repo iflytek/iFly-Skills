@@ -65,6 +65,32 @@ class RequestMiddleware:
                 if state["principal"] is None:
                     await error_response(scope, ErrorCode.AUTHENTICATION_FAILED)(scope, receive, traced_send)
                     return
+                if scope["method"] == "POST":
+                    chunks, size = [], 0
+                    while True:
+                        message = await receive()
+                        if message["type"] == "http.disconnect":
+                            return
+                        data = message.get("body", b"")
+                        size += len(data)
+                        if size > 2 * 1024 * 1024:
+                            await error_response(scope, ErrorCode.INVALID_REQUEST)(scope, receive, traced_send)
+                            return
+                        chunks.append(data)
+                        if not message.get("more_body", False):
+                            break
+                    original_receive = receive
+                    body = b"".join(chunks)
+                    consumed = False
+
+                    async def bounded_receive():
+                        nonlocal consumed
+                        if not consumed:
+                            consumed = True
+                            return {"type": "http.request", "body": body, "more_body": False}
+                        return await original_receive()
+
+                    receive = bounded_receive
             await self.app(scope, receive, traced_send)
         except Exception:
             state["error_code"] = ErrorCode.INTERNAL_ERROR.value

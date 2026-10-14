@@ -15,6 +15,10 @@ def test_remaining_seconds_uses_default_monotonic_clock(monkeypatch):
     assert remaining_seconds(90) == 0
 
 
+def test_remaining_seconds_uses_real_monotonic_clock():
+    assert 0 < remaining_seconds(time.monotonic() + 5) <= 5
+
+
 def test_timeout_policy_and_remaining_budget():
     policy = TimeoutPolicy()
     assert policy.task_seconds > policy.operation_seconds

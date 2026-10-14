@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from contextlib import contextmanager
 import hashlib
 import json
 from pathlib import Path
@@ -28,6 +29,10 @@ class TaskConflict(ValueError):
 
 class TaskStateError(ValueError):
     """A task cannot make the requested state transition."""
+
+
+class TaskQueueFull(RuntimeError):
+    """The bounded local queue cannot accept another job."""
 
 
 def request_fingerprint(payload: Any) -> str:
@@ -59,6 +64,7 @@ class TaskRecord:
     lease_owner: str | None
     lease_until: float | None
     attempts: int
+    payload_json: str | None = field(default=None, repr=False)
 
 
 @dataclass(frozen=True)
@@ -75,12 +81,17 @@ class TaskStore:
         self.database.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self):
         connection = sqlite3.connect(self.database, timeout=10)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA busy_timeout=10000")
         connection.execute("PRAGMA foreign_keys=ON")
-        return connection
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -109,6 +120,8 @@ class TaskStore:
             """)
             connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS task_idempotency ON tasks(site, workspace_id, skill_id, action, request_id) WHERE request_id IS NOT NULL")
             connection.execute("CREATE INDEX IF NOT EXISTS task_queue ON tasks(status, created_at)")
+            if "payload_json" not in {row[1] for row in connection.execute("PRAGMA table_info(tasks)")}:
+                connection.execute("ALTER TABLE tasks ADD COLUMN payload_json TEXT")
 
     @staticmethod
     def _validate_request_id(request_id: str | None) -> str | None:
@@ -129,7 +142,8 @@ class TaskStore:
                 and record.skill_id in principal.allowed_skills)
 
     def create_or_reuse(self, principal: Principal, skill_id: str, action: str, *,
-                        request_id: str | None, payload: Any, deadline_at: float | None = None) -> TaskCreation:
+                        request_id: str | None, payload: Any, deadline_at: float | None = None,
+                        persist_payload: bool = False) -> TaskCreation:
         Tool(skill_id, action)
         if skill_id not in principal.allowed_skills:
             raise PermissionError("The service key is not authorized for this Skill.")
@@ -150,6 +164,10 @@ class TaskStore:
                 if record.request_fingerprint != fingerprint:
                     raise TaskConflict("The request_id was already used with different input.")
                 return TaskCreation(record, True)
+            if persist_payload:
+                count = connection.execute("SELECT COUNT(*) FROM tasks WHERE payload_json IS NOT NULL AND status IN ('queued', 'running')").fetchone()[0]
+                if count >= 32:
+                    raise TaskQueueFull("The local task queue is full.")
             connection.execute(
                 """INSERT INTO tasks (task_id, site, workspace_id, skill_id, action, request_id, request_fingerprint,
                    status, created_at, updated_at, deadline_at, attempts)
@@ -158,6 +176,10 @@ class TaskStore:
                  now, now, deadline_at),
             )
             row = connection.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
+            if persist_payload:
+                connection.execute("UPDATE tasks SET payload_json = ? WHERE task_id = ?",
+                                   (json.dumps(payload, ensure_ascii=False, allow_nan=False), task_id))
+                row = connection.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
         return TaskCreation(self._record(row), False)
 
     def get_for_principal(self, task_id: str, principal: Principal) -> TaskRecord | None:
@@ -168,16 +190,21 @@ class TaskStore:
         record = self._record(row)
         return record if self._same_scope(record, principal) else None
 
-    def claim_next(self, worker_id: str, *, now: float | None = None, lease_seconds: float = 60.0) -> TaskRecord | None:
+    def claim_next(self, worker_id: str, *, now: float | None = None, lease_seconds: float = 60.0,
+                   local_only: bool = False) -> TaskRecord | None:
         if not worker_id or not _REQUEST_ID.fullmatch(worker_id) or lease_seconds <= 0:
             raise ValueError("A valid worker ID and positive lease are required")
         timestamp = time.time() if now is None else now
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            rows = connection.execute("SELECT * FROM tasks WHERE status = 'queued' ORDER BY created_at LIMIT 100").fetchall()
+            rows = connection.execute("SELECT * FROM tasks WHERE status = 'queued' AND lease_owner IS NULL"
+                                      + (" AND action IN ('review', 'render_html_to_gif')" if local_only else "")
+                                      + " ORDER BY created_at LIMIT 100").fetchall()
             for row in rows:
+                if local_only and row["action"] not in {"review", "render_html_to_gif"}:
+                    continue
                 if row["deadline_at"] is not None and row["deadline_at"] <= timestamp:
-                    connection.execute("UPDATE tasks SET status = 'failed', error_code = 'TIMEOUT', updated_at = ? WHERE task_id = ? AND status = 'queued'",
+                    connection.execute("UPDATE tasks SET status = 'failed', error_code = 'TIMEOUT', updated_at = ?, payload_json = NULL WHERE task_id = ? AND status = 'queued'",
                                        (timestamp, row["task_id"]))
                     continue
                 changed = connection.execute(
@@ -189,6 +216,48 @@ class TaskStore:
                     claimed = connection.execute("SELECT * FROM tasks WHERE task_id = ?", (row["task_id"],)).fetchone()
                     return self._record(claimed)
         return None
+
+    def acquire(self, task_id: str, worker_id: str, *, lease_seconds: float = 90) -> TaskRecord:
+        """Serialize a submission/query/staged mutation; never claim an active lease."""
+        with self._connect() as connection:
+            now = time.time()
+            changed = connection.execute(
+                """UPDATE tasks SET lease_owner = ?, lease_until = ?, attempts = attempts + 1
+                   WHERE task_id = ? AND lease_owner IS NULL""",
+                (worker_id, now + lease_seconds, task_id),
+            ).rowcount
+            row = connection.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
+        if not changed or row is None:
+            raise TaskStateError("The task is being processed.")
+        return self._record(row)
+
+    def save(self, task_id: str, worker_id: str, *, status: str, result: Any = None,
+             upstream_id: str | None = None, error_code: str | None = None) -> TaskRecord:
+        if status not in TASK_STATUSES:
+            raise ValueError("Invalid task status")
+        with self._connect() as connection:
+            now = time.time()
+            changed = connection.execute(
+                """UPDATE tasks SET status = ?, result_json = ?, upstream_id = COALESCE(?, upstream_id),
+                   error_code = ?, updated_at = ?, lease_owner = NULL, lease_until = NULL,
+                   payload_json = CASE WHEN ? IN ('queued', 'running') THEN payload_json ELSE NULL END
+                   WHERE task_id = ? AND lease_owner = ? AND lease_until > ?
+                   AND (? IN ('failed', 'submission_unknown') OR deadline_at IS NULL OR deadline_at > ?)""",
+                (status, json.dumps(result, ensure_ascii=False, allow_nan=False) if result is not None else None,
+                 upstream_id, error_code, now, status, task_id, worker_id, now, status, now),
+            ).rowcount
+            row = connection.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
+        if not changed or row is None:
+            raise TaskStateError("The task lease is no longer valid.")
+        return self._record(row)
+
+    def owns_resource(self, principal: Principal, resource_id: str) -> bool:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT result_json FROM tasks WHERE site = ? AND workspace_id = ? AND skill_id = ? AND action = 'create_training' AND status = 'succeeded'",
+                (principal.site, principal.workspace_id, "iflytek-voiceclone-tts"),
+            ).fetchall()
+        return any(json.loads(row[0] or "{}").get("res_id") == resource_id for row in rows)
 
     def renew_lease(self, task_id: str, worker_id: str, *, lease_seconds: float = 60.0,
                     now: float | None = None) -> TaskRecord:
@@ -257,8 +326,9 @@ class TaskStore:
         with self._connect() as connection:
             changed = connection.execute(
                 """UPDATE tasks SET status = 'submission_unknown', error_code = 'SUBMISSION_UNKNOWN',
-                   lease_owner = NULL, lease_until = NULL, updated_at = ?
-                   WHERE status = 'running'""",
+                   lease_owner = NULL, lease_until = NULL, updated_at = ?, payload_json = NULL
+                   WHERE lease_owner IS NOT NULL OR status = 'running' AND upstream_id IS NULL
+                   OR status = 'queued' AND action NOT IN ('review', 'render_html_to_gif')""",
                 (timestamp,),
             ).rowcount
         return changed
@@ -268,13 +338,14 @@ class TaskStore:
         timestamp = time.time() if now is None else now
         with self._connect() as connection:
             queued = connection.execute(
-                "UPDATE tasks SET status = 'failed', error_code = 'TIMEOUT', updated_at = ? WHERE status = 'queued' AND deadline_at IS NOT NULL AND deadline_at <= ?",
+                "UPDATE tasks SET status = 'failed', error_code = 'TIMEOUT', updated_at = ?, payload_json = NULL WHERE status = 'queued' AND deadline_at IS NOT NULL AND deadline_at <= ?",
                 (timestamp, timestamp),
             ).rowcount
             running = connection.execute(
                 """UPDATE tasks SET status = 'submission_unknown', error_code = 'SUBMISSION_UNKNOWN',
-                   lease_owner = NULL, lease_until = NULL, updated_at = ?
-                   WHERE status = 'running' AND deadline_at IS NOT NULL AND deadline_at <= ?""",
-                (timestamp, timestamp),
+                   lease_owner = NULL, lease_until = NULL, updated_at = ?, payload_json = NULL
+                   WHERE (status = 'running' AND deadline_at IS NOT NULL AND deadline_at <= ?)
+                   OR (lease_owner IS NOT NULL AND lease_until <= ?)""",
+                (timestamp, timestamp, timestamp),
             ).rowcount
         return queued + running

@@ -7,6 +7,12 @@ dependencies = [
     "fastapi>=0.115,<1",
     "pydantic>=2.10,<3",
     "uvicorn>=0.32,<1",
+    "requests>=2.32,<3",
+    "websocket-client>=1.8,<2",
+    "pillow>=11,<13",
+    "pypdfium2>=4.30,<6",
+    "python-docx>=1.1,<2",
+    "mutagen>=1.47,<2",
 ]
 
 [dependency-groups]

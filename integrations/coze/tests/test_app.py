@@ -13,7 +13,7 @@ import pytest
 from app.catalog import SKILL_TOOLS, Tool
 from app.config import Principal, Settings, SiteGrant
 from app.errors import ErrorCode, ServiceError
-from app.main import create_app
+from app.main import create_base_app as create_app
 from app.routing import register_tool
 from app.security import LOGGER, require_skill
 

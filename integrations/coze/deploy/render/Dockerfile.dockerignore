@@ -1,0 +1,15 @@
+**
+!integrations/
+!integrations/coze/
+!integrations/coze/deploy/
+!integrations/coze/deploy/render/
+!integrations/coze/deploy/render/Dockerfile
+!integrations/coze/deploy/render/Dockerfile.dockerignore
+!integrations/coze/deploy/render/render.mjs
+!integrations/coze/deploy/render/licenses/
+!integrations/coze/deploy/render/licenses/*.txt
+!skills/
+!skills/animated-sketch-diagram/
+!skills/animated-sketch-diagram/assets/
+!skills/animated-sketch-diagram/assets/fonts/
+!skills/animated-sketch-diagram/assets/fonts/Kalam-400.woff2
