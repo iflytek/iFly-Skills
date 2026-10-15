@@ -57,11 +57,11 @@ test('registered compiled credential loads without runtime JS dependencies', asy
   }
 });
 
-test('catalog bundles all repository skills with explicit runtime resources', async () => {
+test('catalog explicitly maps or defers every repository skill', async () => {
   const directories = (await readdir(path.join(repositoryRoot, 'skills'), { withFileTypes: true }))
     .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
-  assert.equal(directories.length, 11);
-  assert.deepEqual(catalog.skills.map(({ id }) => id).sort(), directories);
+  assert.equal(catalog.skills.length, 11);
+  assert.deepEqual([...catalog.skills, ...catalog.deferredSkills].map(({ id }) => id).sort(), directories);
   assert.equal(new Set(catalog.skills.map(({ nodeClass }) => nodeClass)).size, 11);
   assert.equal(new Set(catalog.skills.map(({ nodeName }) => nodeName)).size, 11);
   assert.equal(catalog.skills.filter(({ runtimeFiles }) => runtimeFiles.length > 0).length, 11);
@@ -85,6 +85,8 @@ test('staging preserves source bytes, is reproducible, and removes stale output'
   assert.equal(typeof manifest.sourceTreeDirty, 'boolean');
   assert.equal(manifest.catalogSha256, digest(await readFile(path.join(root, 'skills.json'))));
   assert.deepEqual(manifest.skills, catalog.skills);
+  assert.deepEqual(manifest.deferredSkills, catalog.deferredSkills);
+  assert.ok(Object.keys(manifest.files).every((file) => !file.startsWith('skills/iflytek-screenshot-to-code/')));
   for (const [file, meta] of Object.entries(manifest.files)) {
     const original = file.startsWith('skills/') ? path.join(repositoryRoot, file)
       : path.join(root, 'python', file.startsWith('bridge/') ? file.slice('bridge/'.length) : path.basename(file));
@@ -112,6 +114,38 @@ test('invalid or missing sources leave the previous runtime untouched', async (t
     invalid.skills[0].runtimeFiles = [source];
     await writeFile(path.join(root, 'skills.json'), JSON.stringify(invalid));
     await assert.rejects(stageRuntime({ packageRoot: root, repositoryRoot }));
+    assert.deepEqual(await readFile(path.join(root, 'runtime/manifest.json')), before);
+    assert.equal((await readdir(root)).some((name) => name.startsWith('.runtime-')), false);
+  }
+});
+
+test('undeclared repository skills fail staging before output is created', async (t) => {
+  const root = await fixture(t);
+  const repository = path.join(root, 'repository');
+  for (const { id } of [...catalog.skills, ...catalog.deferredSkills, { id: 'undeclared-skill' }]) {
+    await mkdir(path.join(repository, 'skills', id), { recursive: true });
+  }
+  await assert.rejects(stageRuntime({ packageRoot: root, repositoryRoot: repository }),
+    /must classify every repository skill exactly once/);
+  assert.equal((await readdir(root)).some((name) => name === 'runtime' || name.startsWith('.runtime-')), false);
+});
+
+test('invalid deferred declarations preserve the existing runtime', async (t) => {
+  const root = await fixture(t);
+  await stageRuntime({ packageRoot: root, repositoryRoot });
+  const before = await readFile(path.join(root, 'runtime/manifest.json'));
+  const deferred = catalog.deferredSkills[0];
+  for (const deferredSkills of [
+    [],
+    [...catalog.deferredSkills, { id: catalog.skills[0].id, reason: 'Duplicate mapped skill' }],
+    [...catalog.deferredSkills, { ...deferred }],
+    [{ ...deferred, id: 'unknown-skill' }],
+    [{ ...deferred, reason: ' ' }],
+    [{ id: deferred.id }],
+  ]) {
+    await writeFile(path.join(root, 'skills.json'), JSON.stringify({ ...catalog, deferredSkills }));
+    await assert.rejects(stageRuntime({ packageRoot: root, repositoryRoot }),
+      /classify every repository skill exactly once|non-empty reason/);
     assert.deepEqual(await readFile(path.join(root, 'runtime/manifest.json')), before);
     assert.equal((await readdir(root)).some((name) => name.startsWith('.runtime-')), false);
   }

@@ -1,5 +1,11 @@
 {
   "schemaVersion": 1,
+  "deferredSkills": [
+    {
+      "id": "iflytek-screenshot-to-code",
+      "reason": "Use the standalone CLI until a dedicated MaaS credential and screenshot/output-file adapter are available."
+    }
+  ],
   "skills": [
     {
       "id": "iflytek-translate",
