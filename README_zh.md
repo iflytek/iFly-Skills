@@ -66,7 +66,7 @@ npm 包 [@iflytekopensource/n8n-nodes-iflytek-skills](https://www.npmjs.com/pack
 
 ## 🤝 参与贡献
 
-我们非常欢迎您参与贡献，共同扩展科大讯飞的技能生态！
+我们非常欢迎您参与贡献，共同扩展科大讯飞的技能生态！测试要求与本地检查方式见[贡献指南](CONTRIBUTING_zh.md)，安全漏洞请按 [SECURITY.md](SECURITY.md) 报告。
 
 1. Fork 本仓库。
 2. 创建您的特性分支 (`git checkout -b feature/new-skill`)。
