@@ -53,7 +53,9 @@ COZE_ENV_FILE=integrations/coze/.env uv run --locked --project integrations/coze
 
 生产环境应在反向代理或托管网关后提供 HTTPS，并设置请求超时、文件大小和日志保留策略。不要把本地 HTTP 地址填入 Coze 插件配置。请保留仓库中的 `skills/` 目录，适配器从固定位置加载原始脚本及资源。
 
-当前使用 SQLite 和本地产物存储，**每个数据目录只运行一个服务进程**，不要设置多个 Uvicorn worker。服务默认每个工作空间每分钟 60 次请求、最多 2 个同时执行的调用，实例最多 4 个；本地后台任务逐个处理，队列最多容纳 32 项。同步操作预算 60 秒，本地后台操作预算 600 秒（含排队总计最多 900 秒），部署网关与 Coze 节点的超时应与实际调用耗时匹配。
+当前使用 SQLite 和本地产物存储，**每个数据目录只运行一个服务进程**，不要设置多个 Uvicorn worker。服务默认每个工作空间每分钟 60 次请求、最多 2 个同时执行的调用，实例最多 4 个。本地审核和渲染一次只处理一个任务，最多保留 32 个排队或运行中的任务；单任务执行最多 600 秒，含排队总计最多 900 秒。例如前一个任务耗时 600 秒，紧随其后的任务最多只剩约 300 秒执行时间；队列容量不代表能在期限内完成的任务数量。
+
+普通同步调用预算 60 秒。视频任务创建／查询、音频转写任务创建、PDF 结果查询的整体预算为 600 秒，租约为 660 秒，以容纳下载、上传和产物保存；其中音视频输入及上游产物的每个文件下载预算为 180 秒，多个文件仍共享整体执行预算。文件大小上限不保证任意网速下均可完成。上述调用仍等待执行结果，部署网关与 Coze 节点的超时应覆盖实际耗时；超时后保留原 `request_id` 或 `job_id` 查询状态，避免重复提交。
 
 ## 健康检查
 
@@ -116,7 +118,7 @@ Content-Type: application/json
 
 创建任务和训练／字幕的阶段操作必须提供 `request_id`。同一操作重试时复用原标识与原参数；相同标识配不同参数返回 `CONFLICT`。任务受理返回 HTTP 200 和 `job_id`、`status`，不代表业务完成。保存 `job_id`，至少间隔 5 秒查询，并在工作流中设置总时限与失败分支。
 
-任务状态包括 `queued`、`running`、`waiting_input`、`succeeded`、`partially_succeeded`、`failed`、`submission_unknown`。`ANY_FAILED` 的 PDF 保留部分失败状态。提交超时或进程中断时不会自动重新提交；`submission_unknown` 需核实上游受理情况，有上游映射的任务可以继续查询。重启后保留未开始的本地队列与已受理的上游任务，中断的调用不会自动重跑。
+任务状态包括 `queued`、`running`、`waiting_input`、`succeeded`、`partially_succeeded`、`failed`、`submission_unknown`。`ANY_FAILED` 的 PDF 保留部分失败状态。提交超时或进程中断时不会自动重新提交；`submission_unknown` 需核实上游受理情况，有上游映射的任务可以继续查询。重启后保留未开始的本地队列与已受理的上游任务；正在执行的本地审核或渲染任务会标记为 `failed/TIMEOUT`，远程提交任务会保留为 `submission_unknown`，中断的调用不会自动重跑。
 
 声音训练依次使用“创建 → 上传样本 → 提交训练 → 查询”；上传操作仅登记样本，不隐式提交训练。录音应由获授权的说话人按 `get_training_text` 返回的文本录制，上传时使用对应的 `text_id` 和 `seg_id`。当前工具不接收自定义训练文本，提供已有录音的转写不能替代所选服务端文本。合成只接受当前工作空间已成功训练的 `res_id`。
 
@@ -132,7 +134,7 @@ Content-Type: application/json
 
 输出默认保留 1 小时，供上游拉取的视频／训练样本保留 24 小时。保留期限独立于任务状态：即使任务提前失败，已转存的输入仍可通过原 URL 下载，直至过期；到期立即拒绝新下载请求，文件随后由后台自动清理。产物总容量上限 2 GiB、单文件上限 128 MiB。任务和报告记录包含业务内容，数据目录需限制访问、持久保存；任务标识的去重记录不自动删除。
 
-合同支持 UTF-8 TXT／Markdown、DOCX（包含表格）、PDF、PNG／JPEG，不支持旧 `.doc`；最多 20 MiB、8 页 PDF，提取后最多 4000 字符，超限需先拆分。`quick`／`standard`／`deep` 沿用原 Skill 的规则范围并进行模型审核；`deep`、英文合同或 `need_translation=true` 会生成英文译文摘要，必要阶段失败即任务失败。结果区分规则检查和模型推断，模型风险必须引用原文；未测量的置信度为空，保留人工复核提示。`output_format` 可选 `markdown`、`json`、`both`。
+合同支持 UTF-8 TXT／Markdown、DOCX（包含表格）、PDF、PNG／JPEG，不支持旧 `.doc`；最多 20 MiB、8 页 PDF，提取后最多 4000 字符，超限需先拆分。`quick`／`standard`／`deep` 沿用原 Skill 的规则范围并进行模型审核；`deep`、英文合同或 `need_translation=true` 会生成英文译文摘要，必要阶段失败即任务失败。结果区分规则检查和模型推断；模型风险的证据必须是原文连续引用，不匹配的条目移入 `model_review.uncertain_items` 并生成建议，标记需人工复核，其他有效结果和报告仍保留。未测量的置信度为空。`output_format` 可选 `markdown`、`json`、`both`。
 
 训练适配器使用验证证书的 HTTPS，拒绝重定向；克隆合成使用验证证书的 WSS。部署前需按[声音复刻文档](https://www.xfyun.cn/doc/spark/voiceclone.html)准备录音，并核对实际账号的训练和合成权限。启用各插件前，需用部署账号确认对应服务的业务权限和调用结果。
 

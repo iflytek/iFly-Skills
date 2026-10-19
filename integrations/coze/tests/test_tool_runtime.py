@@ -1,8 +1,11 @@
 """Exercise public routes, durable work and ownership without paid upstream calls."""
 
 import asyncio
+from email.message import Message
 import json
+import socket
 import time
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 import pytest
@@ -131,6 +134,131 @@ def test_submit_retries_are_deduplicated_and_cross_site_ids_are_hidden(service):
     assert len(runner.calls) == 2
 
 
+def test_video_waiting_polls_then_large_output_is_persisted_once(tmp_path, monkeypatch):
+    from app import adapters, files, runtime as runtime_module, tasks
+
+    clock = SimpleNamespace(now=1000.0)
+    fake_time = SimpleNamespace(time=lambda: clock.now, monotonic=lambda: clock.now)
+    for module in (files, runtime_module, tasks):
+        monkeypatch.setattr(module, "time", fake_time)
+    size = 128 * 1024 * 1024
+    downloads = []
+
+    class Response:
+        status = 200
+        def __init__(self):
+            self.remaining = size
+            self.headers = Message()
+            self.headers["Content-Type"] = "video/mp4"
+            self.headers["Content-Length"] = str(size)
+        def read(self, amount):
+            count = min(amount, self.remaining)
+            self.remaining -= count
+            clock.now += count / size * 120  # 128 MiB over two simulated minutes.
+            return b"v" * count
+        def close(self):
+            pass
+
+    class Opener:
+        def open(self, request, timeout):
+            downloads.append(request.full_url)
+            return Response()
+
+    def downloader(policy):
+        return files.FileDownloader(policy, opener=Opener(), temp_root=tmp_path,
+                                    resolver=lambda *a, **k: [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))])
+
+    state = {"status": "waiting_transcript_confirmation"}
+    url = "https://upstream.example/video.mp4"
+    def query(_):
+        if state["status"] == "completed":
+            clock.now += 120  # Leave room for provider work as well as downloading.
+        return {"status": state["status"], "output": {"output_video_url": url}, "segments": [{"url": url}]}
+    client = SimpleNamespace(get_task=query, confirm_transcript=lambda *a, **k: None)
+    monkeypatch.setattr(adapters, "module", lambda _: None)
+    monkeypatch.setattr(adapters, "credentials", lambda **kw: ("test-key", "test-secret"))
+    monkeypatch.setattr(adapters.compat, "video_client", lambda *a: client)
+    monkeypatch.setattr(adapters, "FileDownloader", downloader)
+
+    class Runner:
+        def __init__(self):
+            self.calls = []
+        async def call(self, skill, action, payload, *, timeout=60):
+            self.calls.append(action)
+            if action == "create_task":
+                return {"status": "running", "upstream_id": "video-1", "result": {"upstream_status": "processing"}}
+            started = clock.now
+            result = adapters.invoke(skill, action, payload)
+            assert clock.now - started < timeout
+            assert runtime.tasks.expire() == 0  # Active transfer must keep a valid lease.
+            return result
+
+    runner = Runner()
+    runtime = Runtime(RuntimeConfig(tmp_path, "https://files.example.test"), runner=runner)
+    monkeypatch.setattr(adapters, "artifact_store", lambda: runtime.artifacts)
+    skill = "iflytek-video-translate"
+
+    async def scenario():
+        initial = await runtime.execute(CN, skill, "create_task", {"request_id": "video", "video_url": "https://input.example/video.mp4"})
+        job = initial["job_id"]
+        for _ in range(2):
+            clock.now += 6
+            waiting = await runtime.execute(CN, skill, "get_task", {"job_id": job})
+            assert waiting["status"] == "waiting_input"
+            assert waiting["result"]["artifacts"] == []
+        assert downloads == []
+        await runtime.execute(CN, skill, "confirm_transcript", {"request_id": "confirm", "job_id": job})
+        state["status"] = "completed"
+        clock.now += 6
+        result = await runtime.execute(CN, skill, "get_task", {"job_id": job})
+        assert result["status"] == "succeeded"
+        artifact = result["result"]["artifacts"][0]
+        assert artifact["size_bytes"] == size
+        assert runtime.artifacts.resolve(artifact["artifact_id"])[0].stat().st_size == size
+        assert downloads == [url]
+        assert len(list(runtime.artifacts.data_root.iterdir())) == 1
+        before = len(runner.calls)
+        clock.now += 6
+        assert await runtime.execute(CN, skill, "get_task", {"job_id": job}) == result
+        assert len(runner.calls) == before
+        assert not list(tmp_path.glob("coze-input-*"))
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("skill", ["iflytek-video-translate", TRANSCRIPTION])
+@pytest.mark.parametrize("failure", [None, ErrorCode.TIMEOUT])
+def test_slow_media_submission_retains_lease_and_idempotency(tmp_path, monkeypatch, skill, failure):
+    from app import runtime as runtime_module, tasks
+    clock = SimpleNamespace(now=1000.0)
+    fake_time = SimpleNamespace(time=lambda: clock.now, monotonic=lambda: clock.now)
+    monkeypatch.setattr(tasks, "time", fake_time)
+    monkeypatch.setattr(runtime_module, "time", fake_time)
+
+    class Runner:
+        calls = 0
+        async def call(self, skill, action, payload, *, timeout=60):
+            self.calls += 1
+            clock.now += timeout if failure else 240
+            assert runtime.tasks.expire() == 0
+            if failure:
+                raise ServiceError(failure)
+            assert timeout > 240
+            return {"status": "running", "upstream_id": "media-id",
+                    "result": {"upstream_status": "processing" if skill == "iflytek-video-translate" else 1}}
+
+    runner = Runner()
+    runtime = Runtime(RuntimeConfig(tmp_path), runner=runner)
+    body = {"request_id": "slow", "video_url" if skill == "iflytek-video-translate" else "audio_url": "https://input.example/file"}
+    async def scenario():
+        result = await runtime.execute(CN, skill, "create_task", body)
+        assert result["status"] == ("submission_unknown" if failure else "running")
+        assert runtime.tasks.get_for_principal(result["job_id"], CN).lease_owner is None
+        assert await runtime.execute(CN, skill, "create_task", body) == result
+        assert runner.calls == 1
+    asyncio.run(scenario())
+
+
 def test_unknown_submission_is_durable_and_never_retried(service):
     client, runtime, runner = service
     runner.error = ErrorCode.TIMEOUT
@@ -192,11 +320,39 @@ def test_restart_preserves_queued_local_input_and_upstream_mapping(tmp_path):
     store.save(remote.record.task_id, "owner", status="running", upstream_id="remote-id")
     running = store.claim_next("old-worker", local_only=True)
     assert running.payload_json == '{"html": "private"}'
+    queued = store.create_or_reuse(CN, "animated-sketch-diagram", "render_html_to_gif",
+                                   request_id="not-started", payload={"html": "queued"}, persist_payload=True)
     reopened = TaskStore(tmp_path / "tasks.sqlite3")
     assert reopened.recover_after_restart() == 1
-    assert reopened.get_for_principal(local.record.task_id, CN).status == "submission_unknown"
+    assert reopened.get_for_principal(local.record.task_id, CN).status == "failed"
+    assert reopened.get_for_principal(local.record.task_id, CN).error_code == "TIMEOUT"
     assert reopened.get_for_principal(local.record.task_id, CN).payload_json is None
     assert reopened.get_for_principal(remote.record.task_id, CN).upstream_id == "remote-id"
+    assert reopened.get_for_principal(queued.record.task_id, CN).status == "queued"
+    assert reopened.get_for_principal(queued.record.task_id, CN).payload_json is not None
+
+
+def test_idle_maintenance_is_throttled_without_delaying_queue_polls(tmp_path, monkeypatch):
+    from app import runtime as runtime_module
+    runtime = Runtime(RuntimeConfig(tmp_path, "https://files.example.test"), runner=FakeRunner())
+    clock = SimpleNamespace(now=0.0)
+    events = {"expire": [], "cleanup": [], "poll": []}
+    monkeypatch.setattr(runtime_module, "time", SimpleNamespace(monotonic=lambda: clock.now))
+    monkeypatch.setattr(runtime.tasks, "expire", lambda: events["expire"].append(clock.now))
+    monkeypatch.setattr(runtime.artifacts, "cleanup", lambda: events["cleanup"].append(clock.now))
+    def claim(*args, **kwargs):
+        events["poll"].append(clock.now)
+        return None
+    monkeypatch.setattr(runtime.tasks, "claim_next", claim)
+    async def sleep(seconds):
+        clock.now += seconds
+        if clock.now > 60:
+            raise asyncio.CancelledError()
+    monkeypatch.setattr(runtime_module, "asyncio", SimpleNamespace(sleep=sleep))
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(runtime._work())
+    assert events["expire"] == events["cleanup"] == [0, 30, 60]
+    assert len(events["poll"]) == 241
 
 
 def test_expired_lease_cannot_write_results(tmp_path):

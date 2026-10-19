@@ -13,7 +13,7 @@ from app.errors import ErrorCode, ServiceError
 from app.files import FileAccessError
 from app.media import inspect_file
 from app.models import Render, Translate
-from app.render import container_command, validate_html
+from app.render import container_command, validate_html, validate_rendered_gif
 
 
 @pytest.fixture(autouse=True)
@@ -130,6 +130,20 @@ def test_pdf_output_uses_https_omits_source_and_copies_duplicate_once(monkeypatc
     with pytest.raises(ServiceError) as error:
         adapters.copy_outputs({"downUrl": "http://unverified.example.test/result.md"})
     assert error.value.code == ErrorCode.UPSTREAM_PROTOCOL_ERROR
+
+
+def test_video_waiting_for_transcript_does_not_rehost_outputs(monkeypatch):
+    module = adapters.module("iflytek-video-translate")
+    monkeypatch.setattr(adapters, "module", lambda _: module)
+    monkeypatch.setattr(compat, "video_client", lambda *args: SimpleNamespace(
+        get_task=lambda _: {"status": "waiting_transcript_confirmation",
+                            "output": {"output_video_url": "https://upstream/video"},
+                            "segments": [{"url": "https://upstream/segment"}]}
+    ))
+    monkeypatch.setattr(adapters, "copy_outputs", lambda value: pytest.fail("waiting output must not be rehosted"))
+    result = adapters.invoke("iflytek-video-translate", "get_task", {"upstream_id": "video-task"})
+    assert result["status"] == "waiting_input"
+    assert result["result"]["details"] == {} and result["result"]["artifacts"] == []
 
 
 def test_transcription_rejects_unsupported_task_type_before_submission():
@@ -303,6 +317,37 @@ def test_render_limits_and_container_boundary():
         container_command("docker", "unverified:latest", "synthetic")
 
 
+def test_renderer_rejects_gif_with_wrong_frame_count(tmp_path):
+    from PIL import Image
+    path = tmp_path / "result.gif"
+    Image.new("RGB", (128, 128), "white").save(path, format="GIF")
+    model = Render(request_id="test", html="<div>x</div>", width=64, height=64, scale=2, fps=2, loop_ms=1000)
+    with pytest.raises(ServiceError):
+        validate_rendered_gif(path, model)
+    images = [Image.new("RGB", (128, 128), color) for color in ("white", "black")]
+    images[0].save(path, format="GIF", save_all=True, append_images=images[1:], duration=500)
+    assert validate_rendered_gif(path, model) == 2
+
+
+def test_large_transcription_upload_sends_basename_and_complete_final_chunk(monkeypatch, tmp_path):
+    module = adapters.module("iflytek-speed-transcription")
+    path = tmp_path / "private-directory" / "input.mp3"
+    path.parent.mkdir()
+    path.write_bytes(b"abcdefgh")
+    client = compat.transcription_client(module, "app", "key", "secret")
+    client.chunk_size = 4
+    parts = []
+    def encode(fields):
+        parts.append(fields["data"])
+        return b"multipart", "multipart/form-data"
+    def call(url, *args):
+        return {"code": 0, "data": {"upload_id": "upload-1", "url": "https://upstream.example/input"}}
+    monkeypatch.setattr(module, "encode_multipart_formdata", encode)
+    monkeypatch.setattr(client, "_call_api", call)
+    assert client.upload_large_file(path) == "https://upstream.example/input"
+    assert parts == [("input.mp3", b"abcd"), ("input.mp3", b"efgh")]
+
+
 def test_media_decodes_images_and_rejects_legacy_doc(tmp_path):
     from PIL import Image
     path = tmp_path / "input"
@@ -313,13 +358,21 @@ def test_media_decodes_images_and_rejects_legacy_doc(tmp_path):
         inspect_file(path, "contract", "https://example.test/legacy.doc")
 
 
-def test_model_review_requires_grounded_evidence():
-    result = {"summary": "summary", "key_clauses": [], "suggestions": [],
-              "risks": [{"title": "risk", "level": "high", "evidence": "invented", "suggestion": "verify"}]}
-    with pytest.raises(RuntimeError):
-        parse_review(json.dumps(result), "actual contract")
-    result["risks"][0]["evidence"] = "actual contract"
-    assert parse_review(json.dumps(result), "actual contract").risks[0]["source"] == "model_inference"
+@pytest.mark.parametrize("evidence", ["invented", "Pay within 30 days;", "Pay within  30 days.", "", "   "])
+def test_model_review_demotes_ungrounded_evidence(evidence):
+    result = {"summary": "summary", "key_clauses": ["payment"], "suggestions": ["existing suggestion"],
+              "risks": [{"title": "supported", "level": "low", "evidence": "Pay within 30 days.", "suggestion": "check terms"},
+                        {"title": "unverified", "level": "high", "evidence": evidence, "suggestion": "verify"}]}
+    # Normalized whitespace/punctuation is not promoted to a verified quotation.
+    source = "Pay within 30 days."
+    parsed = parse_review(json.dumps(result), source)
+    assert [risk["title"] for risk in parsed.risks] == ["supported"]
+    assert parsed.risks[0]["source"] == "model_inference"
+    assert parsed.summary == "summary" and parsed.key_clauses == ["payment"]
+    assert parsed.uncertain_items[0]["human_review_required"] is True
+    assert parsed.uncertain_items[0]["suggestion"] == "verify"
+    assert parsed.suggestions[0] == "existing suggestion"
+    assert "not an exact quote" in parsed.suggestions[1]
 
 
 def test_contract_real_processors_reports_and_required_translation(monkeypatch, tmp_path):
@@ -331,8 +384,14 @@ def test_contract_real_processors_reports_and_required_translation(monkeypatch, 
     def input_file(*args, **kwargs):
         yield SimpleNamespace(path=source)
     monkeypatch.setattr(contract, "input_file", input_file)
-    monkeypatch.setattr(contract, "artifact_store", lambda: ArtifactStore(tmp_path / "artifacts", "https://example.test"))
-    monkeypatch.setattr(contract.LLMReviewClient, "review_contract", lambda *args: SimpleNamespace(summary="summary", risks=[], key_clauses=[], suggestions=[]))
+    store = ArtifactStore(tmp_path / "artifacts", "https://example.test")
+    monkeypatch.setattr(contract, "artifact_store", lambda: store)
+    def review_contract(self, text, *args):
+        return parse_review(json.dumps({"summary": "summary", "key_clauses": [], "suggestions": [], "risks": [
+            {"title": "check payment", "level": "low", "evidence": text, "suggestion": "verify deadline"},
+            {"title": "unverified penalty", "level": "high", "evidence": "invented clause", "suggestion": "verify penalty"},
+        ]}), text)
+    monkeypatch.setattr(contract.LLMReviewClient, "review_contract", review_contract)
     params = {"file_url": "https://example.test/contract.txt", "lang": "zh", "review_mode": "standard", "focus": [], "need_translation": False, "output_format": "json"}
     result = contract.review(params)
     assert result["review"]["clauses"]
@@ -347,6 +406,14 @@ def test_contract_real_processors_reports_and_required_translation(monkeypatch, 
         contract.review({**params, "review_mode": "deep"})
     result = contract.review({**params, "output_format": "both"})
     assert {r["mime_type"] for r in result["reports"]} == {"application/json", "text/markdown"}
+    assert [r["title"] for r in result["review"]["risks"] if r.get("source") == "model_inference"] == ["check payment"]
+    assert result["review"]["model_review"]["uncertain_items"][0]["human_review_required"] is True
+    for report in result["reports"]:
+        content = store.resolve(report["artifact_id"])[0].read_text(encoding="utf-8")
+        assert "unverified penalty" in content
+        assert "not an exact quote" in content
+    monkeypatch.setattr(contract, "translate", lambda *a: {"dst": "translated summary"})
+    assert contract.review({**params, "need_translation": True})["review"]["translation_summary"] == "translated summary"
 
 
 def test_utf8_translation_limit_is_not_character_limit():

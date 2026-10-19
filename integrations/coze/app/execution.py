@@ -12,6 +12,10 @@ from .errors import ErrorCode, ServiceError
 
 T = TypeVar("T")
 
+# A media call includes downloading, provider work/uploads, and artifact publication.
+MEDIA_DOWNLOAD_TIMEOUT_SECONDS = 180.0
+MEDIA_OPERATION_TIMEOUT_SECONDS = 600.0
+
 
 @dataclass(frozen=True)
 class TimeoutPolicy:

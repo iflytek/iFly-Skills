@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from .config import RUNTIME_KEYS, read_config
 from .errors import ErrorCode, ServiceError
+from .execution import MEDIA_OPERATION_TIMEOUT_SECONDS
 from .files import ArtifactStore
 from .limits import ConcurrencyGate, ConcurrencyLimitError, SlidingWindowRateLimiter
 from .runner import SkillRunner
@@ -18,12 +19,21 @@ from .tasks import TaskConflict, TaskQueueFull, TaskStateError, TaskStore
 
 
 LOCAL = {"review", "render_html_to_gif"}
+MEDIA_OPERATIONS = {("iflytek-speed-transcription", "create_task"),
+                    ("iflytek-video-translate", "create_task"),
+                    ("iflytek-video-translate", "get_task"),
+                    ("iflytek-pdf-image-ocr", "get_pdf_task")}
+MAINTENANCE_INTERVAL_SECONDS = 30.0
 CREATES = {"create_task", "create_pdf_task", "create_training"} | LOCAL
 MUTATIONS = {"upload_sample", "submit_training", "confirm_transcript"}
 QUERIES = {"get_task", "get_pdf_task", "get_training", "get_review", "get_render"}
 FINISHED = {"succeeded", "partially_succeeded", "failed"}
 REJECTED = {ErrorCode.INVALID_REQUEST, ErrorCode.DEPENDENCY_UNAVAILABLE,
             ErrorCode.UPSTREAM_PERMISSION_DENIED, ErrorCode.UPSTREAM_QUOTA_EXCEEDED}
+
+
+def operation_timeout(skill, action):
+    return MEDIA_OPERATION_TIMEOUT_SECONDS if (skill, action) in MEDIA_OPERATIONS else 60.0
 
 
 @dataclass(frozen=True)
@@ -146,7 +156,7 @@ class Runtime:
                     if not self.tasks.owns_resource(principal, payload["res_id"]):
                         raise ServiceError(ErrorCode.NOT_FOUND)
                 self.preflight(skill, action)
-                return await self.runner.call(skill, action, payload)
+                return await self.runner.call(skill, action, payload, timeout=operation_timeout(skill, action))
             except (TaskConflict, TaskStateError):
                 raise ServiceError(ErrorCode.CONFLICT) from None
             except TaskQueueFull:
@@ -183,9 +193,10 @@ class Runtime:
         if created.reused or action in LOCAL:
             return self.public(record)
         owner = uuid4().hex
-        record = self.tasks.acquire(record.task_id, owner)
+        timeout = operation_timeout(skill, action)
+        record = self.tasks.acquire(record.task_id, owner, lease_seconds=timeout + 60)
         try:
-            response = await self.runner.call(skill, action, payload)
+            response = await self.runner.call(skill, action, payload, timeout=timeout)
             record = self.save_response(record, owner, response)
         except asyncio.CancelledError:
             self.save_failure(record, owner, ServiceError(ErrorCode.TIMEOUT))
@@ -205,9 +216,11 @@ class Runtime:
             return self.public(record)
         self.preflight(skill, action)
         owner = uuid4().hex
-        record = self.tasks.acquire(record.task_id, owner)
+        timeout = operation_timeout(skill, action)
+        record = self.tasks.acquire(record.task_id, owner, lease_seconds=timeout + 60)
         try:
-            response = await self.runner.call(skill, action, {"upstream_id": record.upstream_id})
+            response = await self.runner.call(skill, action, {"upstream_id": record.upstream_id},
+                                              timeout=timeout)
             record = self.save_response(record, owner, response)
         except (Exception, asyncio.CancelledError):
             # Read failures do not erase a known submission or cause a second submission.
@@ -257,10 +270,14 @@ class Runtime:
         return self.public(parent)
 
     async def _work(self):
+        next_maintenance = 0.0
         while True:
-            self.tasks.expire()
-            if self.artifacts:
-                self.artifacts.cleanup()
+            now = time.monotonic()
+            if now >= next_maintenance:
+                self.tasks.expire()
+                if self.artifacts:
+                    self.artifacts.cleanup()
+                next_maintenance = now + MAINTENANCE_INTERVAL_SECONDS
             owner = uuid4().hex
             record = self.tasks.claim_next(owner, lease_seconds=660, local_only=True)
             if record is None:

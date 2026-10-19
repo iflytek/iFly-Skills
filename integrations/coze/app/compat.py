@@ -104,7 +104,7 @@ def transcription_client(module, app_id, api_key, api_secret):
                     # read() returns the remaining bytes, including a full final chunk.
                     data = stream.read(self.chunk_size)
                     body, content_type = module.encode_multipart_formdata({
-                        **common, 'slice_id': index + 1, 'data': (str(file_path), data)})
+                        **common, 'slice_id': index + 1, 'data': (file_path.name, data)})
                     call(self.mpupload_upload, body, content_type)
             return call(self.mpupload_complete, json.dumps(common))['data']['url']
     return Transcription(app_id, api_key, api_secret)

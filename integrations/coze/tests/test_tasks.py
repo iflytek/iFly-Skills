@@ -1,5 +1,8 @@
 """Tests for durable task ownership, idempotency and restart handling."""
 
+from contextlib import closing, contextmanager
+import sqlite3
+
 import pytest
 
 from app.config import Principal
@@ -70,6 +73,42 @@ def test_expire_marks_running_work_uncertain_and_queued_work_timed_out(tmp_path)
     assert store.expire(now=100) == 2
     assert store.get_for_principal(queued.record.task_id, CN).status == "failed"
     assert store.get_for_principal(running.record.task_id, CN).status == "submission_unknown"
+
+
+@pytest.mark.parametrize("expiry", ["lease", "deadline"])
+def test_local_work_is_failed_after_restart_or_lease_expiry(tmp_path, expiry):
+    store = TaskStore(tmp_path / "tasks.sqlite3")
+    local_principal = Principal("cn", "cn-space", frozenset({"animated-sketch-diagram"}))
+    local = store.create_or_reuse(local_principal, "animated-sketch-diagram", "render_html_to_gif",
+                                  request_id="local", payload={"html": "x"}, persist_payload=True)
+    store.acquire(local.record.task_id, "worker")
+    assert store.recover_after_restart(now=100) == 1
+    record = store.get_for_principal(local.record.task_id, local_principal)
+    assert record.status == "failed" and record.error_code == "TIMEOUT"
+
+    queued = store.create_or_reuse(local_principal, "animated-sketch-diagram", "render_html_to_gif",
+                                   request_id="queued-local", payload={"html": "x"},
+                                   persist_payload=True, deadline_at=90 if expiry == "deadline" else 200)
+    claimed = store.claim_next("worker", now=80, local_only=True, lease_seconds=10 if expiry == "lease" else 100)
+    assert claimed.task_id == queued.record.task_id
+    assert store.expire(now=100) == 1
+    record = store.get_for_principal(queued.record.task_id, local_principal)
+    assert record.status == "failed" and record.error_code == "TIMEOUT"
+    assert record.payload_json is None and record.lease_owner is None
+
+
+def test_idle_queue_poll_does_not_compete_with_database_writer(tmp_path, monkeypatch):
+    store = TaskStore(tmp_path / "tasks.sqlite3")
+    original_connect = store._connect
+    @contextmanager
+    def no_wait_connect():
+        with original_connect() as connection:
+            connection.execute("PRAGMA busy_timeout=0")
+            yield connection
+    monkeypatch.setattr(store, "_connect", no_wait_connect)
+    with closing(sqlite3.connect(store.database)) as writer:
+        writer.execute("BEGIN IMMEDIATE")
+        assert store.claim_next("worker", local_only=True) is None
 
 
 def test_fingerprints_are_stable_and_reject_non_json_values():

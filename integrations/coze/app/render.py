@@ -88,6 +88,20 @@ def container_command(docker, image, name):
             "--log-driver=none", image]
 
 
+def validate_rendered_gif(path, model):
+    from PIL import Image
+
+    expected_frames = (model.loop_ms * model.fps + 999) // 1000
+    with Image.open(path) as gif:
+        if (gif.format != "GIF" or gif.size != (model.width * model.scale, model.height * model.scale)
+                or gif.n_frames != expected_frames):
+            raise ServiceError(ErrorCode.UPSTREAM_PROTOCOL_ERROR)
+        for index in range(gif.n_frames):
+            gif.seek(index)
+            gif.load()
+    return expected_frames
+
+
 def render(payload):
     try:
         model = Render.model_validate({**payload, "request_id": "internal-render"})
@@ -112,14 +126,7 @@ def render(payload):
                                     creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
         if result.returncode or not 6 < output.stat().st_size <= 32 * 1024 * 1024:
             raise ServiceError(ErrorCode.DEPENDENCY_UNAVAILABLE if result.returncode == 125 else ErrorCode.UPSTREAM_ERROR)
-        from PIL import Image
-        with Image.open(output) as gif:
-            frames = (model.loop_ms * model.fps + 999) // 1000
-            if gif.format != "GIF" or gif.size != (model.width * model.scale, model.height * model.scale):
-                raise ServiceError(ErrorCode.UPSTREAM_PROTOCOL_ERROR)
-            for index in range(gif.n_frames):
-                gif.seek(index)
-                gif.load()
+        frames = validate_rendered_gif(output, model)
         return {"gif": asdict(store.put_file(output, "image/gif")), "width": model.width * model.scale,
                 "height": model.height * model.scale, "frames": frames, "fps": model.fps}
     except subprocess.TimeoutExpired:

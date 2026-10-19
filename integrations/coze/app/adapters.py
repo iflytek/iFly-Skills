@@ -11,9 +11,9 @@ from urllib.parse import urlsplit
 
 from . import compat
 from .errors import ErrorCode, ServiceError
+from .execution import MEDIA_DOWNLOAD_TIMEOUT_SECONDS
 from .files import ArtifactStore, FileAccessError, FileDownloader, FilePolicy
 from .media import input_file
-
 
 SOURCES = {
     "iflytek-translate": "translate.py",
@@ -159,7 +159,8 @@ def copy_outputs(value):
             url = parts._replace(scheme="https").geturl() if (
                 parts.scheme == "http" and parts.netloc == "bjcdn.openstorage.cn") else item
             try:
-                with FileDownloader(FilePolicy(max_bytes=128 * 1024 * 1024)).download(url) as downloaded:
+                with FileDownloader(FilePolicy(max_bytes=128 * 1024 * 1024,
+                                               timeout_seconds=MEDIA_DOWNLOAD_TIMEOUT_SECONDS)).download(url) as downloaded:
                     artifact = asdict(artifact_store().put_file(downloaded.path, downloaded.mime_type))
             except FileAccessError:
                 raise ServiceError(ErrorCode.UPSTREAM_PROTOCOL_ERROR) from None
@@ -235,7 +236,8 @@ def invoke(skill, action, payload):
         m = module(skill)
         client = compat.transcription_client(m, *credentials())
         if action == "create_task":
-            with input_file(p.pop("audio_url"), "mp3", max_bytes=128 * 1024 * 1024) as source:
+            with input_file(p.pop("audio_url"), "mp3", max_bytes=128 * 1024 * 1024,
+                            timeout_seconds=MEDIA_DOWNLOAD_TIMEOUT_SECONDS) as source:
                 url = (client.upload_small_file if source.size_bytes < 31457280 else client.upload_large_file)(source.path)
                 upstream_id = client.create_task(url, file_path=source.path, **p)
             return staged("running", {"upstream_status": 1}, remote_id(upstream_id))
@@ -252,7 +254,8 @@ def invoke(skill, action, payload):
         client = compat.video_client(module(skill), *credentials(fields=("API_KEY", "API_SECRET")))
         if action == "create_task":
             store = artifact_store()
-            with input_file(p["video_url"], "video", max_bytes=128 * 1024 * 1024) as source:
+            with input_file(p["video_url"], "video", max_bytes=128 * 1024 * 1024,
+                            timeout_seconds=MEDIA_DOWNLOAD_TIMEOUT_SECONDS) as source:
                 url = store.put_file(source.path, source.mime_type, ttl_seconds=86400).url + "/input.mp4"
             data = client.create_task(url, p["src_lang"], p["dest_lang"], p["name"] or None)
             return staged("running", {"upstream_status": str(data.get("status", "waiting_parsing"))}, remote_id(data.get("task_id")))
@@ -266,7 +269,7 @@ def invoke(skill, action, payload):
         if state == "succeeded":
             protocol(isinstance(data.get("output"), dict) and bool(data["output"].get("output_video_url")))
         # Keep new provider stages visible without treating them as completion.
-        details, artifacts = copy_outputs({k: v for k, v in data.items() if k in {"output", "segments"}}) if state in {"succeeded", "waiting_input"} else ({}, [])
+        details, artifacts = copy_outputs({k: v for k, v in data.items() if k in {"output", "segments"}}) if state == "succeeded" else ({}, [])
         return staged(state, {"upstream_status": status, "details": details, "artifacts": artifacts},
                       error_code="UPSTREAM_ERROR" if state == "failed" else None)
     if skill == "iflytek-voiceclone-tts":

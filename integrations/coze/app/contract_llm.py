@@ -25,6 +25,7 @@ class ReviewResult:
     key_clauses: list
     risks: list
     suggestions: list
+    uncertain_items: list
     confidence: float | None = None
 
 @dataclass
@@ -61,17 +62,29 @@ def parse_review(content, source):
         if not isinstance(value["risks"], list) or len(value["risks"]) > 10:
             raise ValueError()
         risks = []
+        uncertain_items = []
         for risk in value["risks"]:
-            if (not isinstance(risk, dict) or risk.get("level") not in ("high", "medium", "low")
-                    or any(not isinstance(risk.get(key), str) or not risk[key].strip()
-                           or len(risk[key]) > 1200 for key in ("title", "evidence", "suggestion"))
-                    or risk["evidence"] not in source):
+            if not isinstance(risk, dict) or risk.get("level") not in ("high", "medium", "low"):
                 raise ValueError()
+            if (any(not isinstance(risk.get(key), str) or not risk[key].strip()
+                    or len(risk[key]) > 1200 for key in ("title", "suggestion"))
+                    or not isinstance(risk.get("evidence"), str) or len(risk["evidence"]) > 1200):
+                raise ValueError()
+            if not risk["evidence"].strip() or risk["evidence"] not in source:
+                uncertain_items.append({"title": risk["title"], "level": risk["level"],
+                                         "suggestion": risk["suggestion"],
+                                         "reason": "Evidence was not an exact source substring.",
+                                         "human_review_required": True})
+                continue
             risks.append({key: risk[key] for key in ("title", "level", "evidence", "suggestion")}
                          | {"source": "model_inference", "category": "model_review"})
-        return ReviewResult(summary, value["key_clauses"], risks, value["suggestions"])
+        suggestions = list(value["suggestions"])
+        suggestions.extend("Review model risk '%s' against the original contract; evidence was not an exact quote. Suggestion: %s"
+                           % (item["title"], item["suggestion"])
+                           for item in uncertain_items)
+        return ReviewResult(summary, value["key_clauses"], risks, suggestions, uncertain_items)
     except (ValueError, KeyError, TypeError) as error:
-        raise RuntimeError("Invalid model review or unsupported evidence") from error
+        raise RuntimeError("Invalid model review") from error
 
 class LLMReviewClient:
     def __init__(self, config):

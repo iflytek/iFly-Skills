@@ -71,8 +71,9 @@ def inspect_file(path: Path, kind: str, url: str = "") -> tuple[str, str]:
 
 
 @contextmanager
-def input_file(url: str, kind: str, *, max_bytes: int = 4 * 1024 * 1024):
-    with FileDownloader(FilePolicy(max_bytes=max_bytes)).download(url) as downloaded:
+def input_file(url: str, kind: str, *, max_bytes: int = 4 * 1024 * 1024,
+               timeout_seconds: float = 30.0):
+    with FileDownloader(FilePolicy(max_bytes=max_bytes, timeout_seconds=timeout_seconds)).download(url) as downloaded:
         try:
             suffix, mime = inspect_file(downloaded.path, kind, url)
         except Exception:

@@ -17,9 +17,13 @@ permissions:
 
 jobs:
   test:
-    name: Coze tests (Python 3.13)
+    name: Coze tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.13', '3.14']
     steps:
       - uses: actions/checkout@v7
 
@@ -27,8 +31,8 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           version: '0.12.1'
-          python-version: '3.13'
+          python-version: ${{ matrix.python-version }}
           enable-cache: false
 
       - name: Run locked Coze tests
-        run: uv run --locked --project integrations/coze --python 3.13 pytest integrations/coze/tests
+        run: uv run --locked --project integrations/coze --python ${{ matrix.python-version }} pytest integrations/coze/tests

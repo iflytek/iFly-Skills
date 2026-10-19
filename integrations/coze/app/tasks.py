@@ -196,13 +196,15 @@ class TaskStore:
             raise ValueError("A valid worker ID and positive lease are required")
         timestamp = time.time() if now is None else now
         with self._connect() as connection:
+            candidate_query = ("SELECT * FROM tasks WHERE status = 'queued' AND lease_owner IS NULL"
+                               + (" AND action IN ('review', 'render_html_to_gif')" if local_only else "")
+                               + " ORDER BY created_at LIMIT 100")
+            # Idle polls need no writer lock. Re-read candidates under the lock below.
+            if connection.execute(candidate_query).fetchone() is None:
+                return None
             connection.execute("BEGIN IMMEDIATE")
-            rows = connection.execute("SELECT * FROM tasks WHERE status = 'queued' AND lease_owner IS NULL"
-                                      + (" AND action IN ('review', 'render_html_to_gif')" if local_only else "")
-                                      + " ORDER BY created_at LIMIT 100").fetchall()
+            rows = connection.execute(candidate_query).fetchall()
             for row in rows:
-                if local_only and row["action"] not in {"review", "render_html_to_gif"}:
-                    continue
                 if row["deadline_at"] is not None and row["deadline_at"] <= timestamp:
                     connection.execute("UPDATE tasks SET status = 'failed', error_code = 'TIMEOUT', updated_at = ?, payload_json = NULL WHERE task_id = ? AND status = 'queued'",
                                        (timestamp, row["task_id"]))
@@ -321,31 +323,48 @@ class TaskStore:
         return self._record(row)
 
     def recover_after_restart(self, *, now: float | None = None) -> int:
-        """Mark abandoned running work uncertain; never resubmit it automatically."""
+        """Fail abandoned local work and mark remote work uncertain; never resubmit."""
         timestamp = time.time() if now is None else now
         with self._connect() as connection:
-            changed = connection.execute(
-                """UPDATE tasks SET status = 'submission_unknown', error_code = 'SUBMISSION_UNKNOWN',
+            local = connection.execute(
+                """UPDATE tasks SET status = 'failed', error_code = 'TIMEOUT',
                    lease_owner = NULL, lease_until = NULL, updated_at = ?, payload_json = NULL
-                   WHERE lease_owner IS NOT NULL OR status = 'running' AND upstream_id IS NULL
-                   OR status = 'queued' AND action NOT IN ('review', 'render_html_to_gif')""",
+                   WHERE action IN ('review', 'render_html_to_gif')
+                     AND (lease_owner IS NOT NULL OR status = 'running')""",
                 (timestamp,),
             ).rowcount
-        return changed
+            remote = connection.execute(
+                """UPDATE tasks SET status = 'submission_unknown', error_code = 'SUBMISSION_UNKNOWN',
+                   lease_owner = NULL, lease_until = NULL, updated_at = ?, payload_json = NULL
+                   WHERE action NOT IN ('review', 'render_html_to_gif')
+                     AND (lease_owner IS NOT NULL OR status = 'running' AND upstream_id IS NULL
+                          OR status = 'queued')""",
+                (timestamp,),
+            ).rowcount
+        return local + remote
 
     def expire(self, *, now: float | None = None) -> int:
-        """Expire queued work and mark running work uncertain without retrying it."""
+        """Expire queued work, fail local work, and mark remote work uncertain without retrying it."""
         timestamp = time.time() if now is None else now
         with self._connect() as connection:
             queued = connection.execute(
                 "UPDATE tasks SET status = 'failed', error_code = 'TIMEOUT', updated_at = ?, payload_json = NULL WHERE status = 'queued' AND deadline_at IS NOT NULL AND deadline_at <= ?",
                 (timestamp, timestamp),
             ).rowcount
-            running = connection.execute(
-                """UPDATE tasks SET status = 'submission_unknown', error_code = 'SUBMISSION_UNKNOWN',
+            local = connection.execute(
+                """UPDATE tasks SET status = 'failed', error_code = 'TIMEOUT',
                    lease_owner = NULL, lease_until = NULL, updated_at = ?, payload_json = NULL
-                   WHERE (status = 'running' AND deadline_at IS NOT NULL AND deadline_at <= ?)
-                   OR (lease_owner IS NOT NULL AND lease_until <= ?)""",
+                   WHERE action IN ('review', 'render_html_to_gif')
+                     AND ((status = 'running' AND deadline_at IS NOT NULL AND deadline_at <= ?)
+                          OR (lease_owner IS NOT NULL AND lease_until <= ?))""",
                 (timestamp, timestamp, timestamp),
             ).rowcount
-        return queued + running
+            remote = connection.execute(
+                """UPDATE tasks SET status = 'submission_unknown', error_code = 'SUBMISSION_UNKNOWN',
+                   lease_owner = NULL, lease_until = NULL, updated_at = ?, payload_json = NULL
+                   WHERE action NOT IN ('review', 'render_html_to_gif')
+                     AND ((status = 'running' AND deadline_at IS NOT NULL AND deadline_at <= ?)
+                          OR (lease_owner IS NOT NULL AND lease_until <= ?))""",
+                (timestamp, timestamp, timestamp),
+            ).rowcount
+        return queued + local + remote
