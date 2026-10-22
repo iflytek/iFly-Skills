@@ -1,5 +1,7 @@
 """Attach the 24 concrete tools to the fixed catalog, with typed HTTP contracts."""
 
+from typing import Annotated
+
 from fastapi import Request, Query
 
 from . import models as m
@@ -43,8 +45,8 @@ DESCRIPTIONS = {
     "iflytek-image-understanding": {"analyze": ("Analyze an image", "Answer a question about a public HTTPS PNG or JPEG up to 4 MiB; return the complete response.")},
     "iflytek-video-translate": {
         "create_task": ("Submit a video for translation", "Accept a public HTTPS MP4 up to 128 MiB. Query get_task and inspect any waiting_input stage before confirming."),
-        "get_task": ("Query video translation", "Return the current stage, available segments and output artifacts for this workspace's task."),
-        "confirm_transcript": ("Confirm video transcript", "Confirm the existing transcript only after reviewing a waiting_input task; this operation does not edit subtitles."),
+        "get_task": ("Query video translation", "Return the current stage for this workspace's task. Output details and artifacts are returned only after success; waiting_input does not include transcript contents."),
+        "confirm_transcript": ("Confirm video transcript", "Accept the provider transcript unchanged when the task is waiting_input; this tool does not preview or edit subtitles."),
     },
     "iflytek-voiceclone-tts": {
         "get_training_text": ("Get voice training text", "Choose a returned text segment and record its exact contents. Arbitrary transcripts cannot replace the provider text."),
@@ -85,7 +87,7 @@ def endpoint_for(skill, action, request_model):
         async def endpoint(request: Request, text_id: int = Query(5001, gt=0, description="Provider training text set ID; 5001 is the common set.")):
             return await invoke(request, {"text_id": text_id})
     else:
-        async def endpoint(request: Request, job_id: m.JobId = Query(..., description="Backend job ID returned by this workspace's creation operation.")):
+        async def endpoint(request: Request, job_id: Annotated[m.JobId, Query(description="Backend job ID returned by this workspace's creation operation.")]):
             return await invoke(request, {"job_id": job_id})
     endpoint.__name__ = Tool(skill, action).operation_id
     return endpoint

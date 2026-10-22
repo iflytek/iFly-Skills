@@ -103,6 +103,52 @@ def test_generated_files_are_current_and_ids_unique(documents):
     assert len(ids) == len(set(ids)) == 24
 
 
+def test_export_covers_actual_application_routes(documents):
+    settings = Settings((SiteGrant(Principal("cn", "test", SKILL_IDS), "schema-test-" + "a" * 32),))
+    app = create_app(settings)
+    actual = {(route.path, method, route.operation_id) for route in app.routes if route.include_in_schema
+              for method in route.methods}
+    exported = {(path, method.upper(), operation["operationId"]) for doc in documents.values()
+                for path, methods in doc["paths"].items() for method, operation in methods.items()}
+    assert actual == exported
+
+
+@pytest.mark.parametrize("skill, action", [
+    (skill, action) for skill, actions in CONTRACTS.items() for action in actions
+    if action.startswith("get_") and action != "get_training_text"
+])
+def test_job_query_constraints_match_schema_and_http(documents, skill, action):
+    tool = Tool(skill, action)
+    operation = documents[skill]["paths"][tool.path]["get"]
+    parameter = operation["parameters"][0]
+    assert parameter["name"] == "job_id" and parameter["required"]
+    query = validator(documents[skill], parameter["schema"])
+    key = "schema-test-" + "a" * 32
+    settings = Settings((SiteGrant(Principal("cn", "test", SKILL_IDS), key),))
+    calls = []
+
+    class Runtime:
+        async def start(self): pass
+        async def close(self): pass
+        async def execute(self, principal, skill, action, payload):
+            calls.append(payload)
+            return {"job_id": payload["job_id"], "status": "running"}
+
+    with TestClient(create_app(settings, runtime=Runtime())) as client:
+        for job_id in ("", "not-a-job-id", "a" * 31, "a" * 33, "A" * 32):
+            assert not query.is_valid(job_id)
+            response = client.get(tool.path, headers={"X-API-Key": key}, params={"job_id": job_id})
+            assert response.status_code == 422
+            validator(documents[skill], operation["responses"]["422"]["content"]["application/json"]["schema"]).validate(response.json())
+        assert client.get(tool.path, headers={"X-API-Key": key}).status_code == 422
+        assert not calls
+        query.validate("a" * 32)
+        response = client.get(tool.path, headers={"X-API-Key": key}, params={"job_id": "a" * 32})
+        assert response.status_code == 200
+        assert calls == [{"job_id": "a" * 32}]
+        validator(documents[skill], operation["responses"]["200"]["content"]["application/json"]["schema"]).validate(response.json())
+
+
 def test_conversion_preserves_nullable_refs_enums_and_numeric_boundaries(documents):
     doc = documents["iflytek-voiceclone-tts"]
     job = validator(doc, {"$ref": "#/components/schemas/Job_TrainingResult_"})

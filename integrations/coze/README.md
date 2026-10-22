@@ -4,7 +4,7 @@
 
 一个部署实例为 11 项 Skill 提供共享后端，可选择启用国内站、国际站或两站。各部署使用自己的配置和数据目录；同一实例内按站点分别配置工作空间和访问密钥。项目提供源码、插件规范与部署说明，不提供统一运营的公共服务；服务器、域名／证书、存储维护及讯飞调用费用由部署方承担。
 
-服务提供 11 个 Skill、24 个工具，地址为 `/v1/skills/<skill-id>/<action>`，并提供每 Skill 一份 OpenAPI 3.0.3 规范。使用前需配置相应业务凭证及运行环境；缺少依赖的工具返回 `DEPENDENCY_UNAVAILABLE`。插件创建／发布管理工具尚未提供。
+服务提供 11 个 Skill、24 个工具，地址为 `/v1/skills/<skill-id>/<action>`，并提供每 Skill 一份 OpenAPI 3.0.3 规范。使用前需配置相应业务凭证及运行环境；缺少依赖的工具返回 `DEPENDENCY_UNAVAILABLE`。插件通过对应站点的官方控制台导入、调试和发布。
 
 ## 使用条件
 
@@ -25,7 +25,7 @@
 | `COZE_<SITE>_BACKEND_API_KEY` | 插件访问本服务的独立密钥，长度 32～256 个无空格 ASCII 可打印字符 |
 | `COZE_<SITE>_ALLOWED_SKILLS` | 允许该站点调用的 Skill ID，使用逗号分隔 |
 | `COZE_<SITE>_API_BASE_URL` | 国内使用 `https://api.coze.cn`，国际使用 `https://api.coze.com` |
-| `COZE_<SITE>_API_TOKEN` | 对应站点的平台令牌，仅用于工作空间或平台管理检查 |
+| `COZE_<SITE>_API_TOKEN` | 对应站点的平台令牌，仅用于可选的工作空间只读检查 |
 | `COZE_<SITE>_BACKEND_BASE_URL` | 部署后供插件访问的 HTTPS 服务地址；本地运行时可留空 |
 | `IFLY_APP_ID`／`IFLY_API_KEY`／`IFLY_API_SECRET` | 原子 Skill 的讯飞业务凭证，须分别开通所需服务 |
 | `IFLY_CONTRACT_APP_ID`／`IFLY_CONTRACT_API_KEY`／`IFLY_CONTRACT_API_SECRET` | 合同流程独立配置的业务凭证；用于图片 OCR、图片理解、翻译和 Spark v3.5（`generalv3.5`）审核 |
@@ -33,7 +33,7 @@
 | `COZE_ARTIFACT_BASE_URL` | 可访问产物的 HTTPS 服务地址，可含反向代理路径前缀；与实际 `/v1/artifacts/...` 路由对应 |
 | `COZE_RENDER_IMAGE` | 完成隔离验收后的本地渲染镜像 ID（`sha256:...`）；留空关闭 GIF 渲染 |
 
-其中 `<SITE>` 为 `CN` 或 `GLOBAL`。只需填写启用站点的运行配置；平台令牌仅在执行相应平台检查／管理操作时提供，启动服务不需要平台令牌。当前每个部署实例在每站绑定一个工作空间。两个站点的账号、工作空间、平台令牌和服务密钥分别配置，服务密钥不能复用平台令牌。同一部署的后端域名可以共用，但必须能够从相应 Coze 站点访问。讯飞服务凭证只保存在服务端，不作为插件请求参数。
+其中 `<SITE>` 为 `CN` 或 `GLOBAL`。只需填写启用站点的运行配置；平台令牌仅在执行工作空间只读检查时提供，启动服务、导出规范和控制台发布均不需要平台令牌。当前每个部署实例在每站绑定一个工作空间。两个站点的账号、工作空间、平台令牌和服务密钥分别配置，服务密钥不能复用平台令牌。同一部署的后端域名可以共用，但必须能够从相应 Coze 站点访问。讯飞服务凭证只保存在服务端，不作为插件请求参数。
 
 服务通过 `COZE_ENV_FILE` 指定配置文件，或完全使用进程环境变量；进程环境变量优先，配置变更后需要重启服务。
 
@@ -120,7 +120,7 @@ uv run --locked --project integrations/coze --python 3.13 python -B integrations
 uv run --locked --project integrations/coze --python 3.13 python -B integrations/coze/scripts/export_openapi.py --check
 ```
 
-规范声明 Header API key 认证、GET 查询参数、POST JSON 请求及统一错误响应，不导出健康检查或产物下载为插件工具。异步操作返回 HTTP 200 表示任务快照，须继续检查 `status`。3.0.3 校验通过不等于 Coze 导入或发布成功；两站导入后仍须核对参数、可空结果、认证及真实调用。视频翻译的完整流程也须验收后再发布。
+规范声明 Header API key 认证、GET 查询参数、POST JSON 请求及统一错误响应，不导出健康检查或产物下载为插件工具。异步操作返回 HTTP 200 表示任务快照，须继续检查 `status`。3.0.3 校验通过不等于 Coze 导入或发布成功；两站导入后仍须核对参数、可空结果、认证及真实调用。
 
 ## 工具与调用
 
@@ -135,7 +135,7 @@ uv run --locked --project integrations/coze --python 3.13 python -B integrations
 | `iflytek-pdf-image-ocr` | `recognize_image`、`create_pdf_task`、`get_pdf_task` | 图片或 PDF URL → 识别内容／任务及产物；PDF 最多 100 页 |
 | `iflytek-speed-transcription` | `create_task`、`get_task` | `audio_url`（MP3）→ 文本及分段；保留上游时间值，不转换单位 |
 | `iflytek-image-understanding` | `analyze` | `image_url`、`question` → 完整回答及用量 |
-| `iflytek-video-translate` | `create_task`、`get_task`、`confirm_transcript` | MP4 URL、源／目标语言 → 视频任务；仅待确认阶段允许确认字幕 |
+| `iflytek-video-translate` | `create_task`、`get_task`、`confirm_transcript` | MP4 URL、源／目标语言 → 视频任务；成功后返回输出，待确认阶段仅返回状态；确认会直接接受上游字幕，不提供预览或编辑 |
 | `iflytek-voiceclone-tts` | `get_training_text`、`create_training`、`upload_sample`、`submit_training`、`get_training`、`synthesize` | 获取训练文本，创建、上传、提交、查询，成功后用本工作空间的 `res_id` 合成 MP3 |
 | `iflytek-contract-intelligence-review` | `review`、`get_review` | 合同 URL → 规则和模型审核结果、Markdown／JSON 报告 |
 | `animated-sketch-diagram` | `render_html_to_gif`、`get_render` | 受限 `html`、尺寸、帧率和时长 → GIF |
@@ -198,4 +198,4 @@ uv run --locked --project integrations/coze --python 3.13 python -B integrations
 
 ## 当前服务边界
 
-平台令牌只用于平台管理检查，普通插件调用不需要将平台令牌传给本服务。OpenAPI 3.0.3 导出和规范校验已提供；部署后的两站导入兼容性、真实调用及插件创建／发布管理操作仍需分别完成验证。
+平台令牌仅用于可选的工作空间只读检查，普通插件调用不需要将平台令牌传给本服务。OpenAPI 3.0.3 导出和规范校验已提供；各部署仍须在两站分别核对导入兼容性、真实工具调用，以及控制台发布后的智能体／工作流调用。

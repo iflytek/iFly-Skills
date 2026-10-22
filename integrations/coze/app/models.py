@@ -180,8 +180,8 @@ class TaskAction(Submission):
 
 class VideoResult(Model):
     upstream_status: str = Field(description='Provider task status for the current stage, when available.')
-    details: dict = Field(default_factory=dict, description='Available output or transcript segments for the current stage.')
-    artifacts: list[Artifact] = Field(default_factory=list, description='Available output files with expiring HTTPS URLs.')
+    details: dict = Field(default_factory=dict, description='Output details and segments after success; empty while running or waiting for confirmation.')
+    artifacts: list[Artifact] = Field(default_factory=list, description='Output files with expiring HTTPS URLs after success; empty before completion.')
 
 
 class TrainingSubmission(Submission):

@@ -426,6 +426,7 @@
             "required": true,
             "schema": {
               "description": "Backend job ID returned by this workspace's creation operation.",
+              "pattern": "^[a-f0-9]{32}$",
               "title": "Job Id",
               "type": "string"
             }

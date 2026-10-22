@@ -186,7 +186,7 @@
         "additionalProperties": false,
         "properties": {
           "artifacts": {
-            "description": "Available output files with expiring HTTPS URLs.",
+            "description": "Output files with expiring HTTPS URLs after success; empty before completion.",
             "items": {
               "$ref": "#/components/schemas/Artifact"
             },
@@ -195,7 +195,7 @@
           },
           "details": {
             "additionalProperties": true,
-            "description": "Available output or transcript segments for the current stage.",
+            "description": "Output details and segments after success; empty while running or waiting for confirmation.",
             "title": "Details",
             "type": "object"
           },
@@ -278,7 +278,7 @@
   "paths": {
     "/v1/skills/iflytek-video-translate/confirm_transcript": {
       "post": {
-        "description": "Confirm the existing transcript only after reviewing a waiting_input task; this operation does not edit subtitles. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
+        "description": "Accept the provider transcript unchanged when the task is waiting_input; this tool does not preview or edit subtitles. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
         "operationId": "iflytek_video_translate__confirm_transcript",
         "requestBody": {
           "content": {
@@ -572,7 +572,7 @@
     },
     "/v1/skills/iflytek-video-translate/get_task": {
       "get": {
-        "description": "Return the current stage, available segments and output artifacts for this workspace's task. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown.",
+        "description": "Return the current stage for this workspace's task. Output details and artifacts are returned only after success; waiting_input does not include transcript contents. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown.",
         "operationId": "iflytek_video_translate__get_task",
         "parameters": [
           {
@@ -582,6 +582,7 @@
             "required": true,
             "schema": {
               "description": "Backend job ID returned by this workspace's creation operation.",
+              "pattern": "^[a-f0-9]{32}$",
               "title": "Job Id",
               "type": "string"
             }
