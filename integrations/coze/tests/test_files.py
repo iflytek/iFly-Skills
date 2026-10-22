@@ -232,3 +232,21 @@ def test_artifact_base_url_and_metadata_are_validated(tmp_path):
     store = ArtifactStore(tmp_path, "https://service.example.test")
     with pytest.raises(FileAccessError):
         store.put_bytes(b"", "application/octet-stream")
+
+
+@pytest.mark.parametrize("url", ["https://localhost", "https://files.example.local", "https://api.coze.cn",
+    "https://127.0.0.1", "https://files.example:bad", "https://files.example:0",
+    "https://files.example/v1/artifacts", "https://files.example/../proxy",
+    "https://private-token@files.example", "https://files.example/?token=private-token"])
+def test_artifact_service_address_rejects_invalid_hosts_ports_and_prefixes(tmp_path, url):
+    with pytest.raises(ValueError) as error:
+        ArtifactStore(tmp_path, url)
+    assert "private-token" not in str(error.value)
+    assert not list(tmp_path.iterdir())
+
+
+def test_artifact_address_preserves_public_port_and_proxy_prefix(tmp_path):
+    store = ArtifactStore(tmp_path, "https://files.example:8443/proxy/")
+    artifact = store.put_bytes(b"report", "text/plain")
+    assert artifact.url == f"https://files.example:8443/proxy/v1/artifacts/{artifact.artifact_id}"
+    assert store.resolve(artifact.artifact_id)[1].url == artifact.url

@@ -164,6 +164,47 @@ def test_video_distinguishes_quota_rejection_from_permission_failure():
         assert error.value.code == expected
 
 
+@pytest.mark.parametrize("status,expected", [
+    ("waiting_parsing", "running"), ("running", "running"),
+    ("waiting_transcript_confirmation", "waiting_input"),
+    ("waiting_manual_intervention_segment", "waiting_input"),
+    ("waiting_manual_intervention_refine", "waiting_input"),
+    ("completed", "succeeded"), ("failed", "failed"), ("cancelled", "failed"),
+])
+def test_video_stage_mapping_and_output_transfer(monkeypatch, status, expected):
+    raw = {"status": status, "output": {"output_video_url": "https://provider.example.test/final.mp4"},
+           "segments": [{"text": "review this"}], "private_field": "must-not-escape"}
+    monkeypatch.setattr(compat, "video_client", lambda *args: SimpleNamespace(get_task=lambda _: raw))
+    copied = []
+    def transfer(details):
+        copied.append(details)
+        return {"output": {"output_video_url": "https://backend.example.test/v1/artifacts/synthetic"}}, []
+    monkeypatch.setattr(adapters, "copy_outputs", transfer)
+    result = adapters.invoke("iflytek-video-translate", "get_task", {"upstream_id": "synthetic-task"})
+    assert result["status"] == expected
+    assert "must-not-escape" not in json.dumps(result)
+    assert bool(copied) == (expected == "succeeded")
+    if expected != "succeeded":
+        assert result["result"]["details"] == {} and result["result"]["artifacts"] == []
+    if copied:
+        assert set(copied[0]) == {"output", "segments"}
+    if expected == "failed":
+        assert result["error_code"] == "UPSTREAM_ERROR"
+
+
+def test_video_completion_requires_output_and_confirmation_never_forces_rerun(monkeypatch):
+    calls = []
+    client = SimpleNamespace(get_task=lambda _: {"status": "completed", "output": {}},
+        confirm_transcript=lambda *args, **kwargs: calls.append((args, kwargs)))
+    monkeypatch.setattr(compat, "video_client", lambda *args: client)
+    with pytest.raises(ServiceError) as error:
+        adapters.invoke("iflytek-video-translate", "get_task", {"upstream_id": "synthetic-task"})
+    assert error.value.code == ErrorCode.UPSTREAM_PROTOCOL_ERROR
+    result = adapters.invoke("iflytek-video-translate", "confirm_transcript", {"upstream_id": "synthetic-task"})
+    assert result["status"] == "running"
+    assert calls == [(("synthetic-task",), {"force_rerun": False})]
+
+
 def test_training_failure_reports_known_reason_without_provider_details(monkeypatch):
     raw = {"code": 0, "flag": True, "data": {"trainStatus": 0, "failedDesc": "音频内容和文本相似度过低", "appId": "private-app"}}
     monkeypatch.setattr(compat, "voice_training_client", lambda *args: SimpleNamespace(get_task_status=lambda _: raw))

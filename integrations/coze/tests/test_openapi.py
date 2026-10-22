@@ -85,6 +85,8 @@ def test_standalone_specs_match_routes_auth_and_models(documents, skill):
             expected = set() if action == "list_voices" else {"text_id" if action == "get_training_text" else "job_id"}
             assert {p["name"] for p in params} == expected
             assert all(p["in"] == "query" and p["description"] for p in params)
+            if expected == {"job_id"}:
+                assert params[0]["required"] and params[0]["schema"]["pattern"] == r"^[a-f0-9]{32}$"
         success = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
         properties = doc["components"]["schemas"][success.rsplit("/", 1)[1]]["properties"]
         assert set(properties) == set(response_model.model_fields)

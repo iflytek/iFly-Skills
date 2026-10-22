@@ -265,7 +265,10 @@ def invoke(skill, action, payload):
         data = client.get_task(p["upstream_id"])
         status = data.get("status")
         protocol(isinstance(status, str) and bool(status))
-        state = {"completed": "succeeded", "failed": "failed", "waiting_transcript_confirmation": "waiting_input"}.get(status, "running")
+        state = {"completed": "succeeded", "failed": "failed", "cancelled": "failed",
+                 "waiting_transcript_confirmation": "waiting_input",
+                 "waiting_manual_intervention_segment": "waiting_input",
+                 "waiting_manual_intervention_refine": "waiting_input"}.get(status, "running")
         if state == "succeeded":
             protocol(isinstance(data.get("output"), dict) and bool(data["output"].get("output_video_url")))
         # Keep new provider stages visible without treating them as completion.

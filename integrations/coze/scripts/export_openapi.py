@@ -8,8 +8,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.config import read_config
-from app.openapi import TEMPLATE_BASE_URL, backend_url, export_documents
+from app.config import backend_url, read_config
+from app.openapi import TEMPLATE_BASE_URL, export_documents
 
 
 def serialize(document: dict) -> str:

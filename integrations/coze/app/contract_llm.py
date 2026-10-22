@@ -26,16 +26,6 @@ class ReviewResult:
     risks: list
     suggestions: list
     uncertain_items: list
-    confidence: float | None = None
-
-@dataclass
-class ClauseAnalysis:
-    clause_id: str
-    title: str
-    content: str
-    category: str
-    importance: str
-    issues: list
 
 def signed_url(config):
     date = format_datetime(datetime.now(timezone.utc), usegmt=True)
@@ -149,14 +139,3 @@ class LLMReviewClient:
                     connection.close()
                 except Exception:
                     pass
-
-    def analyze_clause(self, clause_text, clause_title, category):
-        result = self.review_contract(clause_text, "standard", [])
-        level = "high" if any(r["level"] == "high" for r in result.risks) else "medium"
-        return ClauseAnalysis("", clause_title, clause_text, category, level,
-                              [r["title"] for r in result.risks])
-
-    def generate_summary(self, text, max_length=800):
-        if not isinstance(max_length, int) or not 1 <= max_length <= 1200:
-            raise ValueError("Invalid summary length")
-        return self.review_contract(text, "quick", []).summary[:max_length]

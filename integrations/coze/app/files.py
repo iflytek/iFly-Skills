@@ -21,6 +21,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, HTTPSHandler, ProxyHandler, Request, build_opener
 
+from .config import backend_url
+
 
 class FileAccessError(ValueError):
     """Safe input or artifact error without a source URL or local path."""
@@ -247,7 +249,7 @@ class ArtifactStore:
     def __init__(self, root: Path, base_url: str, *, default_ttl_seconds: int = 3600,
                  max_storage_bytes: int = 2 * 1024 * 1024 * 1024):
         self.root = root.resolve()
-        self.base_url = self._validate_base_url(base_url)
+        self.base_url = backend_url(base_url)
         if default_ttl_seconds <= 0:
             raise ValueError("Artifact TTL must be positive")
         self.default_ttl_seconds = default_ttl_seconds
@@ -258,13 +260,6 @@ class ArtifactStore:
         self.data_root.mkdir(parents=True, exist_ok=True)
         self.db_path = self.root / "artifacts.sqlite3"
         self._initialize()
-
-    @staticmethod
-    def _validate_base_url(base_url: str) -> str:
-        parts = urlsplit(base_url)
-        if parts.scheme.lower() != "https" or not parts.hostname or parts.username or parts.password or parts.query or parts.fragment:
-            raise ValueError("Artifact base URL must be an HTTPS origin without credentials, query, or fragment")
-        return base_url.rstrip("/")
 
     @contextmanager
     def _connect(self):

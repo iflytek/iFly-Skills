@@ -6,14 +6,12 @@ new unsupported keywords rather than silently weakening the API contract.
 """
 
 from copy import deepcopy
-import ipaddress
-import re
-from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 from .catalog import SKILL_TOOLS, Tool
+from .config import backend_url
 from .main import API_VERSION
 from .tools import attach_tools
 
@@ -28,38 +26,6 @@ SCHEMA_KEYWORDS = frozenset({
     "deprecated", "example", "xml", "externalDocs", "discriminator",
 })
 SCHEMA_ANNOTATIONS = frozenset({"title", "description", "default", "example", "deprecated", "readOnly", "writeOnly"})
-
-
-def backend_url(value: str) -> str:
-    """Validate an offline deployment address; do not resolve or contact it."""
-    message = "Use an HTTPS backend domain with an optional proxy prefix, without credentials, query or fragment."
-    try:
-        parsed = urlsplit(value)
-        host = parsed.hostname or ""
-        port = parsed.port
-        if (parsed.scheme != "https" or not host or parsed.username is not None or parsed.password is not None
-                or parsed.query or parsed.fragment or "?" in value or "#" in value
-                or any(c.isspace() or ord(c) < 32 for c in value)
-                or host in {"api.coze.cn", "api.coze.com"} or host.endswith((".localhost", ".local"))
-                or not re.fullmatch(r"[a-zA-Z0-9.-]+", host) or "." not in host
-                or any(not re.fullmatch(r"[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?", label) for label in host.split("."))
-                or len(host) > 253 or (port is not None and not 1 <= port <= 65535)):
-            raise ValueError(message)
-        try:
-            ipaddress.ip_address(host)
-        except ValueError:
-            pass
-        else:
-            raise ValueError(message)
-        # Prefixes represent a proxy mount, never an existing tool/artifact route.
-        path = parsed.path.rstrip("/")
-        if (not re.fullmatch(r"(?:/[a-zA-Z0-9._~-]+)*", path)
-                or any(part in {".", ".."} for part in path.split("/"))
-                or re.search(r"/v1/(?:skills|artifacts)(?:/|$)", path)):
-            raise ValueError(message)
-        return urlunsplit(("https", host + (f":{port}" if port else ""), path, "", ""))
-    except ValueError:
-        raise ValueError(message) from None
 
 
 def schema_30(schema: dict) -> dict:
