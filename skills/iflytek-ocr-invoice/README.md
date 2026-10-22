@@ -8,10 +8,12 @@
 2. 配置环境变量：
 
 ```bash
-export XFYUN_APP_ID="your_app_id"
-export XFYUN_API_KEY="your_api_key"
-export XFYUN_API_SECRET="your_api_secret"
+export IFLY_APP_ID="your_app_id"
+export IFLY_API_KEY="your_api_key"
+export IFLY_API_SECRET="your_api_secret"
 ```
+
+> 兼容说明：设置任意 `IFLY_*` 凭证变量（包括空值）后，仅使用该组，缺项报错；未设置标准组时，依次尝试 `XFYUN_*`、`XFEI_*`，不跨组拼接。旧前缀会在 stderr 输出一次不含凭证值的迁移提示。
 
 ## 快速开始
 

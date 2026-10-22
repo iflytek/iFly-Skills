@@ -19,16 +19,24 @@ Enable **machine translation** and **document proofreading** for the appropriate
 applications in the [iFLYTEK console](https://console.xfyun.cn/). These commands send
 the source text and translated draft to those services and use their quotas.
 
-Set credentials in your shell or secret manager, following each skill's setup:
+Both current CLI scripts read `IFLY_APP_ID`, `IFLY_API_KEY`, and
+`IFLY_API_SECRET`. To use different applications without sharing credentials
+between stages, configure these **recipe-specific** variables in your shell or
+secret manager:
 
-| Stage | Script | Environment variables read by the current script |
+| Stage | Script | Environment variables read by this recipe |
 | --- | --- | --- |
-| Translate | [translate.py](../../skills/iflytek-translate/scripts/translate.py) | `XFYUN_APP_ID`, `XFYUN_API_KEY`, `XFYUN_API_SECRET` |
-| Proofread | [text_proofread.py](../../skills/iflytek-text-proofread/scripts/text_proofread.py) | `IFLY_APP_ID`, `IFLY_API_KEY`, `IFLY_API_SECRET` |
+| Translate | [translate.py](../../skills/iflytek-translate/scripts/translate.py) | `RECIPE_TRANSLATE_APP_ID`, `RECIPE_TRANSLATE_API_KEY`, `RECIPE_TRANSLATE_API_SECRET` |
+| Proofread | [text_proofread.py](../../skills/iflytek-text-proofread/scripts/text_proofread.py) | `RECIPE_PROOFREAD_APP_ID`, `RECIPE_PROOFREAD_API_KEY`, `RECIPE_PROOFREAD_API_SECRET` |
 
-The prefixes differ. Setting only one group does not configure both stages. Use
-the credentials belonging to each enabled service; do not put them in the note,
-the example below, or committed files.
+Set a complete, non-empty triple for each stage. If one application has both
+services enabled, set the same triple for both stages. The recipe validates both
+groups before starting a request, then passes only the selected triple to each
+CLI as `IFLY_*`; it does not modify the parent environment. Ambient `IFLY_*`,
+`XFYUN_*`, and `XFEI_*` credential values are excluded from both child environments.
+The translation CLI's legacy fallback cannot separate two applications when an
+unrelated `IFLY_*` group is present. Do not put credentials in the note, the
+example below, or committed files.
 
 ## Run the two stages
 
@@ -39,6 +47,7 @@ previous results elsewhere or choose a new output directory before another run.
 
 ```python
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -48,15 +57,34 @@ text = source.read_text(encoding="utf-8")
 if not text.strip() or len(text.encode("utf-8")) > 4096:
     raise SystemExit("Use a non-empty source of at most 4096 UTF-8 bytes.")
 
+FIELDS = ("APP_ID", "API_KEY", "API_SECRET")
+PREFIXES = ("IFLY", "XFYUN", "XFEI", "RECIPE_TRANSLATE", "RECIPE_PROOFREAD")
+
+
+def stage_environment(prefix):
+    values = {name: os.environ.get(prefix + "_" + name, "") for name in FIELDS}
+    missing = [prefix + "_" + name for name, value in values.items() if not value]
+    if missing:
+        raise SystemExit("Missing recipe credentials: " + ", ".join(missing))
+    env = os.environ.copy()
+    for group in PREFIXES:
+        for name in FIELDS:
+            env.pop(group + "_" + name, None)
+    env.update({"IFLY_" + name: value for name, value in values.items()})
+    return env
+
+
+translation_env = stage_environment("RECIPE_TRANSLATE")
+proofreading_env = stage_environment("RECIPE_PROOFREAD")
 output = Path("recipe-output")
 output.mkdir()  # Fail before any API call if results already exist.
 (output / "source.en.txt").write_text(text, encoding="utf-8")
 
 
-def call_skill(script, *args):
+def call_skill(script, *args, env):
     result = subprocess.run(
         [sys.executable, "-X", "utf8", script, *args, "--raw"],
-        capture_output=True, text=True, encoding="utf-8", check=True,
+        capture_output=True, text=True, encoding="utf-8", check=True, env=env,
     )
     response = json.loads(result.stdout)
     if not isinstance(response, dict):
@@ -73,6 +101,7 @@ def save_json(name, response):
 translated = call_skill(
     "skills/iflytek-translate/scripts/translate.py",
     "-f", str(output / "source.en.txt"), "-s", "en", "-t", "cn",
+    env=translation_env,
 )
 save_json("translation.json", translated)
 if translated.get("code") != 0:
@@ -86,6 +115,7 @@ draft_path.write_text(draft, encoding="utf-8")
 proofread = call_skill(
     "skills/iflytek-text-proofread/scripts/text_proofread.py",
     "-f", str(draft_path),
+    env=proofreading_env,
 )
 save_json("proofreading.json", proofread)
 # This CLI can exit zero for a service error: inspect its JSON too.

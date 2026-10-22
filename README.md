@@ -48,10 +48,20 @@ Currently, the repository provides the following ready-to-use AI skills:
 
 ## 🛠️ Usage
 
+### Self-hosted n8n
+
+The npm package [@iflytekopensource/n8n-nodes-iflytek-skills](https://www.npmjs.com/package/@iflytekopensource/n8n-nodes-iflytek-skills) provides 11 community nodes for speech, OCR, translation, proofreading, image understanding, contract review, and diagram rendering.
+
+In **Settings → Community Nodes → Install**, enter `@iflytekopensource/n8n-nodes-iflytek-skills`. The instance must allow unverified community nodes. Prepare the Python environment using the [package installation guide](packages/n8n-nodes-iflytek/README.md#installation), restart n8n, and search for `iFlytek` in the node selector.
+
+The package requires Node.js 24.x, Python 3.10 or newer, and permission to run local child processes; n8n Cloud is not supported. Remote operations use an **iFlytek API** credential with authorization and quota for each service. See the [package README](packages/n8n-nodes-iflytek/README.md) for requirements, a minimal workflow, and support links.
+
+### Individual skills
+
 Each skill is packaged in its own directory containing specific instructions, scripts, and metadata. To use a specific skill:
 
 1. Navigate to the target skill's directory (e.g., `cd skills/iflytek-hyper-tts`).
-2. Read the `SKILL.md` file for detailed API documentation, required environment variables (e.g., `XFEI_APP_ID`, `XFEI_API_KEY`, `XFEI_API_SECRET`), and usage examples.
+2. Read the `SKILL.md` file for detailed API documentation, required environment variables (e.g., `IFLY_APP_ID`, `IFLY_API_KEY`, `IFLY_API_SECRET`), and usage examples.
 3. Use the provided Python scripts or integrate the capability into your own agent workflow.
 
 ## Usage recipes

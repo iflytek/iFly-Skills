@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head><style>
+body { margin: 0; background: #f8f1e3; font-family: Kalam, cursive; }
+svg { width: 800px; height: 500px; }
+.box { fill: #fffaf0; stroke: #33302b; stroke-width: 3; }
+.edge { fill: none; stroke: #33302b; stroke-width: 3; stroke-dasharray: 9 7; animation: flow 2s linear infinite; }
+text { fill: #33302b; font-size: 26px; text-anchor: middle; }
+@keyframes flow { to { stroke-dashoffset: -64; } }
+</style></head>
+<body><svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+<rect class="box" x="50" y="190" width="180" height="100" rx="12"/>
+<rect class="box" x="310" y="190" width="180" height="100" rx="12"/>
+<rect class="box" x="570" y="190" width="180" height="100" rx="12"/>
+<path class="edge" d="M230 240 L310 240 M490 240 L570 240"/>
+<text x="140" y="250">Input</text><text x="400" y="250">Process</text><text x="660" y="250">Result</text>
+</svg></body></html>

@@ -1,0 +1,164 @@
+name: n8n package checks
+
+on:
+  pull_request:
+    paths:
+      - 'packages/n8n-nodes-iflytek/**'
+      - 'skills/**'
+      - '.github/workflows/n8n-check.yml'
+      - '.github/workflows/n8n-release.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/n8n-nodes-iflytek/**'
+      - 'skills/**'
+      - '.github/workflows/n8n-check.yml'
+      - '.github/workflows/n8n-release.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: package
+            audit-level: high
+          - target: host
+            audit-level: critical
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.18.0'
+      - name: Audit locked production dependencies
+        env:
+          IFLY_AUDIT_TARGET: ${{ matrix.target }}
+          IFLY_AUDIT_LEVEL: ${{ matrix.audit-level }}
+        shell: bash
+        run: |
+          cd packages/n8n-nodes-iflytek
+          if [[ "$IFLY_AUDIT_TARGET" == host ]]; then cd tests/host; fi
+          npm audit --omit=dev --audit-level="$IFLY_AUDIT_LEVEL" --json > "$RUNNER_TEMP/audit-$IFLY_AUDIT_TARGET.json"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dependency-audit-${{ matrix.target }}
+          path: ${{ runner.temp }}/audit-${{ matrix.target }}.json
+
+  offline:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.13']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: packages/n8n-nodes-iflytek
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.18.0'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: npm ci
+      - run: python -m pip install -r python/requirements-full.lock
+      - run: python -m pip check
+      - name: Select the test interpreter
+        run: python -c "import os,sys; open(os.environ['GITHUB_ENV'], 'a').write('IFLY_TEST_PYTHON=' + sys.executable + '\n')"
+      - name: Enable Linux browser and media regression checks
+        if: runner.os == 'Linux'
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ifly-browsers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          node node_modules/playwright-core/cli.js install --with-deps chromium
+          node -e 'const fs = require("node:fs"); fs.appendFileSync(process.env.GITHUB_ENV, "IFLY_TEST_CHROME=" + require("playwright-core").chromium.executablePath() + "\nIFLY_TEST_FFMPEG=/usr/bin/ffmpeg\n")'
+      - name: Prepare and verify the Linux Chromium sandbox
+        if: runner.os == 'Linux'
+        run: |
+          # Ubuntu 24.04+ restricts unprivileged user namespaces with AppArmor.
+          # Grant access only to this downloaded test browser; keep its sandbox enabled.
+          if [[ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]] && \
+             [[ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)" == 1 ]]; then
+            cat > "$RUNNER_TEMP/ifly-chromium.apparmor" <<EOF
+          profile ifly-n8n-ci-chromium "$IFLY_TEST_CHROME" flags=(unconfined) {
+            userns,
+          }
+          EOF
+            sudo apparmor_parser --replace "$RUNNER_TEMP/ifly-chromium.apparmor"
+          fi
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright-core';
+          const browser = await chromium.launch({
+            executablePath: process.env.IFLY_TEST_CHROME, chromiumSandbox: true,
+            env: { PATH: process.env.PATH, TMPDIR: process.env.RUNNER_TEMP },
+          });
+          await browser.close();
+          JS
+      - run: npm run check
+      - run: npm run typecheck
+      - name: Check the installed runtime inputs without paid API calls
+        run: IFLYTEK_PYTHON_EXECUTABLE="$IFLY_TEST_PYTHON" node dist/shared/preflight.js
+      - run: npm pack --dry-run --ignore-scripts
+      - run: git diff --exit-code -- ../../skills
+
+  n8n:
+    name: n8n (${{ matrix.version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: '2.39.8'
+            locked-host: false
+          - version: '2.40.7'
+            locked-host: true
+    defaults:
+      run:
+        shell: bash
+        working-directory: packages/n8n-nodes-iflytek
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.18.0'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - run: npm ci
+      - run: python -m pip install -r python/requirements-core.lock
+      - run: npm run build
+      - name: Install the packed node and real n8n in separate temporary directories
+        env:
+          IFLY_LOCKED_HOST: ${{ matrix.locked-host }}
+          IFLY_N8N_VERSION: ${{ matrix.version }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/ifly-host" "$RUNNER_TEMP/ifly-community" "$RUNNER_TEMP/ifly-pack"
+          ifly_tarball=$(npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/ifly-pack" --json | node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(0, "utf8"))[0].filename)')
+          if [[ "$IFLY_LOCKED_HOST" == true ]]; then
+            cp tests/host/package*.json tests/host/*.mjs "$RUNNER_TEMP/ifly-host/"
+            npm ci --prefix "$RUNNER_TEMP/ifly-host" --omit=dev --no-audit --no-fund
+            npm run test:security --prefix "$RUNNER_TEMP/ifly-host"
+          else
+            npm install --prefix "$RUNNER_TEMP/ifly-host" --no-audit --no-fund "n8n@$IFLY_N8N_VERSION"
+          fi
+          npm install --prefix "$RUNNER_TEMP/ifly-community" --no-audit --no-fund "$RUNNER_TEMP/ifly-pack/$ifly_tarball"
+      - name: Run actual engine, expression, multi-item and error-flow checks
+        run: |
+          node scripts/n8n-acceptance.mjs --n8n-root "$RUNNER_TEMP/ifly-host/node_modules/n8n" \
+            --community-root "$RUNNER_TEMP/ifly-community" --python "$(python -c 'import sys; print(sys.executable)')" \
+            --report "$RUNNER_TEMP/ifly-compatibility.json"

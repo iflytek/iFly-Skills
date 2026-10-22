@@ -1,0 +1,91 @@
+{
+  "name": "@iflytekopensource/n8n-nodes-iflytek-skills",
+  "version": "0.1.0",
+  "description": "iFLYTEK Skills nodes for self-hosted n8n: transcription, speech synthesis, voice cloning, OCR, text and video translation, proofreading, image understanding, contract review, and diagram rendering.",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "author": {
+    "name": "iFLYTEK",
+    "url": "https://github.com/iflytek"
+  },
+  "homepage": "https://github.com/iflytek/iFly-Skills/tree/main/packages/n8n-nodes-iflytek#readme",
+  "bugs": {
+    "url": "https://github.com/iflytek/iFly-Skills/issues"
+  },
+  "keywords": [
+    "n8n-community-node-package",
+    "iflytek",
+    "speech-to-text",
+    "text-to-speech",
+    "voice-cloning",
+    "ocr",
+    "translation",
+    "proofreading",
+    "image-understanding",
+    "contract-review",
+    "diagram-rendering"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iflytek/iFly-Skills.git",
+    "directory": "packages/n8n-nodes-iflytek"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "files": [
+    "dist/credentials",
+    "dist/nodes",
+    "dist/shared",
+    "runtime",
+    "docs",
+    "workflows",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && node scripts/stage-runtime.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run build && npm test",
+    "test:acceptance": "node scripts/acceptance.mjs",
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "release:verify": "node scripts/verify-registry.mjs",
+    "prepack": "npm run build"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/IflyApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/IflyTranslate/IflyTranslate.node.js",
+      "dist/nodes/IflyTextProofread/IflyTextProofread.node.js",
+      "dist/nodes/IflyOcrInvoice/IflyOcrInvoice.node.js",
+      "dist/nodes/IflyHyperTts/IflyHyperTts.node.js",
+      "dist/nodes/IflyPdfImageOcr/IflyPdfImageOcr.node.js",
+      "dist/nodes/IflySpeedTranscription/IflySpeedTranscription.node.js",
+      "dist/nodes/IflyImageUnderstanding/IflyImageUnderstanding.node.js",
+      "dist/nodes/IflyVideoTranslate/IflyVideoTranslate.node.js",
+      "dist/nodes/IflyVoicecloneTts/IflyVoicecloneTts.node.js",
+      "dist/nodes/IflyContractReview/IflyContractReview.node.js",
+      "dist/nodes/IflyAnimatedSketch/IflyAnimatedSketch.node.js"
+    ]
+  },
+  "dependencies": {
+    "playwright-core": "1.61.1"
+  },
+  "peerDependencies": {
+    "n8n-workflow": ">=2.39.3 <3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "n8n-workflow": "2.39.3",
+    "typescript": "5.9.3"
+  }
+}

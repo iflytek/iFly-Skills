@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "skills": [
+    {
+      "id": "iflytek-translate",
+      "nodeClass": "IflyTranslate",
+      "nodeName": "iflyTranslate",
+      "credential": "iflyApi",
+      "operations": ["translate"],
+      "runtimeFiles": ["scripts/translate.py"]
+    },
+    {
+      "id": "iflytek-text-proofread",
+      "nodeClass": "IflyTextProofread",
+      "nodeName": "iflyTextProofread",
+      "credential": "iflyApi",
+      "operations": ["check"],
+      "runtimeFiles": ["scripts/text_proofread.py"]
+    },
+    {
+      "id": "iflytek-ocr-invoice",
+      "nodeClass": "IflyOcrInvoice",
+      "nodeName": "iflyOcrInvoice",
+      "credential": "iflyApi",
+      "operations": ["recognize"],
+      "runtimeFiles": ["scripts/invoice.py"]
+    },
+    {
+      "id": "iflytek-hyper-tts",
+      "nodeClass": "IflyHyperTts",
+      "nodeName": "iflyHyperTts",
+      "credential": "iflyApi",
+      "operations": ["synthesize", "listVoices"],
+      "runtimeFiles": ["scripts/xfei_hyper_tts.py"]
+    },
+    {
+      "id": "iflytek-pdf-image-ocr",
+      "nodeClass": "IflyPdfImageOcr",
+      "nodeName": "iflyPdfImageOcr",
+      "credential": "iflyApi",
+      "operations": ["recognizeImage", "createPdfTask", "getPdfTask", "getResult"],
+      "runtimeFiles": ["scripts/image_ocr.py", "scripts/pdf_ocr.py"]
+    },
+    {
+      "id": "iflytek-speed-transcription",
+      "nodeClass": "IflySpeedTranscription",
+      "nodeName": "iflySpeedTranscription",
+      "credential": "iflyApi",
+      "operations": ["createTask", "getTask", "getResult"],
+      "runtimeFiles": ["scripts/transcribe.py"]
+    },
+    {
+      "id": "iflytek-image-understanding",
+      "nodeClass": "IflyImageUnderstanding",
+      "nodeName": "iflyImageUnderstanding",
+      "credential": "iflyApi",
+      "operations": ["analyze"],
+      "runtimeFiles": ["scripts/image_understanding.py"]
+    },
+    {
+      "id": "iflytek-video-translate",
+      "nodeClass": "IflyVideoTranslate",
+      "nodeName": "iflyVideoTranslate",
+      "credential": "iflyApi",
+      "operations": ["createTask", "listTasks", "getTask", "confirmTranscript"],
+      "runtimeFiles": ["scripts/xfei_video_translate.py"]
+    },
+    {
+      "id": "iflytek-voiceclone-tts",
+      "nodeClass": "IflyVoicecloneTts",
+      "nodeName": "iflyVoicecloneTts",
+      "credential": "iflyApi",
+      "operations": ["getTrainingText", "createTraining", "uploadSample", "submitTraining", "getTraining", "synthesize"],
+      "runtimeFiles": ["scripts/voiceclone.py"]
+    },
+    {
+      "id": "iflytek-contract-intelligence-review",
+      "nodeClass": "IflyContractReview",
+      "nodeName": "iflyContractReview",
+      "credential": "iflyApi",
+      "operations": ["review"],
+      "runtimeFiles": [
+        "scripts/errors.py",
+        "scripts/processors/__init__.py",
+        "scripts/processors/text_cleaner.py", "scripts/processors/clause_splitter.py",
+        "scripts/processors/risk_detector.py", "scripts/processors/compliance_checker.py",
+        "scripts/processors/bilingual_checker.py", "scripts/processors/report_builder.py",
+        "scripts/utils/__init__.py", "scripts/utils/validation.py",
+        "scripts/utils/file_utils.py", "scripts/utils/logger.py"
+      ]
+    },
+    {
+      "id": "animated-sketch-diagram",
+      "nodeClass": "IflyAnimatedSketch",
+      "nodeName": "iflyAnimatedSketch",
+      "credential": null,
+      "operations": ["renderHtmlToGif"],
+      "runtimeFiles": [
+        "scripts/render-gif.mjs",
+        "assets/fonts/Kalam-400.woff2"
+      ]
+    }
+  ]
+}

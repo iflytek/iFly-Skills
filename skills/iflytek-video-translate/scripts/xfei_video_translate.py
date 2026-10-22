@@ -248,6 +248,26 @@ Examples:
     return parser
 
 
+# ─── Credentials ───────────────────────────────────────────────────────────
+# Prefer one credential namespace as a whole; never combine different apps.
+# Keep the skill's original prefix first when falling back to legacy settings.
+LEGACY_CREDENTIAL_PREFIXES = ('XFYUN', 'XFEI')
+
+
+def resolve_credentials(*names: str) -> tuple:
+    """Read one namespace, preferring IFLY even when it is incomplete or empty."""
+    fields = ("APP_ID", "API_KEY", "API_SECRET")
+    for prefix in ("IFLY",) + LEGACY_CREDENTIAL_PREFIXES:
+        if any(prefix + "_" + field in os.environ for field in fields):
+            if prefix != "IFLY":
+                print(
+                    "Warning: {}_* is deprecated; use IFLY_* instead.".format(prefix),
+                    file=sys.stderr,
+                )
+            return tuple(os.environ.get(prefix + "_" + name, "") for name in names)
+    return ("",) * len(names)
+
+
 def main():
     parser = build_parser()
     args = parser.parse_args()
@@ -262,13 +282,12 @@ def main():
         sys.exit(1)
 
     # Get credentials from environment
-    api_key = os.getenv("XFYUN_API_KEY")
-    api_secret = os.getenv("XFYUN_API_SECRET")
+    api_key, api_secret = resolve_credentials("API_KEY", "API_SECRET")
 
     if not api_key or not api_secret:
-        print("Error: XFYUN_API_KEY and XFYUN_API_SECRET environment variables are required.", file=sys.stderr)
-        print("  export XFYUN_API_KEY=\"your_api_key\"", file=sys.stderr)
-        print("  export XFYUN_API_SECRET=\"your_api_secret\"", file=sys.stderr)
+        print("Error: IFLY_API_KEY and IFLY_API_SECRET environment variables are required.", file=sys.stderr)
+        print("  export IFLY_API_KEY=\"your_api_key\"", file=sys.stderr)
+        print("  export IFLY_API_SECRET=\"your_api_secret\"", file=sys.stderr)
         sys.exit(1)
 
     client = XfeiVideoTranslateClient(api_key, api_secret)

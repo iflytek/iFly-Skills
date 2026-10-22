@@ -10,9 +10,9 @@ API 文档：https://www.xfyun.cn/doc/spark/super%20smart-tts.html
                x5_lingyuzhao_flow / x5_lingyuyan_flow
 
 环境变量（必须配置）：
-  XFEI_APP_ID     - 讯飞应用ID
-  XFEI_API_KEY    - 讯飞API Key
-  XFEI_API_SECRET - 讯飞API Secret
+  IFLY_APP_ID     - 讯飞应用ID
+  IFLY_API_KEY    - 讯飞API Key
+  IFLY_API_SECRET - 讯飞API Secret
 
 使用示例：
   python3 scripts/xfei_hyper_tts.py --text "你好" --output hello.mp3
@@ -127,17 +127,37 @@ VOICE_LIST = [
 
 # ─── 鉴权模块 ──────────────────────────────────────────────────────────────
 
+# ─── Credentials ───────────────────────────────────────────────────────────
+# Prefer one credential namespace as a whole; never combine different apps.
+# Keep the skill's original prefix first when falling back to legacy settings.
+LEGACY_CREDENTIAL_PREFIXES = ('XFEI', 'XFYUN')
+
+
+def resolve_credentials(*names: str) -> tuple:
+    """Read one namespace, preferring IFLY even when it is incomplete or empty."""
+    fields = ("APP_ID", "API_KEY", "API_SECRET")
+    for prefix in ("IFLY",) + LEGACY_CREDENTIAL_PREFIXES:
+        if any(prefix + "_" + field in os.environ for field in fields):
+            if prefix != "IFLY":
+                print(
+                    "Warning: {}_* is deprecated; use IFLY_* instead.".format(prefix),
+                    file=sys.stderr,
+                )
+            return tuple(os.environ.get(prefix + "_" + name, "") for name in names)
+    return ("",) * len(names)
+
+
 def get_env_credentials() -> tuple:
     """从环境变量加载并验证API凭证"""
-    app_id     = os.getenv("XFEI_APP_ID")
-    api_key    = os.getenv("XFEI_API_KEY")
-    api_secret = os.getenv("XFEI_API_SECRET")
+    app_id, api_key, api_secret = resolve_credentials(
+        "APP_ID", "API_KEY", "API_SECRET"
+    )
 
     missing = [
         name for name, val in [
-            ("XFEI_APP_ID", app_id),
-            ("XFEI_API_KEY", api_key),
-            ("XFEI_API_SECRET", api_secret),
+            ("IFLY_APP_ID", app_id),
+            ("IFLY_API_KEY", api_key),
+            ("IFLY_API_SECRET", api_secret),
         ]
         if not val
     ]
@@ -149,14 +169,14 @@ def get_env_credentials() -> tuple:
                 "code": "MISSING_ENV_VARS",
                 "message": f"Missing required environment variables: {', '.join(missing)}",
                 "cause": "未配置讯飞开放平台环境变量",
-                "suggestion": "请在系统环境变量中配置 XFEI_APP_ID, XFEI_API_KEY, XFEI_API_SECRET"
+                "suggestion": "请在系统环境变量中配置 IFLY_APP_ID, IFLY_API_KEY, IFLY_API_SECRET"
             }
         }
         print(json.dumps(error_response, ensure_ascii=False, indent=2), file=sys.stderr)
         print("\n配置示例:", file=sys.stderr)
-        print("  export XFEI_APP_ID=<your_app_id>", file=sys.stderr)
-        print("  export XFEI_API_KEY=<your_api_key>", file=sys.stderr)
-        print("  export XFEI_API_SECRET=<your_api_secret>", file=sys.stderr)
+        print("  export IFLY_APP_ID=<your_app_id>", file=sys.stderr)
+        print("  export IFLY_API_KEY=<your_api_key>", file=sys.stderr)
+        print("  export IFLY_API_SECRET=<your_api_secret>", file=sys.stderr)
         sys.exit(1)
 
     return app_id, api_key, api_secret

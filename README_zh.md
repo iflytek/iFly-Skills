@@ -48,10 +48,20 @@
 
 ## 🛠️ 如何使用
 
+### 自托管 n8n
+
+npm 包 [@iflytekopensource/n8n-nodes-iflytek-skills](https://www.npmjs.com/package/@iflytekopensource/n8n-nodes-iflytek-skills) 提供 11 个社区节点，涵盖语音、OCR、翻译、校对、图像理解、合同审核和手绘图渲染。
+
+在 **Settings → Community Nodes → Install** 中输入 `@iflytekopensource/n8n-nodes-iflytek-skills`。实例需允许安装未经 n8n 验证的社区节点。按照[包安装指南](packages/n8n-nodes-iflytek/README.md#installation)准备 Python 环境，重启 n8n 后，在节点选择器中搜索 `iFlytek`。
+
+该包要求 Node.js 24.x、Python 3.10 或更新版本，以及启动本地子进程的权限，不支持 n8n Cloud。远程操作使用 **iFlytek API** 凭证，各项服务需分别开通权限并具有可用额度。环境要求、最小工作流及反馈入口见[包 README](packages/n8n-nodes-iflytek/README.md)，另有[中文概述](packages/n8n-nodes-iflytek/docs/README.zh-CN.md)。
+
+### 单独使用 Skill
+
 每个技能都打包在各自的独立目录中，包含特定的说明、脚本和元数据。要使用某个特定技能：
 
 1. 进入目标技能的目录（例如：`cd skills/iflytek-hyper-tts`）。
-2. 阅读目录下的 `SKILL.md` 文件，获取详细的 API 文档、所需的环境变量（如 `XFEI_APP_ID`, `XFEI_API_KEY`, `XFEI_API_SECRET`）以及使用示例。
+2. 阅读目录下的 `SKILL.md` 文件，获取详细的 API 文档、所需的环境变量（如 `IFLY_APP_ID`, `IFLY_API_KEY`, `IFLY_API_SECRET`）以及使用示例。
 3. 使用提供的 Python 脚本，或者将该能力集成到您自己的智能体工作流中。
 
 ## 使用配方
