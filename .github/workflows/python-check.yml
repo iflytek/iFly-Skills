@@ -6,12 +6,14 @@ on:
       - 'tests/iflytek_voiceclone_tts/**'
       - 'tests/iflytek_speed_transcription/**'
       - "skills/**/*.py"
+      - ".github/workflows/python-check.yml"
   push:
     branches: [main]
     paths:
       - 'tests/iflytek_voiceclone_tts/**'
       - 'tests/iflytek_speed_transcription/**'
       - "skills/**/*.py"
+      - ".github/workflows/python-check.yml"
   workflow_dispatch:
 
 permissions:
@@ -41,3 +43,6 @@ jobs:
 
       - name: Run Voice Clone TTS offline regression tests
         run: python -m unittest discover -s tests/iflytek_voiceclone_tts -p 'test_*.py' -v
+
+      - name: Test screenshot-to-code
+        run: python -m unittest discover -s skills/iflytek-screenshot-to-code/tests -v

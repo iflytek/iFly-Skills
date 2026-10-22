@@ -73,3 +73,9 @@ node scripts/n8n-rollback.mjs --n8n-root /test/host/node_modules/n8n \
 这些工具调用本地 `listVoices`、可选的 HTML 渲染和受控错误输入，不调用收费 API。跨 worker 的 task ID 与响应丢失为模拟数据。`acceptance.mjs` 测量本地 Runner；`n8n-load-acceptance.mjs` 通过实际生产 Webhook 测量单进程 n8n 在并发 1/2/4 下的端到端耗时、进程内存、Python 数量和临时磁盘占用，并检查执行持久化、GIF 下载/解码及残留。后者仅在同时提供 `--chrome` 和 `--ffmpeg` 时执行渲染负载，每组另有一次不计入负载统计的预热。结果用于建立环境基线，不代表收费服务、queue mode 或生产容量承诺。回滚工具只替换节点包，不执行 n8n 数据库版本迁移。
 
 n8n 工具创建独立临时账号、数据目录和本地端口，结束后清理自己启动的实例；宿主安装、venv、下载缓存和报告由调用方管理。queue 工具还需本机 PostgreSQL、Redis 二进制及其系统库，使用独立业务库加载 `docs/operation-ledger.sql`。
+
+## Skill catalog coverage
+
+Every repository Skill must appear exactly once in `skills.json`: supported nodes belong in `skills`, while Skills awaiting an adapter belong in `deferredSkills` with a non-empty reason. Staging rejects unknown, overlapping, or unclassified entries before changing the runtime. Deferred entries are recorded in the runtime manifest without bundling their code or registering a node.
+
+`iflytek-screenshot-to-code` currently uses its standalone CLI. Its n8n integration requires a dedicated MaaS credential and screenshot/output-file adapter; the package continues to expose the existing 11 nodes.

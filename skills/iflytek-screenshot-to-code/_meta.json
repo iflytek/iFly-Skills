@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "skill_type": "workflow",
+  "category": "developer-tools",
+  "tags": [
+    "screenshot-to-code",
+    "frontend",
+    "vision",
+    "html",
+    "react",
+    "vue",
+    "astron-maas"
+  ],
+  "runtime": "python",
+  "entry_point": "scripts/screenshot_to_code.py",
+  "supported_platforms": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "requirements": {
+    "python": ">=3.10"
+  },
+  "author": {
+    "name": "FenjuFu",
+    "url": "https://github.com/FenjuFu"
+  },
+  "license": "Apache-2.0",
+  "slug": "iflytek-screenshot-to-code"
+}
