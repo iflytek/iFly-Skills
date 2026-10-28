@@ -33,6 +33,20 @@ class ConfigCheckTest(unittest.TestCase):
         self.values.update(COZE_CN_BACKEND_BASE_URL="https://api.coze.cn", COZE_CN_BACKEND_API_KEY="test-secret")
         self.assertEqual(len(CHECK.validate(self.values, "cn", True)[1]), 2)
 
+    def test_backend_address_uses_the_export_rules_and_redacts_invalid_values(self):
+        for address in ("https://files.example.local", "https://backend.example:0",
+                        "https://backend.example/../proxy", "https://backend.example/v1/artifacts",
+                        "https://backend.example?private-token=test-secret"):
+            self.values["COZE_CN_BACKEND_BASE_URL"] = address
+            errors = CHECK.validate(self.values, "cn")[1]
+            self.assertTrue(errors)
+            self.assertNotIn("test-secret", str(errors))
+            self.assertNotIn(address, str(errors))
+        self.values["COZE_CN_BACKEND_BASE_URL"] = "https://backend.example:8443/proxy/"
+        config, errors = CHECK.validate(self.values, "cn")
+        self.assertEqual(errors, [])
+        self.assertEqual(config["BACKEND_BASE_URL"], "https://backend.example:8443/proxy")
+
     def test_quoted_values_and_duplicate_key_errors_do_not_leak(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / ".env"

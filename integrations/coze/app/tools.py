@@ -46,7 +46,7 @@ DESCRIPTIONS = {
     "iflytek-video-translate": {
         "create_task": ("Submit a video for translation", "Accept a public HTTPS MP4 up to 128 MiB. Query get_task and inspect any waiting_input stage before confirming."),
         "get_task": ("Query video translation", "Return the current stage for this workspace's task. Output details and artifacts are returned only after success; waiting_input does not include transcript contents."),
-        "confirm_transcript": ("Confirm video transcript", "Accept the provider transcript unchanged when the task is waiting_input; this tool does not preview or edit subtitles."),
+        "confirm_transcript": ("Confirm video transcript", "Accept the provider transcript unchanged only when upstream_status is waiting_transcript_confirmation or waiting_manual_intervention_segment. The refinement stage requires provider-side review; this tool does not preview or edit subtitles."),
     },
     "iflytek-voiceclone-tts": {
         "get_training_text": ("Get voice training text", "Choose a returned text segment and record its exact contents. Arbitrary transcripts cannot replace the provider text."),

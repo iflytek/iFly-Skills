@@ -295,6 +295,69 @@ def test_training_upload_submit_and_resource_ownership(service):
     assert denied.status_code == 404
 
 
+@pytest.mark.parametrize("stage", ["waiting_transcript_confirmation", "waiting_manual_intervention_segment"])
+def test_video_review_confirmation_completion_and_deduplication(service, monkeypatch, stage):
+    client, runtime, runner = service
+    video = "iflytek-video-translate"
+    upstream_stage = "waiting_parsing"
+    confirm_error = None
+
+    async def run(skill, action, payload, **kwargs):
+        nonlocal upstream_stage
+        runner.calls.append((skill, action, payload))
+        if action == "create_task":
+            return {"status": "running", "upstream_id": "private-video-id", "result": {"upstream_status": upstream_stage}}
+        if action == "get_task":
+            return {"status": "waiting_input" if upstream_stage == stage else "succeeded",
+                    "result": {"upstream_status": upstream_stage, "details": {}, "artifacts": []}}
+        if action == "confirm_transcript":
+            if confirm_error:
+                raise ServiceError(confirm_error)
+            assert payload["upstream_id"] == "private-video-id"
+            upstream_stage = "completed"
+            return {"status": "running", "result": {"upstream_status": "transcript_confirmed"}}
+        raise AssertionError(action)
+
+    monkeypatch.setattr(runner, "call", run)
+    body = {"request_id": "video-create", "video_url": "https://example.test/video.mp4"}
+    created = post(client, video, "create_task", body).json()
+    job = created["job_id"]
+    assert post(client, video, "create_task", body).json() == created
+    assert len(runner.calls) == 1
+    assert post(client, video, "confirm_transcript", {"request_id": "too-early", "job_id": job}).status_code == 409
+    upstream_stage = stage
+    age(runtime, job)
+    waiting = client.get(path(video, "get_task"), params={"job_id": job}, headers=HEADERS).json()
+    assert waiting["status"] == "waiting_input"
+    assert client.get(path(video, "get_task"), params={"job_id": job}, headers={"X-API-Key": OTHER_KEY}).status_code == 404
+    confirm = {"request_id": "video-confirm", "job_id": job}
+    confirm_error = ErrorCode.UPSTREAM_QUOTA_EXCEEDED
+    rejected = post(client, video, "confirm_transcript", confirm)
+    assert rejected.status_code == 502 and rejected.json()["error"]["code"] == "UPSTREAM_QUOTA_EXCEEDED"
+    assert runtime.tasks.get_for_principal(job, CN).status == "waiting_input"
+    confirm_error = None
+    confirm["request_id"] = "video-confirm-retry"
+    assert post(client, video, "confirm_transcript", confirm).json()["status"] == "running"
+    count = len(runner.calls)
+    assert post(client, video, "confirm_transcript", confirm).json()["status"] == "running"
+    assert len(runner.calls) == count
+    assert post(client, video, "confirm_transcript", {**confirm, "request_id": "duplicate"}).status_code == 409
+    age(runtime, job)
+    result = client.get(path(video, "get_task"), params={"job_id": job}, headers=HEADERS).json()
+    assert result["status"] == "succeeded" and "private-video-id" not in json.dumps(result)
+
+
+def test_video_refinement_cannot_be_confirmed_with_the_transcript_tool(service, monkeypatch):
+    client, runtime, runner = service
+    video = "iflytek-video-translate"
+    created = runtime.tasks.create_or_reuse(CN, video, "create_task", request_id="refine", payload={}).record
+    record = runtime.tasks.acquire(created.task_id, "synthetic-owner")
+    runtime.tasks.save(record.task_id, "synthetic-owner", status="waiting_input", upstream_id="private-video-id",
+                       result={"upstream_status": "waiting_manual_intervention_refine"})
+    result = post(client, video, "confirm_transcript", {"request_id": "wrong-stage", "job_id": record.task_id})
+    assert result.status_code == 409 and not runner.calls
+
+
 def test_local_job_worker_completes_and_clears_private_input(service):
     client, runtime, runner = service
     skill = "iflytek-contract-intelligence-review"
@@ -318,7 +381,7 @@ def test_restart_preserves_queued_local_input_and_upstream_mapping(tmp_path):
     remote = store.create_or_reuse(CN, TRANSCRIPTION, "create_task", request_id="remote", payload={})
     store.acquire(remote.record.task_id, "owner")
     store.save(remote.record.task_id, "owner", status="running", upstream_id="remote-id")
-    running = store.claim_next("old-worker", local_only=True)
+    running = store.claim_next("old-worker")
     assert running.payload_json == '{"html": "private"}'
     queued = store.create_or_reuse(CN, "animated-sketch-diagram", "render_html_to_gif",
                                    request_id="not-started", payload={"html": "queued"}, persist_payload=True)
@@ -365,6 +428,60 @@ def test_expired_lease_cannot_write_results(tmp_path):
         store.save(job, "worker", status="succeeded", result={})
     assert store.expire() == 1
     assert store.get_for_principal(job, CN).status == "submission_unknown"
+
+
+@pytest.mark.parametrize("outcome", ["result", "error"])
+def test_expired_local_worker_lease_preserves_queue_progress(tmp_path, outcome):
+    skill = "iflytek-contract-intelligence-review"
+
+    class ExpiredRunner(FakeRunner):
+        async def call(self, skill, action, payload, **kwargs):
+            if payload["request_id"] == "expired":
+                with runtime.tasks._connect() as db:
+                    db.execute("UPDATE tasks SET lease_until = 0 WHERE request_id = 'expired'")
+                if outcome == "error":
+                    raise ServiceError(ErrorCode.TIMEOUT)
+            return await super().call(skill, action, payload, **kwargs)
+
+    runtime = Runtime(RuntimeConfig(tmp_path), runner=ExpiredRunner())
+
+    async def check():
+        await runtime.start()
+        try:
+            first = await runtime.execute(CN, skill, "review", {"request_id": "expired", "file_url": "https://example.test/one.txt"})
+            next_job = await runtime.execute(CN, skill, "review", {"request_id": "next", "file_url": "https://example.test/two.txt"})
+            async with asyncio.timeout(3):
+                while runtime.tasks.get_for_principal(next_job["job_id"], CN).status != "succeeded":
+                    await asyncio.sleep(.01)
+            record = runtime.tasks.get_for_principal(first["job_id"], CN)
+            assert record.status == "failed" and record.error_code == "TIMEOUT" and record.payload_json is None
+            assert record.result_json is None and record.lease_owner is None
+            assert not runtime._worker.done()
+        finally:
+            await runtime.close()
+
+    asyncio.run(check())
+
+
+def test_shutdown_releases_coordinator_lock_even_when_worker_failed(tmp_path):
+    runtime = Runtime(RuntimeConfig(tmp_path), runner=FakeRunner())
+
+    async def failed_worker():
+        raise RuntimeError("test worker failure")
+
+    runtime._work = failed_worker
+
+    async def check():
+        await runtime.start()
+        await asyncio.sleep(0)
+        with pytest.raises(RuntimeError, match="test worker failure"):
+            await runtime.close()
+        assert runtime._lock_file is None
+        replacement = Runtime(runtime.config, runner=FakeRunner())
+        await replacement.start()
+        await replacement.close()
+
+    asyncio.run(check())
 
 
 def test_second_coordinator_cannot_recover_live_work(service):

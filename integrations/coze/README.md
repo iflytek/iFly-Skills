@@ -4,7 +4,7 @@
 
 一个部署实例为 11 项 Skill 提供共享后端，可选择启用国内站、国际站或两站。各部署使用自己的配置和数据目录；同一实例内按站点分别配置工作空间和访问密钥。项目提供源码、插件规范与部署说明，不提供统一运营的公共服务；服务器、域名／证书、存储维护及讯飞调用费用由部署方承担。
 
-服务提供 11 个 Skill、24 个工具，地址为 `/v1/skills/<skill-id>/<action>`，并提供每 Skill 一份 OpenAPI 3.0.3 规范。使用前需配置相应业务凭证及运行环境；缺少依赖的工具返回 `DEPENDENCY_UNAVAILABLE`。插件通过对应站点的官方控制台导入、调试和发布。
+服务提供 11 个 Skill、24 个工具，地址为 `/v1/skills/<skill-id>/<action>`，并提供每 Skill 一份 OpenAPI 3.0.3 规范。使用前需配置相应业务凭证及运行环境；缺少依赖的工具返回 `DEPENDENCY_UNAVAILABLE`。插件通过官方控制台导入、调试和发布，完整流程见[插件接入与发布说明](./PUBLISHING.md)。
 
 ## 使用条件
 
@@ -12,7 +12,7 @@
 - [uv](https://docs.astral.sh/uv/)
 - 自行准备的服务运行环境，以及可从目标 Coze 站点访问的 HTTPS 域名和证书（本地调试可先使用 HTTP）
 - 目标站点的 Coze 工作空间及 API 插件创建、调试和发布权限
-- 启用能力所需的讯飞服务凭证
+- 在[讯飞控制台](https://console.xfyun.cn)注册并为启用能力开通服务、准备额度及相应凭证；注册账号不等于所有能力均已授权
 
 ## 配置
 
@@ -25,7 +25,7 @@
 | `COZE_<SITE>_BACKEND_API_KEY` | 插件访问本服务的独立密钥，长度 32～256 个无空格 ASCII 可打印字符 |
 | `COZE_<SITE>_ALLOWED_SKILLS` | 允许该站点调用的 Skill ID，使用逗号分隔 |
 | `COZE_<SITE>_API_BASE_URL` | 国内使用 `https://api.coze.cn`，国际使用 `https://api.coze.com` |
-| `COZE_<SITE>_API_TOKEN` | 对应站点的平台令牌，仅用于可选的工作空间只读检查 |
+| `COZE_<SITE>_API_TOKEN` | 可选，仅用于本站工作空间只读检查；普通部署和控制台发布无需填写 |
 | `COZE_<SITE>_BACKEND_BASE_URL` | 部署后供插件访问的 HTTPS 服务地址；本地运行时可留空 |
 | `IFLY_APP_ID`／`IFLY_API_KEY`／`IFLY_API_SECRET` | 原子 Skill 的讯飞业务凭证，须分别开通所需服务 |
 | `IFLY_CONTRACT_APP_ID`／`IFLY_CONTRACT_API_KEY`／`IFLY_CONTRACT_API_SECRET` | 合同流程独立配置的业务凭证；用于图片 OCR、图片理解、翻译和 Spark v3.5（`generalv3.5`）审核 |
@@ -34,6 +34,8 @@
 | `COZE_RENDER_IMAGE` | 完成隔离验收后的本地渲染镜像 ID（`sha256:...`）；留空关闭 GIF 渲染 |
 
 其中 `<SITE>` 为 `CN` 或 `GLOBAL`。只需填写启用站点的运行配置；平台令牌仅在执行工作空间只读检查时提供，启动服务、导出规范和控制台发布均不需要平台令牌。当前每个部署实例在每站绑定一个工作空间。两个站点的账号、工作空间、平台令牌和服务密钥分别配置，服务密钥不能复用平台令牌。同一部署的后端域名可以共用，但必须能够从相应 Coze 站点访问。讯飞服务凭证只保存在服务端，不作为插件请求参数。
+
+`BACKEND_BASE_URL` 和 `COZE_ARTIFACT_BASE_URL` 均填写 HTTPS 服务域名及可选的代理路径前缀。不要填写 Coze 平台 API 域名、IP、具体工具／产物路径，或含凭证、查询串的地址；服务会自行拼接相应路由。
 
 服务通过 `COZE_ENV_FILE` 指定配置文件，或完全使用进程环境变量；进程环境变量优先，配置变更后需要重启服务。
 
@@ -55,6 +57,8 @@ COZE_ENV_FILE=integrations/coze/.env uv run --locked --project integrations/coze
 ```
 
 在自己的部署环境中通过反向代理或托管网关提供 HTTPS，并设置请求超时、文件大小和日志保留策略。插件接入前确定稳定的域名和路径前缀；本地 HTTP 地址仅用于调试。请保留仓库中的 `skills/` 目录，适配器从固定位置加载原始脚本及资源。
+
+正式部署请按[服务器与域名部署说明](./deploy/README.md)准备域名和证书、填写配置、启动并检查服务。Docker Compose 适用于除 GIF 外的工具；需要 GIF 时，使用说明中的 [Linux 直接运行方式](./deploy/README.md#启用-giflinux-直接运行)。
 
 当前使用 SQLite 和本地产物存储，**每个数据目录只运行一个服务进程**，不要设置多个 Uvicorn worker。服务默认每个工作空间每分钟 60 次请求、最多 2 个同时执行的调用，实例最多 4 个。本地审核和渲染一次只处理一个任务，最多保留 32 个排队或运行中的任务；单任务执行最多 600 秒，含排队总计最多 900 秒。例如前一个任务耗时 600 秒，紧随其后的任务最多只剩约 300 秒执行时间；队列容量不代表能在期限内完成的任务数量。
 
@@ -82,20 +86,22 @@ X-API-Key: <对应站点的 COZE_<SITE>_BACKEND_API_KEY>
 
 服务端根据密钥绑定的站点、工作空间和允许能力进行授权，请求参数不能切换站点或工作空间。错误响应统一包含 `error.code`、`error.message`、`error.retryable` 和 `trace_id`；响应头同时返回 `X-Trace-Id`，可用于排查问题。
 
+部署后可运行 `scripts/check_deployment.py --site cn --all-tools` 或 `--site global --all-tools`，按本站配置检查 HTTPS、认证及全部启用工具的路由，包括无需上游调用的内置发音人列表。命令不调用收费上游，完整执行方式见[部署说明](./deploy/README.md#构建启动与检查)。检查通过不代表业务权限、真实结果或 Coze 调试已通过。
+
 ## Coze 接入
 
 1. 部署并启动服务，验证 HTTPS 健康检查；填写目标站点的 `BACKEND_BASE_URL`。文件结果及上游取样还需配置 `COZE_ARTIFACT_BASE_URL`，确保对应的 `/v1/artifacts/...` 路由可从 Coze 和所用上游服务访问。
 2. 按下节生成指向本次部署的 OpenAPI 文件，在自己的目标工作空间创建基于已有服务的 API 插件，每个 Skill 导入对应文件。
 3. 为插件工具配置 `X-API-Key` 请求头，使用目标站点的服务密钥。
-4. 逐项调试工具，确认请求参数、响应字段和文件地址符合文档后发布，再从智能体／工作流验证调用。只启用已具备运行条件并完成验证的能力。
+4. 按[接入与发布说明](./PUBLISHING.md)逐项调试工具，确认请求参数、响应字段和文件地址符合文档后发布，再从智能体／工作流验证调用。需要公共分发时，由该服务的部署方另行申请商店上架。只启用已具备运行条件并完成验证的能力。
 
 每个部署方创建指向自己后端的插件实例。国内站和国际站分别使用各自的工作空间、插件记录和服务密钥；插件 ID、发布版本与部署地址应对应保存，不能复用其他部署或站点的记录。
 
-国内站的[导入规则](https://docs.coze.cn/guides_import.md)规定插件 URL 导入后不可修改；更换域名或公共前缀时需重新创建插件并更新智能体／工作流引用。同一地址下的更新可沿用原插件，并按平台要求调试、发布及更新引用。国际站的导入和更新行为需单独核对。
+国内站的[导入规则](https://docs.coze.cn/guides_import.md)和[国际站导入规则](https://docs.coze.com/guides/plugin_import)均规定插件 URL 导入后不可修改；更换域名或公共前缀时需重新创建插件并更新智能体／工作流引用。同一地址下的更新可沿用原插件，并按本站平台要求调试、发布及更新引用。
 
 ### 生成 OpenAPI 文件
 
-[schemas/](./schemas/) 包含 11 份可复现的 JSON 规范，来自服务使用的同一路由和请求／响应模型。仓库版本使用 `https://backend.example.com` 示例域名；导入前须生成实际部署地址对应的文件。安装时保留默认的开发依赖组，导出工具会在写文件前执行 OpenAPI 3.0 校验，不启动服务或调用讯飞／Coze API。
+[schemas/](./schemas/) 包含 11 份 JSON 插件文件，仓库版本使用 `https://backend.example.com` 示例域名。导入前，按下面的命令生成自己服务地址对应的文件。安装时保留默认依赖；导出命令会校验文件，不调用讯飞或 Coze 服务。
 
 在仓库根目录执行，分别读取 `.env` 中的 `COZE_CN_BACKEND_BASE_URL` 与 `COZE_GLOBAL_BACKEND_BASE_URL`：
 
@@ -104,7 +110,7 @@ uv run --locked --project integrations/coze --python 3.13 python -B integrations
 uv run --locked --project integrations/coze --python 3.13 python -B integrations/coze/scripts/export_openapi.py --site global
 ```
 
-文件分别生成到 `integrations/coze/output/schemas/cn/` 和 `global/`，文件名为 `<skill-id>.json`。这些部署产物由 Git 忽略；导出仅使用所选站点的后端地址，不将令牌、服务密钥或工作空间值写入规范，也不会在该站地址为空时回退到另一个站点。配置另存时可添加 `--env-file <配置文件路径>`，必须同时指定 `--site`；缺失地址会提示需要填写的配置项。
+文件分别生成到 `integrations/coze/output/schemas/cn/` 和 `global/`，文件名为 `<skill-id>.json`。文件使用所选站点的服务地址，保存在 Git 忽略目录中，不包含密钥或工作空间信息。配置另存时，添加 `--env-file <配置文件路径>` 并指定 `--site`；缺失地址会提示需要填写的配置项。
 
 也可以显式指定后端地址而不读取配置文件：
 
@@ -160,7 +166,7 @@ Content-Type: application/json
 
 ## 文件与能力限制
 
-输入文件使用可下载的公开 HTTPS URL，不支持本地路径或直接传入 Coze `file_id`。下载校验 DNS、实际连接地址和每次重定向，阻断内网地址及环境代理；文件还须通过实际编码检查，不能只修改扩展名。图片只接收 PNG／JPEG，最多 4 MiB；PDF 最多 32 MiB；转写 MP3 和视频 MP4 最多 128 MiB。训练样本只接收单声道 WAV（16 bit）或 MP3，采样率至少 24 kHz、时长不超过 40 秒、最多 3 MiB，并须与所选训练文本一致。这些是后端接入上限，服务商限制仍需满足。
+输入文件使用可下载的公网 HTTPS URL，不支持本地路径、内网地址或直接传入 Coze `file_id`。文件的实际格式需要符合要求，修改扩展名不能转换格式。图片只接收 PNG／JPEG，最多 4 MiB；PDF 最多 32 MiB；转写 MP3 和视频 MP4 最多 128 MiB。训练样本只接收单声道 WAV（16 bit）或 MP3，采样率至少 24 kHz、时长不超过 40 秒、最多 3 MiB，并须与所选训练文本一致。这些是后端接入上限，服务商限制仍需满足。
 
 极速转写使用固定的 `language=zh_cn`、`accent=mandarin`、`domain=pro_ost_ed` 参数组合，服务自动识别中英文；英文录音也使用该组合。图片 OCR 的 `format` 可选 `json`、`markdown`、`json,markdown`，分别返回结构化 `json`、`markdown` 或两者。PDF 的已知服务商 HTTP 产物地址仅通过经验证的 HTTPS 对应地址下载，不回退到 HTTP。
 
@@ -170,20 +176,13 @@ Content-Type: application/json
 
 合同支持 UTF-8 TXT／Markdown、DOCX（包含表格）、PDF、PNG／JPEG，不支持旧 `.doc`；最多 20 MiB、8 页 PDF，提取后最多 4000 字符，超限需先拆分。`quick`／`standard`／`deep` 沿用原 Skill 的规则范围并进行模型审核；`deep`、英文合同或 `need_translation=true` 会生成英文译文摘要，必要阶段失败即任务失败。结果区分规则检查和模型推断；模型风险的证据必须是原文连续引用，不匹配的条目移入 `model_review.uncertain_items` 并生成建议，标记需人工复核，其他有效结果和报告仍保留。未测量的置信度为空。`output_format` 可选 `markdown`、`json`、`both`。
 
-训练适配器使用验证证书的 HTTPS，拒绝重定向；克隆合成使用验证证书的 WSS。部署前需按[声音复刻文档](https://www.xfyun.cn/doc/spark/voiceclone.html)准备录音，并核对实际账号的训练和合成权限。启用各插件前，需用部署账号确认对应服务的业务权限和调用结果。
+训练适配器使用验证证书的 HTTPS，拒绝重定向；克隆合成使用验证证书的 WSS。部署前需按[声音复刻文档](https://www.xfyun.cn/doc/spark/voiceclone.html)准备录音，并核对实际账号的训练和合成权限。视频查询将 `waiting_transcript_confirmation`／`waiting_manual_intervention_segment` 映射为待字幕确认；`waiting_manual_intervention_refine` 为上游翻译审核阶段，须在服务商支持的审核入口处理后继续查询，不能用 `confirm_transcript` 代替。服务商取消的任务作为失败返回。视频最终产物及各服务的业务权限和媒体结果，需用实际账号完成联调后启用相应插件。
 
 ## GIF 隔离运行环境
 
 GIF 只支持 HTML／SVG／CSS 绘图和 CSS 动画，不接收脚本、事件处理器、外部资源或本地文件引用。上限为 256 KiB HTML、2000 个元素、1600×1200、25 fps、5 秒、2 倍缩放，并受 1.2 亿像素帧预算约束。
 
-需要 Linux Docker 容器运行环境及支持 Dockerfile 专用忽略文件的 BuildKit 构建器。构建上下文只包含渲染代码、字体和许可证，排除凭证及本地数据。在仓库根目录构建：
-
-```sh
-docker buildx build --load -f integrations/coze/deploy/render/Dockerfile -t ifly-coze-render .
-docker image inspect --format '{{.Id}}' ifly-coze-render
-```
-
-完成实际 GIF 生成、网络／文件隔离、超时回收验收后，将输出的镜像 ID 填入 `COZE_RENDER_IMAGE`。调用时固定禁用网络、只读根文件系统、非 root 用户、无宿主目录挂载，并限制 CPU、内存、进程及临时磁盘；不向容器传递业务凭证。浏览器禁用页面脚本和外部请求，操作系统隔离由容器提供。未配置时不会退回宿主机直接渲染。
+GIF 需要 Linux 和本机 Docker。按[部署说明](./deploy/README.md#启用-giflinux-直接运行)构建渲染镜像，将得到的镜像 ID 填入 `COZE_RENDER_IMAGE`，完成一次生成、查询和下载检查后启用。渲染在独立容器中运行，限制资源并关闭网络，不传入讯飞凭证。
 
 ## 工作空间检查
 
@@ -198,4 +197,6 @@ uv run --locked --project integrations/coze --python 3.13 python -B integrations
 
 ## 当前服务边界
 
-平台令牌仅用于可选的工作空间只读检查，普通插件调用不需要将平台令牌传给本服务。OpenAPI 3.0.3 导出和规范校验已提供；各部署仍须在两站分别核对导入兼容性、真实工具调用，以及控制台发布后的智能体／工作流调用。
+部署方维护服务、域名和证书，在 Coze 控制台完成导入、调试和工作空间发布，再按需申请商店上架。国内和国际站分别操作，详细步骤见[发布说明](./PUBLISHING.md)。商店插件固定调用部署时配置的地址；使用自有服务器时创建对应的插件。
+
+服务认证由部署方在 Coze 中配置 `X-API-Key`，调用者无需填写讯飞凭证，费用统一归部署方的讯飞账号。同一插件调用者共享已授权能力和用量上限。上架前需确认服务权限、额度、真实工具结果和持续运行安排，并填写实际的数据处理说明；最终以平台审核为准。

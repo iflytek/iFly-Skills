@@ -1,0 +1,29 @@
+{
+	auto_https off
+	# Request logs can contain service keys or expiring artifact URLs.
+	log default {
+		exclude http.log.access http.log.error
+	}
+	servers {
+		protocols h1 h2
+		timeouts {
+			read_header 10s
+			read_body 30s
+			idle 2m
+		}
+	}
+}
+
+# Supply a publicly trusted certificate for COZE_PUBLIC_HOST before starting.
+https://{$COZE_PUBLIC_HOST}:8443 {
+	tls /etc/coze-tls/fullchain.pem /etc/coze-tls/privkey.pem
+	request_body {
+		max_size 2MB
+	}
+	reverse_proxy backend:8000 {
+		transport http {
+			dial_timeout 5s
+			response_header_timeout 660s
+		}
+	}
+}

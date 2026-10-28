@@ -7,17 +7,15 @@ It never creates/publishes resources or prints tokens or workspace names/IDs.
 import argparse
 import hashlib
 import io
-import ipaddress
 import json
 from pathlib import Path
 import subprocess
 import sys
 import urllib.error
-import urllib.parse
 import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from app.config import read_config
+from app.config import backend_url, read_config
 
 
 BASES = {"cn": "https://api.coze.cn", "global": "https://api.coze.com"}
@@ -36,21 +34,9 @@ def validate(values, site, require_backend=False):
         errors.append(f"{prefix}API_TOKEN contains whitespace")
     if config["BACKEND_BASE_URL"]:
         try:
-            url = urllib.parse.urlsplit(config["BACKEND_BASE_URL"])
-            host = url.hostname or ""
-            valid = (url.scheme == "https" and "." in host and not url.username
-                     and not url.password and not url.query and not url.fragment
-                     and host not in {"api.coze.cn", "api.coze.com"})
-            _ = url.port
-            try:
-                ipaddress.ip_address(host)
-                valid = False
-            except ValueError:
-                pass
+            config["BACKEND_BASE_URL"] = backend_url(config["BACKEND_BASE_URL"])
         except ValueError:
-            valid = False
-        if not valid:
-            errors.append(f"{prefix}BACKEND_BASE_URL must be an HTTPS service domain without credentials/query/fragment")
+            errors.append(f"{prefix}BACKEND_BASE_URL must be an HTTPS service domain with an optional proxy prefix")
     other = "GLOBAL" if site == "cn" else "CN"
     service_key = config["BACKEND_API_KEY"]
     if service_key and service_key == values.get(f"COZE_{other}_BACKEND_API_KEY"):

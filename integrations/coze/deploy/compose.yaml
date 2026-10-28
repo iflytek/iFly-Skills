@@ -1,0 +1,87 @@
+name: ifly-coze
+
+services:
+  backend:
+    image: ifly-coze-backend:${COZE_IMAGE_TAG:-local}
+    build:
+      context: ../../..
+      dockerfile: integrations/coze/deploy/Dockerfile
+      target: backend
+      args:
+        SOURCE_REVISION: ${COZE_SOURCE_REVISION:?Set the deployed source revision}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    user: "10001:10001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2
+    stop_grace_period: 45s
+    environment:
+      COZE_ENV_FILE: /run/coze/backend.env
+      COZE_DATA_DIR: /data
+    volumes:
+      - type: bind
+        source: ${COZE_DEPLOY_DIR:?Set an absolute private deployment directory}/runtime.env
+        target: /run/coze/backend.env
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${COZE_DEPLOY_DIR}/data
+        target: /data
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=1g
+    healthcheck:
+      test: [CMD, /app/integrations/coze/.venv/bin/python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).close()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+
+  proxy:
+    image: ifly-coze-proxy:${COZE_IMAGE_TAG:-local}
+    build:
+      context: ../../..
+      dockerfile: integrations/coze/deploy/Dockerfile
+      target: proxy
+    restart: unless-stopped
+    read_only: true
+    user: "10001:10001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: 0.5
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      COZE_PUBLIC_HOST: ${COZE_PUBLIC_HOST:?Set the public certificate hostname}
+    ports:
+      - "${COZE_HTTPS_PORT:-8443}:8443"
+    volumes:
+      - type: bind
+        source: ./Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+      - type: bind
+        source: ${COZE_DEPLOY_DIR}/tls
+        target: /etc/coze-tls
+        read_only: true
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /config:rw,noexec,nosuid,size=8m,uid=10001,gid=10001
+      - /data:rw,noexec,nosuid,size=8m,uid=10001,gid=10001
+      - /tmp:rw,noexec,nosuid,size=8m
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: "2"}

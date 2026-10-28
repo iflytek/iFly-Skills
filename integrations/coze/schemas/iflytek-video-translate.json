@@ -278,7 +278,7 @@
   "paths": {
     "/v1/skills/iflytek-video-translate/confirm_transcript": {
       "post": {
-        "description": "Accept the provider transcript unchanged when the task is waiting_input; this tool does not preview or edit subtitles. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
+        "description": "Accept the provider transcript unchanged only when upstream_status is waiting_transcript_confirmation or waiting_manual_intervention_segment. The refinement stage requires provider-side review; this tool does not preview or edit subtitles. HTTP 200 is a task snapshot, not proof of completion. Save job_id and query at least 5 seconds apart with bounded polling. Inspect status, result and error_code; do not automatically resubmit submission_unknown. Reuse request_id and identical parameters when retrying the same operation.",
         "operationId": "iflytek_video_translate__confirm_transcript",
         "requestBody": {
           "content": {

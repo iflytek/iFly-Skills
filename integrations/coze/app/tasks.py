@@ -190,15 +190,16 @@ class TaskStore:
         record = self._record(row)
         return record if self._same_scope(record, principal) else None
 
-    def claim_next(self, worker_id: str, *, now: float | None = None, lease_seconds: float = 60.0,
-                   local_only: bool = False) -> TaskRecord | None:
+    def claim_next(self, worker_id: str, *, now: float | None = None,
+                   lease_seconds: float = 60.0) -> TaskRecord | None:
+        """Claim persisted local work; upstream submissions are never queued here."""
         if not worker_id or not _REQUEST_ID.fullmatch(worker_id) or lease_seconds <= 0:
             raise ValueError("A valid worker ID and positive lease are required")
         timestamp = time.time() if now is None else now
         with self._connect() as connection:
-            candidate_query = ("SELECT * FROM tasks WHERE status = 'queued' AND lease_owner IS NULL"
-                               + (" AND action IN ('review', 'render_html_to_gif')" if local_only else "")
-                               + " ORDER BY created_at LIMIT 100")
+            candidate_query = """SELECT * FROM tasks WHERE status = 'queued' AND lease_owner IS NULL
+                               AND payload_json IS NOT NULL AND action IN ('review', 'render_html_to_gif')
+                               ORDER BY created_at LIMIT 100"""
             # Idle polls need no writer lock. Re-read candidates under the lock below.
             if connection.execute(candidate_query).fetchone() is None:
                 return None
@@ -260,67 +261,6 @@ class TaskStore:
                 (principal.site, principal.workspace_id, "iflytek-voiceclone-tts"),
             ).fetchall()
         return any(json.loads(row[0] or "{}").get("res_id") == resource_id for row in rows)
-
-    def renew_lease(self, task_id: str, worker_id: str, *, lease_seconds: float = 60.0,
-                    now: float | None = None) -> TaskRecord:
-        if not worker_id or lease_seconds <= 0:
-            raise ValueError("A valid worker ID and positive lease are required")
-        timestamp = time.time() if now is None else now
-        with self._connect() as connection:
-            changed = connection.execute(
-                "UPDATE tasks SET lease_until = ?, updated_at = ? WHERE task_id = ? AND status = 'running' AND lease_owner = ? AND (lease_until IS NULL OR lease_until > ?)",
-                (timestamp + lease_seconds, timestamp, task_id, worker_id, timestamp),
-            ).rowcount
-            row = connection.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
-        if not changed or row is None:
-            raise TaskStateError("The task lease is no longer valid.")
-        return self._record(row)
-
-    def set_upstream_id(self, task_id: str, worker_id: str, upstream_id: str) -> TaskRecord:
-        if not upstream_id or not isinstance(upstream_id, str):
-            raise ValueError("A non-empty upstream ID is required")
-        with self._connect() as connection:
-            changed = connection.execute(
-                "UPDATE tasks SET upstream_id = ?, updated_at = ? WHERE task_id = ? AND status = 'running' AND lease_owner = ?",
-                (upstream_id, time.time(), task_id, worker_id),
-            ).rowcount
-            row = connection.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
-        if not changed or row is None:
-            raise TaskStateError("The task is not owned by this worker.")
-        return self._record(row)
-
-    def complete(self, task_id: str, worker_id: str, *, result: Any = None, artifact_id: str | None = None,
-                 status: str = "succeeded") -> TaskRecord:
-        if status not in {"succeeded", "partially_succeeded", "waiting_input"}:
-            raise ValueError("The completion status is invalid")
-        result_json = None if result is None else json.dumps(result, ensure_ascii=False, sort_keys=True, allow_nan=False)
-        with self._connect() as connection:
-            now = time.time()
-            changed = connection.execute(
-                """UPDATE tasks SET status = ?, result_json = ?, artifact_id = ?, error_code = NULL,
-                   lease_owner = NULL, lease_until = NULL, updated_at = ?
-                   WHERE task_id = ? AND status = 'running' AND lease_owner = ?""",
-                (status, result_json, artifact_id, now, task_id, worker_id),
-            ).rowcount
-            row = connection.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
-        if not changed or row is None:
-            raise TaskStateError("The task is not owned by this worker.")
-        return self._record(row)
-
-    def fail(self, task_id: str, worker_id: str, error_code: str, *, uncertain_submission: bool = False) -> TaskRecord:
-        if not error_code or any(char.isspace() for char in error_code):
-            raise ValueError("A safe error code is required")
-        status = "submission_unknown" if uncertain_submission else "failed"
-        with self._connect() as connection:
-            now = time.time()
-            changed = connection.execute(
-                "UPDATE tasks SET status = ?, error_code = ?, lease_owner = NULL, lease_until = NULL, updated_at = ? WHERE task_id = ? AND status = 'running' AND lease_owner = ?",
-                (status, error_code, now, task_id, worker_id),
-            ).rowcount
-            row = connection.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
-        if not changed or row is None:
-            raise TaskStateError("The task is not owned by this worker.")
-        return self._record(row)
 
     def recover_after_restart(self, *, now: float | None = None) -> int:
         """Fail abandoned local work and mark remote work uncertain; never resubmit."""

@@ -88,15 +88,17 @@ class Runtime:
         self._worker = asyncio.create_task(self._work())
 
     async def close(self):
-        if self._worker:
-            self._worker.cancel()
-            try:
-                await self._worker
-            except asyncio.CancelledError:
-                pass
-        if self._lock_file:
-            self._lock_file.close()
-            self._lock_file = None
+        try:
+            if self._worker:
+                self._worker.cancel()
+                try:
+                    await self._worker
+                except asyncio.CancelledError:
+                    pass
+        finally:
+            if self._lock_file:
+                self._lock_file.close()
+                self._lock_file = None
 
     @asynccontextmanager
     async def admission(self, principal):
@@ -180,8 +182,14 @@ class Runtime:
     def save_failure(self, record, owner, error, *, local=False):
         code = error.code if isinstance(error, ServiceError) else ErrorCode.INTERNAL_ERROR
         uncertain = not local and code not in REJECTED
-        return self.tasks.save(record.task_id, owner, status="submission_unknown" if uncertain else "failed",
-                               result=json.loads(record.result_json) if record.result_json else None, error_code=str(code))
+        try:
+            return self.tasks.save(record.task_id, owner, status="submission_unknown" if uncertain else "failed",
+                                   result=json.loads(record.result_json) if record.result_json else None, error_code=str(code))
+        except TaskStateError:
+            if not local:
+                raise
+            # Keep stale workers from writing, without stopping the local queue.
+            self.tasks.expire()
 
     async def create(self, principal, skill, action, payload):
         # Fingerprint input before downloading; a retry must reuse the same stable URL and parameters.
@@ -247,7 +255,8 @@ class Runtime:
         valid = (parent.status == "waiting_input" and parent.upstream_id and (
             action == "upload_sample" and result.get("stage") == "created"
             or action == "submit_training" and result.get("stage") == "sample_uploaded"
-            or action == "confirm_transcript" and result.get("upstream_status") == "waiting_transcript_confirmation"))
+            or action == "confirm_transcript" and result.get("upstream_status") in {
+                "waiting_transcript_confirmation", "waiting_manual_intervention_segment"}))
         if not valid:
             self.tasks.save(parent.task_id, owner, status=parent.status, result=result, error_code=parent.error_code)
             self.tasks.save(receipt_record.task_id, owner, status="failed", error_code="CONFLICT")
@@ -279,7 +288,7 @@ class Runtime:
                     self.artifacts.cleanup()
                 next_maintenance = now + MAINTENANCE_INTERVAL_SECONDS
             owner = uuid4().hex
-            record = self.tasks.claim_next(owner, lease_seconds=660, local_only=True)
+            record = self.tasks.claim_next(owner, lease_seconds=660)
             if record is None:
                 await asyncio.sleep(0.25)
                 continue
