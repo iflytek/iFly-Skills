@@ -1,0 +1,41 @@
+name: Claude Plugin Check
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths:
+      - '.claude-plugin/**'
+      - 'skills/**'
+      - '.github/workflows/claude-plugin-check.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: claude-plugin-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Claude Plugin Validate
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Validate marketplace, plugin, and skills
+        run: |
+          npx --yes @anthropic-ai/claude-code@latest plugin validate . --strict
+          npx --yes @anthropic-ai/claude-code@latest plugin validate ./skills --strict
