@@ -1,7 +1,7 @@
 # iFly-Skills 🚀
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![CLA Assistant](https://img.shields.io/badge/CLA-Assistant-green.svg)](CLA.md)
+[![CLA Assistant](https://img.shields.io/badge/CLA-Assistant-green.svg)](https://cla-assistant.io/iflytek/iFly-Skills)
 
 [English](README.md) | [中文](README_zh.md)
 
@@ -74,7 +74,7 @@ npm 包 [@iflytekopensource/n8n-nodes-iflytek-skills](https://www.npmjs.com/pack
 4. 推送至分支 (`git push origin feature/new-skill`)。
 5. 提交一个 Pull Request。
 
-**注意：** 当您提交 Pull Request 时，我们的 CLA Assistant 机器人会自动要求您签署 [贡献者许可协议 (CLA)](CLA.md)。请按照机器人的提示完成 PR 流程。
+**注意：** 当您提交 Pull Request 时，我们的 CLA Assistant 机器人会自动要求您签署 [贡献者许可协议 (CLA)](https://cla-assistant.io/iflytek/iFly-Skills)。请按照机器人的提示完成 PR 流程。
 
 为避免 Fork 场景下的 Pull Request 出现与贡献内容无关的 `signatures/version1/cla.json` 变更和合并冲突，CLA 签名信息会存储在独立的远端签名仓库中，而不是回写到当前代码仓库。
 
