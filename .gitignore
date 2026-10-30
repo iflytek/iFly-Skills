@@ -9,6 +9,8 @@ build/
 .venv/
 venv/
 env/
+.pytest_cache/
+.ruff_cache/
 
 # Environment & secrets
 .env
