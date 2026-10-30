@@ -3,12 +3,18 @@ name: Python Check
 on:
   pull_request:
     paths:
+      - 'docs/recipes/translate-and-proofread.md'
+      - 'docs/zh/recipes/translate-and-proofread.md'
+      - 'tests/test_translation_recipe.py'
       - 'tests/iflytek_voiceclone_tts/**'
       - 'tests/iflytek_speed_transcription/**'
       - "skills/**/*.py"
   push:
     branches: [main]
     paths:
+      - 'docs/recipes/translate-and-proofread.md'
+      - 'docs/zh/recipes/translate-and-proofread.md'
+      - 'tests/test_translation_recipe.py'
       - 'tests/iflytek_voiceclone_tts/**'
       - 'tests/iflytek_speed_transcription/**'
       - "skills/**/*.py"
@@ -41,3 +47,6 @@ jobs:
 
       - name: Run Voice Clone TTS offline regression tests
         run: python -m unittest discover -s tests/iflytek_voiceclone_tts -p 'test_*.py' -v
+
+      - name: Run translation recipe offline regression tests
+        run: python -m unittest discover -s tests -p 'test_translation_recipe.py' -v
