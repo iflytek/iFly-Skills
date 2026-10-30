@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -69,6 +69,17 @@ export async function stageRuntime({
   if (catalog.schemaVersion !== 1 || !Array.isArray(catalog.skills)) {
     throw new Error('Unsupported skill catalog');
   }
+  const deferredSkills = catalog.deferredSkills ?? [];
+  if (!Array.isArray(deferredSkills) || deferredSkills.some((skill) =>
+    !skill || typeof skill.id !== 'string' || typeof skill.reason !== 'string' || !skill.reason.trim())) {
+    throw new Error('Deferred skills must have an id and a non-empty reason');
+  }
+  const directories = (await readdir(path.join(repositoryRoot, 'skills'), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  const classified = [...catalog.skills, ...deferredSkills].map(({ id }) => id).sort();
+  if (classified.length !== directories.length || classified.some((id, index) => id !== directories[index])) {
+    throw new Error('Skill catalog must classify every repository skill exactly once');
+  }
   const ids = new Set();
   const classes = new Set();
   const names = new Set();
@@ -134,6 +145,7 @@ export async function stageRuntime({
       renderer: { node: '>=24 <25', playwrightCore: '1.61.1', browser: 'administrator-installed Chromium', ffmpeg: 'administrator-installed' },
     },
     skills: catalog.skills,
+    deferredSkills,
     files: Object.fromEntries([...files].sort(([a], [b]) => a.localeCompare(b))
       .map(([name, bytes]) => [name, { sha256: sha256(bytes), bytes: bytes.length }])),
   };
